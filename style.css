@@ -1,0 +1,167 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    font-family: 'Arial', sans-serif;
+}
+
+.game-container {
+    position: relative;
+    width: 1200px;
+    height: 900px;
+    background: linear-gradient(to bottom, #000033, #0a0a1a);
+    border: 3px solid #00ffff;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+}
+
+.spaceship {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    left: 380px;
+    top: 280px;
+    background: linear-gradient(135deg, #00ff00, #00cc00);
+    clip-path: polygon(50% 0%, 100% 100%, 50% 85%, 0% 100%);
+    box-shadow: 0 0 10px #00ff00;
+    transform-origin: center center;
+}
+
+.enemy {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #ff0000, #cc0000);
+    clip-path: polygon(50% 100%, 0% 0%, 50% 15%, 100% 0%);
+    box-shadow: 0 0 10px #ff0000;
+    transform-origin: center center;
+}
+
+.elite-enemy {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #ffaa00, #ff6600);
+    clip-path: polygon(50% 100%, 0% 0%, 50% 15%, 100% 0%);
+    box-shadow: 0 0 15px #ffaa00, 0 0 25px rgba(255, 170, 0, 0.5);
+    transform-origin: center center;
+    animation: elite-pulse 1s infinite;
+}
+
+@keyframes elite-pulse {
+    0%, 100% { box-shadow: 0 0 15px #ffaa00, 0 0 25px rgba(255, 170, 0, 0.5); }
+    50% { box-shadow: 0 0 20px #ffaa00, 0 0 35px rgba(255, 170, 0, 0.8); }
+}
+
+.aggressive-enemy {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #ff00ff, #cc00ff);
+    clip-path: polygon(50% 100%, 0% 0%, 50% 15%, 100% 0%);
+    box-shadow: 0 0 15px #ff00ff, 0 0 25px rgba(255, 0, 255, 0.5);
+    transform-origin: center center;
+    animation: aggressive-pulse 0.6s infinite;
+}
+
+@keyframes aggressive-pulse {
+    0%, 100% { box-shadow: 0 0 15px #ff00ff, 0 0 25px rgba(255, 0, 255, 0.5); }
+    50% { box-shadow: 0 0 20px #ff00ff, 0 0 35px rgba(255, 0, 255, 0.8); }
+}
+
+.bullet {
+    position: absolute;
+    width: 6px;
+    height: 12px;
+    border-radius: 3px;
+}
+
+.player-bullet {
+    background: #00ff00;
+    box-shadow: 0 0 8px #00ff00;
+}
+
+.enemy-bullet {
+    background: #ff0000;
+    box-shadow: 0 0 8px #ff0000;
+}
+
+.meteor {
+    position: absolute;
+    background: radial-gradient(circle at 30% 30%, #888, #333);
+    border-radius: 50%;
+    box-shadow: inset -2px -2px 4px rgba(0, 0, 0, 0.8), 0 0 15px rgba(255, 140, 0, 0.4);
+}
+
+.planet {
+    position: absolute;
+    background: radial-gradient(circle at 35% 35%, #4a90e2, #1a3a5c);
+    border-radius: 50%;
+    box-shadow: inset -3px -3px 6px rgba(0, 0, 0, 0.6), 0 0 20px rgba(74, 144, 226, 0.6), 
+                inset 2px 2px 4px rgba(255, 255, 255, 0.1);
+}
+
+.nebula-cloud {
+    position: absolute;
+    background: 
+        radial-gradient(circle at 30% 40%, rgba(138, 43, 226, 0.4) 0%, transparent 50%),
+        radial-gradient(circle at 70% 60%, rgba(75, 0, 130, 0.4) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(147, 112, 219, 0.3) 0%, transparent 60%);
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+    box-shadow: 
+        inset -5px -5px 15px rgba(0, 0, 0, 0.5),
+        0 0 30px rgba(138, 43, 226, 0.3),
+        inset 2px 2px 8px rgba(200, 150, 255, 0.2);
+    opacity: 0.7;
+    animation: nebula-drift 8s ease-in-out infinite;
+    filter: blur(8px);
+}
+
+@keyframes nebula-drift {
+    0%, 100% { 
+        border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+    }
+    50% { 
+        border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    }
+}
+
+.info {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    color: #00ffff;
+    font-size: 14px;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 10px;
+    border: 1px solid #00ffff;
+    border-radius: 4px;
+}
+
+.info p {
+    margin: 3px 0;
+}
+
+.game-over {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 48px;
+    color: #ff0000;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.9);
+    padding: 40px;
+    border: 3px solid #ff0000;
+    border-radius: 10px;
+    box-shadow: 0 0 30px #ff0000;
+    z-index: 1000;
+}
