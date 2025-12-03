@@ -67,7 +67,7 @@ function checkCollisions() {
             if (enemyDestroyed) {
                 // Luo räjähdys vihollisen sijainnissa (koko riippuu tyypistä)
                 const explosionSizeMap = {
-                    'Enemy': 'small',
+                    'WeakEnemy': 'small',
                     'EliteEnemy': 'medium',
                     'AggressiveEnemy': 'medium'
                 };
@@ -258,7 +258,7 @@ function checkCollisions() {
                 if (destroyed) {
                     // Luo räjähdys vihollisen sijainnissa
                     const explosionSizeMap = {
-                        'Enemy': 'small',
+                        'WeakEnemy': 'small',
                         'EliteEnemy': 'medium',
                         'AggressiveEnemy': 'medium'
                     };
@@ -326,7 +326,7 @@ function checkCollisions() {
             if (distance(enemy.x + 20, enemy.y + 20, planet.x, planet.y) < planet.radius + 20) {
                 // Luo räjähdys vihollisen sijainnissa
                 const explosionSizeMap = {
-                    'Enemy': 'small',
+                    'WeakEnemy': 'small',
                     'EliteEnemy': 'medium',
                     'AggressiveEnemy': 'medium'
                 };
@@ -579,7 +579,7 @@ function checkCollisions() {
                 if (destroyed) {
                     // Määrittele pisteet vihollisen tyypin perusteella
                     const scoreMap = {
-                        'Enemy': 10,
+                        'WeakEnemy': 10,
                         'EliteEnemy': 25,
                         'AggressiveEnemy': 30
                     };
@@ -587,7 +587,7 @@ function checkCollisions() {
 
                     // Luo räjähdys vihollisen sijainnissa
                     const explosionSizeMap = {
-                        'Enemy': 'small',
+                        'WeakEnemy': 'small',
                         'EliteEnemy': 'medium',
                         'AggressiveEnemy': 'medium'
                     };

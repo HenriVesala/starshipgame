@@ -1,0 +1,33 @@
+// Elite-vihollisen konfiguraatio
+const eliteEnemyConfig = {
+    // Liikkeen konfiguraatio
+    enterSpeed: 120,            // Maksimi nopeus (pikselit/sekunti)
+    chaseMode: 'distance-based', // Älykäs jahtaaminen etäisyyden mukaan
+    wallBehavior: 'clamp',      // Pysyy pelialueella
+    turnSpeed: 120,             // Maksimi kääntymiskulma (astetta/sekunti) - nopeampi kuin normaali
+    minSpeed: 30,               // Minimi nopeus kun hyvin lähellä pelaajaa
+    slowdownStartDistance: 400, // Aloita hidastaminen tällä etäisyydellä (pikselit)
+    slowdownStopDistance: 200,  // Lopeta hidastaminen tällä etäisyydellä (pikselit)
+
+    // Ampumisen konfiguraatio
+    shootCooldownMin: 0.5,      // Pienin ampumisaikaväli (sekunti) - ampuu nopeammin!
+    shootCooldownMax: 1.33,     // Suurin ampumisaikaväli (sekunti)
+
+    // Ulkoasu
+    enemyClassName: 'elite-enemy',  // CSS-luokan nimi
+
+    // Kestopisteet
+    health: 300,                // Vihollisen kestopisteet - vahvempi kuin normaali
+
+    // Spawnaus
+    spawnIntervalMin: 10000,    // Pienin spawnausväli (millisekuntia)
+    spawnIntervalMax: 20000,    // Suurin spawnausväli (millisekuntia)
+    maxCount: 2                 // Maksimimäärä samanaikaisia vihollisia
+};
+
+// Elite Enemy class - intelligent enemy that maintains shooting angle and distance
+class EliteEnemy extends BaseEnemy {
+    constructor(gameContainer) {
+        super(gameContainer, eliteEnemyConfig);
+    }
+}

@@ -25,7 +25,7 @@ let explosions = [];
 
 // Enemy spawning configuration
 const enemySpawnConfigs = [
-    { type: Enemy, spawnIntervalMin: normalEnemyConfig.spawnIntervalMin, spawnIntervalMax: normalEnemyConfig.spawnIntervalMax, maxCount: normalEnemyConfig.maxCount, label: 'regular' },
+    { type: WeakEnemy, spawnIntervalMin: weakEnemyConfig.spawnIntervalMin, spawnIntervalMax: weakEnemyConfig.spawnIntervalMax, maxCount: weakEnemyConfig.maxCount, label: 'regular' },
     { type: EliteEnemy, spawnIntervalMin: eliteEnemyConfig.spawnIntervalMin, spawnIntervalMax: eliteEnemyConfig.spawnIntervalMax, maxCount: eliteEnemyConfig.maxCount, label: 'elite' },
     { type: AggressiveEnemy, spawnIntervalMin: aggressiveEnemyConfig.spawnIntervalMin, spawnIntervalMax: aggressiveEnemyConfig.spawnIntervalMax, maxCount: aggressiveEnemyConfig.maxCount, label: 'aggressive' }
 ];
@@ -225,7 +225,7 @@ function spawnBlackHole() {
 function spawnHealthOrb(enemy) {
     // Determine health value based on enemy type
     const healthValueMap = {
-        'Enemy': 10,
+        'WeakEnemy': 10,
         'EliteEnemy': 20,
         'AggressiveEnemy': 50
     };
