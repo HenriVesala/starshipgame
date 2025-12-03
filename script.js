@@ -1,9 +1,19 @@
+// Game States
+const GameState = {
+    MENU: 'MENU',
+    PLAYING: 'PLAYING',
+    PAUSED: 'PAUSED',
+    GAME_OVER: 'GAME_OVER'
+};
+
+let currentGameState = GameState.MENU;
+
 // Delta time tracking for frame-rate independent movement
 let lastFrameTime = performance.now();
 let deltaTime = 0;
 
 // Pelaajan alus
-let player = new Player();
+let player = null;
 
 // DOM elements
 const spaceship = document.getElementById('spaceship');
@@ -89,6 +99,11 @@ document.addEventListener('keyup', (e) => {
 
 // Update position based on input
 function updatePosition(dt) {
+    // Don't update if player doesn't exist or game is not playing
+    if (!player || currentGameState !== GameState.PLAYING) {
+        return;
+    }
+
     // Jos pelaaja kutistuu, älä anna liikkua tai ampua
     if (player.isShrinking) {
         return;
@@ -253,6 +268,11 @@ function updateHealthBar() {
 
 // Render spaceship and UI
 function render() {
+    // Don't render if player doesn't exist
+    if (!player) {
+        return;
+    }
+
     spaceship.style.left = player.x + 'px';
     spaceship.style.top = player.y + 'px';
 
@@ -290,6 +310,7 @@ function endGame() {
     gameContainer.appendChild(gameOverDiv);
     // Stop the game loop by setting a flag
     player.gameOver = true;
+    currentGameState = GameState.GAME_OVER;
 }
 
 function restartGame() {
@@ -310,6 +331,21 @@ function restartGame() {
     nebulaClouds.forEach(cloud => cloud.destroy());
     explosions.forEach(explosion => explosion.destroy());
 
+    // Start the game from the beginning
+    startGame();
+}
+
+// Start game function - transitions from MENU to PLAYING state
+function startGame() {
+    currentGameState = GameState.PLAYING;
+
+    // Hide menu
+    const menuScreen = document.getElementById('menuScreen');
+    menuScreen.classList.add('hidden');
+
+    // Initialize player
+    player = new Player();
+
     // Reset game state
     player.x = 580;
     player.y = 430;
@@ -327,7 +363,7 @@ function restartGame() {
     keys.ArrowRight = false;
     keys.Space = false;
 
-    // Clear arrays
+    // Clear all arrays
     playerBullets = [];
     enemyBullets = [];
     enemies = [];
@@ -337,7 +373,7 @@ function restartGame() {
     blackHoles = [];
     healthOrbs = [];
     explosions = [];
-    
+
     // Reset spawn timers
     for (const spawner of enemySpawners) {
         spawner.timer = 0;
@@ -356,20 +392,18 @@ function restartGame() {
     spaceship.style.transform = `rotate(${player.angle}deg)`;
     positionDisplay.textContent = `Score: ${player.score}`;
 
-    // Spawn new enemies
+    // Spawn initial enemies
     for (let i = 0; i < 1; i++) {
-        spawnEnemy(enemySpawners[0]); // Spawn regular enemies initially
+        spawnEnemy(enemySpawners[0]);
     }
-
-    // Restart game loop
-    lastFrameTime = performance.now();
-    requestAnimationFrame(gameLoop);
 }
 
-// Start the game
-for (let i = 0; i < 1; i++) {
-    spawnEnemy(enemySpawners[0]); // Spawn regular enemies initially
-}
-// Initialize lastFrameTime before first gameLoop call
+// Menu button event listener
+document.addEventListener('DOMContentLoaded', () => {
+    const startButton = document.getElementById('startButton');
+    startButton.addEventListener('click', startGame);
+});
+
+// Initialize lastFrameTime and start game loop
 lastFrameTime = performance.now();
 requestAnimationFrame(gameLoop);

@@ -1,6 +1,14 @@
 // Pelin pääsilmukka - päivittää kaiken pelin logiikan joka ruudussa
 function gameLoop(currentTime) {
-    if (player.gameOver) return;
+    // Always continue the loop, but only update game logic when PLAYING
+    requestAnimationFrame(gameLoop);
+
+    // Only run game logic when in PLAYING state
+    if (currentGameState !== GameState.PLAYING) {
+        return;
+    }
+
+    if (player && player.gameOver) return;
 
     // Laske delta-aika sekunteina
     deltaTime = (currentTime - lastFrameTime) / 1000;
@@ -253,5 +261,4 @@ function gameLoop(currentTime) {
 
     checkCollisions();
     render();
-    requestAnimationFrame(gameLoop);
 }
