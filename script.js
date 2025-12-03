@@ -24,36 +24,32 @@ let healthOrbs = [];
 
 // Enemy spawning configuration
 const enemySpawnConfigs = [
-    { type: Enemy, timerMin: 3000, timerMax: 8000, maxCount: 3, label: 'regular' },
-    { type: EliteEnemy, timerMin: 10000, timerMax: 20000, maxCount: 2, label: 'elite' },
-    { type: AggressiveEnemy, timerMin: 12000, timerMax: 25000, maxCount: 2, label: 'aggressive' }
+    { type: Enemy, spawnIntervalMin: normalEnemyConfig.spawnIntervalMin, spawnIntervalMax: normalEnemyConfig.spawnIntervalMax, maxCount: normalEnemyConfig.maxCount, label: 'regular' },
+    { type: EliteEnemy, spawnIntervalMin: eliteEnemyConfig.spawnIntervalMin, spawnIntervalMax: eliteEnemyConfig.spawnIntervalMax, maxCount: eliteEnemyConfig.maxCount, label: 'elite' },
+    { type: AggressiveEnemy, spawnIntervalMin: aggressiveEnemyConfig.spawnIntervalMin, spawnIntervalMax: aggressiveEnemyConfig.spawnIntervalMax, maxCount: aggressiveEnemyConfig.maxCount, label: 'aggressive' }
 ];
 
 const enemySpawners = enemySpawnConfigs.map(config => ({
     ...config,
     timer: 0,
-    nextSpawnTime: Math.random() * (config.timerMax - config.timerMin) + config.timerMin
+    nextSpawnTime: Math.random() * (config.spawnIntervalMax - config.spawnIntervalMin) + config.spawnIntervalMin
 }));
 
 // Meteor spawning
 let meteorSpawnTimer = 0;
-const meteorSpawnInterval = Math.random() * 5000 + 5000; // 5-10 seconds in ms
+const meteorSpawnInterval = Math.random() * (meteorConfig.spawnIntervalMax - meteorConfig.spawnIntervalMin) + meteorConfig.spawnIntervalMin;
 
 // Planet spawning
 let planetSpawnTimer = 0;
-const planetSpawnIntervalMin = 15000; // 15 seconds
-const planetSpawnIntervalMax = 25000; // 25 seconds
-let nextPlanetSpawnTime = Math.random() * (planetSpawnIntervalMax - planetSpawnIntervalMin) + planetSpawnIntervalMin;
+let nextPlanetSpawnTime = Math.random() * (planetConfig.spawnIntervalMax - planetConfig.spawnIntervalMin) + planetConfig.spawnIntervalMin;
 
 // Nebula cloud spawning
 let nebulaCloudSpawnTimer = 0;
-const nebulaCloudSpawnInterval = Math.random() * 8000 + 12000; // 12-20 seconds in ms
+const nebulaCloudSpawnInterval = Math.random() * (nebulaCloudConfig.spawnIntervalMax - nebulaCloudConfig.spawnIntervalMin) + nebulaCloudConfig.spawnIntervalMin;
 
 // Black hole spawning
 let blackHoleSpawnTimer = 0;
-const blackHoleSpawnIntervalMin = 20000; // 20 seconds
-const blackHoleSpawnIntervalMax = 35000; // 35 seconds
-let nextBlackHoleSpawnTime = Math.random() * (blackHoleSpawnIntervalMax - blackHoleSpawnIntervalMin) + blackHoleSpawnIntervalMin;
+let nextBlackHoleSpawnTime = Math.random() * (blackHoleConfig.spawnIntervalMax - blackHoleConfig.spawnIntervalMin) + blackHoleConfig.spawnIntervalMin;
 
 // Input tracking
 const keys = {
@@ -171,7 +167,7 @@ function spawnPlanet() {
     if (planets.length < tier.maxPlanets) {
         planets.push(new Planet(gameContainer));
         planetSpawnTimer = 0;
-        nextPlanetSpawnTime = Math.random() * (planetSpawnIntervalMax - planetSpawnIntervalMin) + planetSpawnIntervalMin;
+        nextPlanetSpawnTime = Math.random() * (planetConfig.spawnIntervalMax - planetConfig.spawnIntervalMin) + planetConfig.spawnIntervalMin;
     }
 }
 
@@ -188,7 +184,7 @@ function spawnBlackHole() {
     if (blackHoles.length < tier.maxBlackHoles) {
         blackHoles.push(new BlackHole(gameContainer));
         blackHoleSpawnTimer = 0;
-        nextBlackHoleSpawnTime = Math.random() * (blackHoleSpawnIntervalMax - blackHoleSpawnIntervalMin) + blackHoleSpawnIntervalMin;
+        nextBlackHoleSpawnTime = Math.random() * (blackHoleConfig.spawnIntervalMax - blackHoleConfig.spawnIntervalMin) + blackHoleConfig.spawnIntervalMin;
     }
 }
 
@@ -295,14 +291,14 @@ function restartGame() {
     // Reset spawn timers
     for (const spawner of enemySpawners) {
         spawner.timer = 0;
-        spawner.nextSpawnTime = Math.random() * (spawner.timerMax - spawner.timerMin) + spawner.timerMin;
+        spawner.nextSpawnTime = Math.random() * (spawner.spawnIntervalMax - spawner.spawnIntervalMin) + spawner.spawnIntervalMin;
     }
     meteorSpawnTimer = 0;
     planetSpawnTimer = 0;
-    nextPlanetSpawnTime = Math.random() * (planetSpawnIntervalMax - planetSpawnIntervalMin) + planetSpawnIntervalMin;
+    nextPlanetSpawnTime = Math.random() * (planetConfig.spawnIntervalMax - planetConfig.spawnIntervalMin) + planetConfig.spawnIntervalMin;
     nebulaCloudSpawnTimer = 0;
     blackHoleSpawnTimer = 0;
-    nextBlackHoleSpawnTime = Math.random() * (blackHoleSpawnIntervalMax - blackHoleSpawnIntervalMin) + blackHoleSpawnIntervalMin;
+    nextBlackHoleSpawnTime = Math.random() * (blackHoleConfig.spawnIntervalMax - blackHoleConfig.spawnIntervalMin) + blackHoleConfig.spawnIntervalMin;
 
     // Reset spaceship position and render
     spaceship.style.left = player.x + 'px';

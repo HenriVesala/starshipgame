@@ -3,20 +3,24 @@ const nebulaCloudConfig = {
     // Koon konfiguraatio
     width: 400,              // Leveys pikseleissä
     height: 400,             // Korkeus pikseleissä
-    
+
     // Liikkeen konfiguraatio
     speedMin: 20,            // Pienin nopeus (pikselit/sekunti)
     speedMax: 40,            // Suurin nopeus (pikselit/sekunti)
-    
+
     // Hidastuskonfiguraatio
     slowdownStrength: 0.5,  // Hidastuskerroin pelaajalle ja vihollisille (50% normaalista)
     bulletSlowdownStrength: 0.8,  // Hidastuskerroin ammuksille (80% normaalista - vähemmän hidastusta)
-    
+
     // Vaikutuksen konfiguraatio
     affectsPlayer: true,     // Vaikuttaa pelaajaan
     affectsEnemies: true,    // Vaikuttaa vihollisiin
     affectsBullets: true,    // Vaikuttaa ammuksiin
-    affectsMeteors: true     // Vaikutus meteoriitteihin
+    affectsMeteors: true,    // Vaikutus meteoriitteihin
+
+    // Spawnaus
+    spawnIntervalMin: 12000, // Pienin spawnausväli (millisekuntia)
+    spawnIntervalMax: 20000  // Suurin spawnausväli (millisekuntia)
 };
 
 // Tähtisumu-luokka

@@ -13,7 +13,11 @@ const meteorConfig = {
     rotationSpeedMax: 120,      // Maksimi kiertokulma-nopeus (astetta/sekunti)
 
     // Vahinko
-    collisionDamage: 200        // Vahinko joka meteoriitti aiheuttaa törmätessään
+    collisionDamage: 200,       // Vahinko joka meteoriitti aiheuttaa törmätessään
+
+    // Spawnaus
+    spawnIntervalMin: 5000,     // Pienin spawnausväli (millisekuntia)
+    spawnIntervalMax: 10000     // Suurin spawnausväli (millisekuntia)
 };
 
 // Meteor class

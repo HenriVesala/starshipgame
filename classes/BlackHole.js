@@ -17,7 +17,11 @@ const blackHoleConfig = {
 
     // Painovoiman väheneminen
     gravityFalloffMin: 0.2,   // Vähintään painovoima reunalla (20% täydestä)
-    gravityFalloffMax: 0.9    // Vähenemisalue
+    gravityFalloffMax: 0.9,   // Vähenemisalue
+
+    // Spawnaus
+    spawnIntervalMin: 20000,  // Pienin spawnausväli (millisekuntia)
+    spawnIntervalMax: 35000   // Suurin spawnausväli (millisekuntia)
 };
 
 // Black Hole class with stronger gravity field than Planet

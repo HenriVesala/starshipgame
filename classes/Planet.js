@@ -6,19 +6,23 @@ const planetConfig = {
 
     // Vahinko
     collisionDamage: 500,     // Vahinko joka planeetta aiheuttaa törmätessään
-    
+
     // Liikkeen konfiguraatio
     speedMin: 9.36,          // Pienin nopeus (pikselit/sekunti)
     speedMax: 18.75,         // Suurin nopeus (pikselit/sekunti)
-    
+
     // Painovoiman konfiguraatio
     gravityRadiusMultiplier: 6,   // Painovoimakentän säde = säde * tämä arvo
     baseGravityStrength: 80,      // Painovoiman perusvoimakkuus aluksille/vihollisille (px/s²)
     bulletGravityMultiplier: 4,  // Ammukset kokevat tämän kerrannaisen painovoimaa
-    
+
     // Painovoiman väheneminen
     gravityFalloffMin: 0.1,  // Vähintään painovoima reunalla (10% täydestä)
-    gravityFalloffMax: 0.95   // Vähenemisalue (1.0 - 0.1 = 0.9)
+    gravityFalloffMax: 0.95,  // Vähenemisalue (1.0 - 0.1 = 0.9)
+
+    // Spawnaus
+    spawnIntervalMin: 15000,  // Pienin spawnausväli (millisekuntia)
+    spawnIntervalMax: 25000   // Suurin spawnausväli (millisekuntia)
 };
 
 // Planet class with gravity field

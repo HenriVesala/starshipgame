@@ -5,7 +5,12 @@ const normalEnemyConfig = {
     shootCooldownMin: 1.0,      // Pienin ampumisaikaväli (sekunti)
     shootCooldownMax: 2.67,     // Suurin ampumisaikaväli (sekunti)
     bounceEnabled: true,        // Kimpoaa seinistä
-    enemyClassName: 'enemy'     // CSS-luokan nimi
+    enemyClassName: 'enemy',    // CSS-luokan nimi
+
+    // Spawnaus
+    spawnIntervalMin: 3000,     // Pienin spawnausväli (millisekuntia)
+    spawnIntervalMax: 8000,     // Suurin spawnausväli (millisekuntia)
+    maxCount: 3                 // Maksimimäärä samanaikaisia vihollisia
 };
 
 // Enemy class - basic enemy that bounces around
