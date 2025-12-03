@@ -3,7 +3,7 @@
 
 const gameplayProgression = {
     // Score: 0 points
-    // 1 basic enemy max, no meteors, 1 planet, no nebula clouds
+    // 1 basic enemy max, no meteors, 1 planet, no nebula clouds, 1 black hole
     tier0: {
         minScore: 0,
         maxBasicEnemies: 1,
@@ -13,7 +13,8 @@ const gameplayProgression = {
         maxMeteors: 0,
         maxPlanets: 1,
         maxNebulaClouds: 1,
-        description: "Starting tier - 1 basic enemy, 1 planet"
+        maxBlackHoles: 1,
+        description: "Starting tier - 1 basic enemy, 1 planet, 1 black hole"
     },
 
     // Score: 30 points
@@ -27,6 +28,7 @@ const gameplayProgression = {
         maxMeteors: 1,
         maxPlanets: 1,
         maxNebulaClouds: 1,
+        maxBlackHoles: 1,
         description: "30 points - 1 meteor spawns"
     },
 
@@ -41,6 +43,7 @@ const gameplayProgression = {
         maxMeteors: 1,
         maxPlanets: 1,
         maxNebulaClouds: 1,
+        maxBlackHoles: 1,
         description: "50 points - 2 basic enemies allowed"
     },
 
@@ -55,6 +58,7 @@ const gameplayProgression = {
         maxMeteors: 1,
         maxPlanets: 1,
         maxNebulaClouds: 1,
+        maxBlackHoles: 1,
         description: "80 points - elite enemies appear"
     },
 
@@ -69,6 +73,7 @@ const gameplayProgression = {
         maxMeteors: 1,
         maxPlanets: 1,
         maxNebulaClouds: 1,
+        maxBlackHoles: 1,
         description: "100 points - up to 3 enemies"
     },
 
@@ -83,6 +88,7 @@ const gameplayProgression = {
         maxMeteors: 1,
         maxPlanets: 1,
         maxNebulaClouds: 1,
+        maxBlackHoles: 1,
         description: "120 points - aggressive enemies appear"
     },
 
@@ -97,6 +103,7 @@ const gameplayProgression = {
         maxMeteors: 2,
         maxPlanets: 1,
         maxNebulaClouds: 1,
+        maxBlackHoles: 1,
         description: "130 points - 2 meteors spawn, nebula clouds appear"
     },
 
@@ -111,6 +118,7 @@ const gameplayProgression = {
         maxMeteors: 3,
         maxPlanets: 1,
         maxNebulaClouds: 1,
+        maxBlackHoles: 1,
         description: "200+ points - no limits"
     }
 };
@@ -196,12 +204,29 @@ function updatePlanetSpawnerLimit(currentScore) {
  */
 function updateNebulaCloudSpawnerLimit(currentScore) {
     const tier = getCurrentGameplayTier(currentScore);
-    
+
     // If we exceed max nebula cloud count, remove extra clouds
     if (nebulaClouds.length > tier.maxNebulaClouds) {
         while (nebulaClouds.length > tier.maxNebulaClouds) {
             const nebulaCloud = nebulaClouds.pop();
             nebulaCloud.destroy();
+        }
+    }
+}
+
+/**
+ * Update black hole spawn limit based on current score
+ * Called from gameLoop to adjust black hole difficulty
+ * @param {number} currentScore - Current game score
+ */
+function updateBlackHoleSpawnerLimit(currentScore) {
+    const tier = getCurrentGameplayTier(currentScore);
+
+    // If we exceed max black hole count, remove extra black holes
+    if (blackHoles.length > tier.maxBlackHoles) {
+        while (blackHoles.length > tier.maxBlackHoles) {
+            const blackHole = blackHoles.pop();
+            blackHole.destroy();
         }
     }
 }

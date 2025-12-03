@@ -1,40 +1,59 @@
+// Meteoriitin konfiguraatio
+const meteorConfig = {
+    // Koon konfiguraatio
+    radiusMin: 20,              // Pienin säde pikseleissä
+    radiusMax: 40,              // Suurin säde pikseleissä
+
+    // Liikkeen konfiguraatio
+    speedMin: 75,               // Pienin nopeus (pikselit/sekunti)
+    speedMax: 112.5,            // Suurin nopeus (pikselit/sekunti) (75 + 37.5)
+
+    // Kiertokulma
+    rotationSpeedMin: -120,     // Minimi kiertokulma-nopeus (astetta/sekunti)
+    rotationSpeedMax: 120,      // Maksimi kiertokulma-nopeus (astetta/sekunti)
+
+    // Vahinko
+    collisionDamage: 200        // Vahinko joka meteoriitti aiheuttaa törmätessään
+};
+
 // Meteor class
 class Meteor {
     constructor(gameContainer) {
         this.gameContainer = gameContainer;
-        // Random size: 1-2 times player ship size (40px), so 40-80px diameter, 20-40px radius
-        this.radius = Math.random() * 20 + 20; // 20-40px radius
-        
-        // Random spawn position from screen edges
+        // Satunnainen koko konfiguraation rajoissa
+        this.radius = Math.random() * (meteorConfig.radiusMax - meteorConfig.radiusMin) + meteorConfig.radiusMin;
+        this.damage = meteorConfig.collisionDamage;
+
+        // Satunnainen spawnipaikka ruudun reunoilta
         const side = Math.floor(Math.random() * 4);
         switch(side) {
-            case 0: // Top
-                this.x = Math.random() * 1200;
+            case 0: // Ylhäältä
+                this.x = Math.random() * gameConfig.screenWidth;
                 this.y = -this.radius;
                 break;
-            case 1: // Bottom
-                this.x = Math.random() * 1200;
-                this.y = 900 + this.radius;
+            case 1: // Alhaalta
+                this.x = Math.random() * gameConfig.screenWidth;
+                this.y = gameConfig.screenHeight + this.radius;
                 break;
-            case 2: // Left
+            case 2: // Vasemmalta
                 this.x = -this.radius;
-                this.y = Math.random() * 900;
+                this.y = Math.random() * gameConfig.screenHeight;
                 break;
-            case 3: // Right
-                this.x = 1200 + this.radius;
-                this.y = Math.random() * 900;
+            case 3: // Oikealta
+                this.x = gameConfig.screenWidth + this.radius;
+                this.y = Math.random() * gameConfig.screenHeight;
                 break;
         }
 
-        // Random velocity: 75-150 pixels per second (was 1.25-2.5 per frame at 60fps)
-        const speed = Math.random() * 37.5 + 75;
+        // Satunnainen nopeus konfiguraation rajoissa
+        const speed = Math.random() * (meteorConfig.speedMax - meteorConfig.speedMin) + meteorConfig.speedMin;
         const angle = Math.random() * Math.PI * 2;
         this.vx = Math.cos(angle) * speed;
         this.vy = Math.sin(angle) * speed;
 
-        // Random rotation
+        // Satunnainen kiertokulma
         this.rotation = 0;
-        this.rotationSpeed = (Math.random() - 0.5) * 240; // degrees per second (was -2 to 2 per frame)
+        this.rotationSpeed = Math.random() * (meteorConfig.rotationSpeedMax - meteorConfig.rotationSpeedMin) + meteorConfig.rotationSpeedMin;
 
         this.element = document.createElement('div');
         this.element.className = 'meteor';
@@ -48,11 +67,11 @@ class Meteor {
         this.y += this.vy * dt;
         this.rotation += this.rotationSpeed * dt;
 
-        // Wrap around screen edges
-        if (this.x < -this.radius * 2) this.x = 1200 + this.radius;
-        if (this.x > 1200 + this.radius * 2) this.x = -this.radius;
-        if (this.y < -this.radius * 2) this.y = 900 + this.radius;
-        if (this.y > 900 + this.radius * 2) this.y = -this.radius;
+        // Kierrä näytön reunoilla
+        if (this.x < -this.radius * 2) this.x = gameConfig.screenWidth + this.radius;
+        if (this.x > gameConfig.screenWidth + this.radius * 2) this.x = -this.radius;
+        if (this.y < -this.radius * 2) this.y = gameConfig.screenHeight + this.radius;
+        if (this.y > gameConfig.screenHeight + this.radius * 2) this.y = -this.radius;
 
         this.render();
     }
@@ -68,7 +87,7 @@ class Meteor {
     }
 
     isOffscreen() {
-        return this.x < -this.radius * 2 || this.x > 1200 + this.radius * 2 ||
-               this.y < -this.radius * 2 || this.y > 900 + this.radius * 2;
+        return this.x < -this.radius * 2 || this.x > gameConfig.screenWidth + this.radius * 2 ||
+               this.y < -this.radius * 2 || this.y > gameConfig.screenHeight + this.radius * 2;
     }
 }

@@ -7,14 +7,37 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- SVG filter for black hole distortion effect -->
+    <svg style="position: absolute; width: 0; height: 0;">
+        <defs>
+            <filter id="blackHoleDistortion">
+                <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="3" result="turbulence" seed="2">
+                    <animate attributeName="baseFrequency"
+                             values="0.02;0.025;0.02"
+                             dur="3s"
+                             repeatCount="indefinite"/>
+                </feTurbulence>
+                <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="15" xChannelSelector="R" yChannelSelector="G"/>
+            </filter>
+        </defs>
+    </svg>
+
     <div class="game-container">
         <div class="spaceship" id="spaceship"></div>
         <div class="info">
             <p>Arrow Keys to Move | Space to Shoot</p>
             <p id="position">Score: 0</p>
         </div>
+        <div class="health-bar-container">
+            <div class="health-bar-label">HP</div>
+            <div class="health-bar-bg">
+                <div class="health-bar-fill" id="healthBar"></div>
+            </div>
+            <div class="health-bar-text" id="healthText">300/300</div>
+        </div>
     </div>
 
+    <script src="config.js"></script>
     <script src="classes/BaseEnemy.js"></script>
     <script src="classes/Bullet.js"></script>
     <script src="classes/Enemy.js"></script>
@@ -23,8 +46,12 @@
     <script src="classes/Meteor.js"></script>
     <script src="classes/Planet.js"></script>
     <script src="classes/NebulaCloud.js"></script>
+    <script src="classes/BlackHole.js"></script>
     <script src="classes/Player.js"></script>
+    <script src="classes/HealthOrb.js"></script>
+    <script src="collisions.js"></script>
     <script src="gameplay.js"></script>
+    <script src="gameLoop.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

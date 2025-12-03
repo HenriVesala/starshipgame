@@ -30,20 +30,20 @@ class NebulaCloud {
         const side = Math.floor(Math.random() * 4);
         switch(side) {
             case 0: // Ylhäältä
-                this.x = Math.random() * 1200;
+                this.x = Math.random() * gameConfig.screenWidth;
                 this.y = -this.height;
                 break;
             case 1: // Alhaalta
-                this.x = Math.random() * 1200;
-                this.y = 900 + this.height;
+                this.x = Math.random() * gameConfig.screenWidth;
+                this.y = gameConfig.screenHeight + this.height;
                 break;
             case 2: // Vasemmalta
                 this.x = -this.width;
-                this.y = Math.random() * 900;
+                this.y = Math.random() * gameConfig.screenHeight;
                 break;
             case 3: // Oikealta
-                this.x = 1200 + this.width;
-                this.y = Math.random() * 900;
+                this.x = gameConfig.screenWidth + this.width;
+                this.y = Math.random() * gameConfig.screenHeight;
                 break;
         }
 
@@ -66,10 +66,10 @@ class NebulaCloud {
         this.y += this.vy * dt;
 
         // Kierrä näytön reunoilla
-        if (this.x < -this.width * 2) this.x = 1200 + this.width;
-        if (this.x > 1200 + this.width * 2) this.x = -this.width;
-        if (this.y < -this.height * 2) this.y = 900 + this.height;
-        if (this.y > 900 + this.height * 2) this.y = -this.height;
+        if (this.x < -this.width * 2) this.x = gameConfig.screenWidth + this.width;
+        if (this.x > gameConfig.screenWidth + this.width * 2) this.x = -this.width;
+        if (this.y < -this.height * 2) this.y = gameConfig.screenHeight + this.height;
+        if (this.y > gameConfig.screenHeight + this.height * 2) this.y = -this.height;
 
         this.render();
     }
@@ -120,7 +120,7 @@ class NebulaCloud {
     }
 
     isOffscreen() {
-        return this.x < -this.width * 2 || this.x > 1200 + this.width * 2 ||
-               this.y < -this.height * 2 || this.y > 900 + this.height * 2;
+        return this.x < -this.width * 2 || this.x > gameConfig.screenWidth + this.width * 2 ||
+               this.y < -this.height * 2 || this.y > gameConfig.screenHeight + this.height * 2;
     }
 }

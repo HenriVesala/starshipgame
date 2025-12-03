@@ -3,20 +3,27 @@ const playerConfig = {
     // Koon konfiguraatio
     width: 40,                      // Leveys pikseleissä
     height: 40,                     // Korkeus pikseleissä
-    
+
     // Liikkeen konfiguraatio
     rotationSpeed: 200,             // Astetta/sekunti
     acceleration: 300,              // Pikselit/sekunnin²
     maxSpeed: 500,                  // Pikselit/sekunti
-    
+
     // Sijainti konfiguraatio
     startX: 580,                    // Aloituspaikka X
     startY: 430,                    // Aloituspaikka Y
     maxX: 1200 - 40,                // Maksimi X (ruudun leveys - leveys)
     maxY: 900 - 40,                 // Maksimi Y (ruudun korkeus - korkeus)
-    
+
     // Tähtisumun vaikutus
-    minVelocityInNebula: 120         // Minimi nopeus tähtisumassa (px/s)
+    minVelocityInNebula: 120,       // Minimi nopeus tähtisumassa (px/s)
+
+    // Kestopisteet ja vahinko
+    maxHealth: 300,                 // Pelaajan maksimi kestopisteet
+    collisionDamage: 200,           // Vahinko joka pelaaja aiheuttaa törmätessään
+
+    // Immuniteetti
+    invulnerabilityDuration: 0.3    // Immuniteettiaika sekunteina vahingon jälkeen
 };
 
 // Pelaajan alus -luokka
@@ -29,10 +36,50 @@ class Player {
         this.angle = 0;             // Kääntymiskulma (asteet)
         this.score = 0;
         this.gameOver = false;
+        this.health = playerConfig.maxHealth;
+        this.maxHealth = playerConfig.maxHealth;
+        this.isInvulnerable = false;
+        this.invulnerabilityTimer = 0;
+    }
+
+    // Ota vahinkoa
+    takeDamage(damage, isCollisionDamage = false) {
+        // Jos immuuni ja kyseessä törmäysvahinko, älä ota vahinkoa
+        if (isCollisionDamage && this.isInvulnerable) {
+            return false;
+        }
+
+        this.health -= damage;
+        if (this.health < 0) this.health = 0;
+
+        // Aktivoi immuniteetti vain törmäysvahingosta JA jos ei ole jo aktiivinen
+        // Tämä estää ajastimen nollautumisen jatkuvissa törmäyksissä
+        if (isCollisionDamage && this.health > 0 && !this.isInvulnerable) {
+            this.isInvulnerable = true;
+            this.invulnerabilityTimer = playerConfig.invulnerabilityDuration;
+        }
+
+        return this.health <= 0; // Palauta true jos alus tuhoutui
+    }
+
+    // Palauta kesto täyteen (esim. uuden pelin alkaessa)
+    resetHealth() {
+        this.health = this.maxHealth;
+        this.isInvulnerable = false;
+        this.invulnerabilityTimer = 0;
     }
 
     // Päivitä pelaajan asento ja nopeus
     update(dt, keys) {
+        // Päivitä immuniteetti-ajastin
+        if (this.isInvulnerable) {
+            this.invulnerabilityTimer -= dt;
+            if (this.invulnerabilityTimer <= 0) {
+                this.isInvulnerable = false;
+                this.invulnerabilityTimer = 0;
+            }
+        }
+
         // Kierrä alusta
         if (keys.ArrowLeft) {
             this.angle -= playerConfig.rotationSpeed * dt;

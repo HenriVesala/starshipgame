@@ -1,6 +1,8 @@
 // Vihollisten konfiguraatio
 const enemyConfig = {
-    minVelocityInNebula: 30  // Minimi nopeus tähtisumassa (px/s)
+    minVelocityInNebula: 30,  // Minimi nopeus tähtisumassa (px/s)
+    baseHealth: 100,          // Perus vihollisen kestopisteet
+    collisionDamage: 200      // Vahinko joka viholliset aiheuttavat törmätessään
 };
 
 // Base Enemy class - parent class for all enemy types
@@ -16,37 +18,41 @@ class BaseEnemy {
             shootCooldownMin: 1.0, // seconds (was 60 frames, 60/60 = 1 second)
             shootCooldownMax: 2.67, // seconds (was 160 frames, 160/60 = 2.67 seconds)
             bounceEnabled: true,
-            enemyClassName: 'enemy'
+            enemyClassName: 'enemy',
+            health: enemyConfig.baseHealth  // Default health
         };
-        
+
         this.config = { ...defaultConfig, ...spawnConfig };
+        this.health = this.config.health;
+        this.maxHealth = this.config.health;
         
-        // Spawn from screen edges
+        // Spawn ruudun reunoilta
         const side = Math.floor(Math.random() * 4);
-        const randomX = Math.random() * (1200 - 40);
-        const randomY = Math.random() * 900;
-        
+        const randomX = Math.random() * (gameConfig.screenWidth - gameConfig.playerWidth);
+        const randomY = Math.random() * gameConfig.screenHeight;
+        const spawnOffset = 50; // Kuinka kaukana ruudun ulkopuolella spawnaus tapahtuu
+
         switch(side) {
-            case 0: // Top
+            case 0: // Ylhäältä
                 this.x = randomX;
-                this.y = -50;
+                this.y = -spawnOffset;
                 this.vx = (Math.random() - 0.5) * 2;
                 this.vy = this.config.enterSpeed;
                 break;
-            case 1: // Bottom
+            case 1: // Alhaalta
                 this.x = randomX;
-                this.y = 900 + 50;
+                this.y = gameConfig.screenHeight + spawnOffset;
                 this.vx = (Math.random() - 0.5) * 2;
                 this.vy = -this.config.enterSpeed;
                 break;
-            case 2: // Left
-                this.x = -50;
+            case 2: // Vasemmalta
+                this.x = -spawnOffset;
                 this.y = randomY;
                 this.vx = this.config.enterSpeed;
                 this.vy = (Math.random() - 0.5) * 2;
                 break;
-            case 3: // Right
-                this.x = 1200 + 50;
+            case 3: // Oikealta
+                this.x = gameConfig.screenWidth + spawnOffset;
                 this.y = randomY;
                 this.vx = -this.config.enterSpeed;
                 this.vy = (Math.random() - 0.5) * 2;
@@ -65,9 +71,10 @@ class BaseEnemy {
         this.x += this.vx * dt;
         this.y += this.vy * dt;
 
-        // Check if fully entered game area
+        // Tarkista onko täysin tullut pelialueelle
         if (this.isEntering) {
-            if (this.x >= 0 && this.x <= 1200 - 40 && this.y >= 0 && this.y <= 900 - 40) {
+            if (this.x >= 0 && this.x <= gameConfig.screenWidth - gameConfig.playerWidth &&
+                this.y >= 0 && this.y <= gameConfig.screenHeight - gameConfig.playerHeight) {
                 this.isEntering = false;
             }
         }
@@ -82,10 +89,10 @@ class BaseEnemy {
 
         this.shootCooldown -= dt;
 
-        // Bounce off walls if enabled and not entering
+        // Kimppoa seinistä jos käytössä ja ei tulossa sisään
         if (!this.isEntering && this.config.bounceEnabled) {
-            if (this.x < 0 || this.x > 1200 - 40) this.vx *= -1;
-            if (this.y < 0 || this.y > 900 - 40) this.vy *= -1;
+            if (this.x < 0 || this.x > gameConfig.screenWidth - gameConfig.playerWidth) this.vx *= -1;
+            if (this.y < 0 || this.y > gameConfig.screenHeight - gameConfig.playerHeight) this.vy *= -1;
         }
 
         // Shoot
@@ -98,21 +105,23 @@ class BaseEnemy {
     }
 
     chasePlayer(playerX, playerY) {
-        const dx = playerX + 20 - (this.x + 20);
-        const dy = playerY + 20 - (this.y + 20);
+        const halfShipSize = gameConfig.playerWidth / 2;
+        const dx = playerX + halfShipSize - (this.x + halfShipSize);
+        const dy = playerY + halfShipSize - (this.y + halfShipSize);
         const distance = Math.sqrt(dx * dx + dy * dy);
-        
+
         if (distance > 0) {
             const dirX = dx / distance;
             const dirY = dy / distance;
-            
+
             this.vx = dirX * this.config.enterSpeed;
             this.vy = dirY * this.config.enterSpeed;
         }
     }
 
     shoot(enemyBullets) {
-        const bullet = new Bullet(this.gameContainer, this.x + 20, this.y + 40, this.angle, 'enemy');
+        const halfShipSize = gameConfig.playerWidth / 2;
+        const bullet = new Bullet(this.gameContainer, this.x + halfShipSize, this.y + gameConfig.playerHeight, this.angle, 'enemy');
         enemyBullets.push(bullet);
     }
 
@@ -120,6 +129,13 @@ class BaseEnemy {
         this.element.style.left = this.x + 'px';
         this.element.style.top = this.y + 'px';
         this.element.style.transform = `rotate(${this.angle + 180}deg)`;
+    }
+
+    // Ota vahinkoa
+    takeDamage(damage) {
+        this.health -= damage;
+        if (this.health < 0) this.health = 0;
+        return this.health <= 0; // Palauta true jos alus tuhoutui
     }
 
     destroy() {

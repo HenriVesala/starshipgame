@@ -1,34 +1,32 @@
-// Planeetan konfiguraatio
-const planetConfig = {
-    // Koon konfiguraatio
-    radiusMin: 60,            // Pienin säde pikseleissä
-    radiusMax: 110,           // Suurin säde pikseleissä
+// Mustan aukon konfiguraatio
+const blackHoleConfig = {
+    // Tapahtumahorisontin koko
+    eventHorizonRadius: 20,  // 40x40 pikseliä = 20px säde
 
-    // Vahinko
-    collisionDamage: 500,     // Vahinko joka planeetta aiheuttaa törmätessään
-    
+    // Visuaalisen vääristymän säde
+    distortionRadius: 100,   // Vääristymäkentän säde pikseleissä
+
     // Liikkeen konfiguraatio
-    speedMin: 9.36,          // Pienin nopeus (pikselit/sekunti)
-    speedMax: 18.75,         // Suurin nopeus (pikselit/sekunti)
-    
-    // Painovoiman konfiguraatio
-    gravityRadiusMultiplier: 6,   // Painovoimakentän säde = säde * tämä arvo
-    baseGravityStrength: 80,      // Painovoiman perusvoimakkuus aluksille/vihollisille (px/s²)
-    bulletGravityMultiplier: 4,  // Ammukset kokevat tämän kerrannaisen painovoimaa
-    
+    speedMin: 5,             // Pienin nopeus (pikselit/sekunti)
+    speedMax: 12,            // Suurin nopeus (pikselit/sekunti)
+
+    // Painovoiman konfiguraatio (vahvempi kuin planeetta)
+    gravityRadiusMultiplier: 15,   // Painovoimakentän säde = säde * tämä arvo (planeetta: 6)
+    baseGravityStrength: 150,      // Painovoiman perusvoimakkuus (planeetta: 80)
+    bulletGravityMultiplier: 5,    // Ammukset kokevat tämän kerrannaisen painovoimaa
+
     // Painovoiman väheneminen
-    gravityFalloffMin: 0.1,  // Vähintään painovoima reunalla (10% täydestä)
-    gravityFalloffMax: 0.95   // Vähenemisalue (1.0 - 0.1 = 0.9)
+    gravityFalloffMin: 0.2,   // Vähintään painovoima reunalla (20% täydestä)
+    gravityFalloffMax: 0.9    // Vähenemisalue
 };
 
-// Planet class with gravity field
-class Planet {
+// Black Hole class with stronger gravity field than Planet
+class BlackHole {
     constructor(gameContainer) {
         this.gameContainer = gameContainer;
-        // Size: random radius between config min and max
-        this.radius = Math.random() * (planetConfig.radiusMax - planetConfig.radiusMin) + planetConfig.radiusMin;
-        this.damage = planetConfig.collisionDamage;
-        
+        // Kiinteä tapahtumahorisontin koko
+        this.radius = blackHoleConfig.eventHorizonRadius;
+
         // Satunnainen spawnipaikka ruudun reunoilta
         const side = Math.floor(Math.random() * 4);
         switch(side) {
@@ -50,18 +48,29 @@ class Planet {
                 break;
         }
 
-        // Very slow movement: using config values (pixels per second)
-        const speed = Math.random() * (planetConfig.speedMax - planetConfig.speedMin) + planetConfig.speedMin;
+        // Hidas liike
+        const speed = Math.random() * (blackHoleConfig.speedMax - blackHoleConfig.speedMin) + blackHoleConfig.speedMin;
         const angle = Math.random() * Math.PI * 2;
         this.vx = Math.cos(angle) * speed;
         this.vy = Math.sin(angle) * speed;
 
-        // Gravity field radius: configured multiplier
-        this.gravityRadius = this.radius * planetConfig.gravityRadiusMultiplier;
-        this.gravityStrength = planetConfig.baseGravityStrength;
+        // Painovoimakentän säde: paljon suurempi kuin planeetoilla
+        this.gravityRadius = this.radius * blackHoleConfig.gravityRadiusMultiplier;
+        this.gravityStrength = blackHoleConfig.baseGravityStrength;
 
+        // Visuaalisen vääristymäkentän säde
+        this.distortionRadius = blackHoleConfig.distortionRadius;
+
+        // Create visual element for gravity field distortion
+        this.distortionField = document.createElement('div');
+        this.distortionField.className = 'black-hole-distortion';
+        this.distortionField.style.width = (this.distortionRadius * 2) + 'px';
+        this.distortionField.style.height = (this.distortionRadius * 2) + 'px';
+        gameContainer.appendChild(this.distortionField);
+
+        // Create visual element for event horizon
         this.element = document.createElement('div');
-        this.element.className = 'planet';
+        this.element.className = 'black-hole';
         this.element.style.width = (this.radius * 2) + 'px';
         this.element.style.height = (this.radius * 2) + 'px';
         gameContainer.appendChild(this.element);
@@ -81,7 +90,7 @@ class Planet {
     }
 
     applyGravity(obj, dt = 0.016) {
-        // Calculate distance from planet center to object
+        // Calculate distance from black hole center to object
         const dx = this.x - obj.x;
         const dy = this.y - obj.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -92,19 +101,17 @@ class Planet {
             const nx = dx / dist;
             const ny = dy / dist;
 
-            // Gravity strength depends on object type (using config values)
-            let baseGravityStrength = planetConfig.baseGravityStrength;
-            
-            // Bullets (playerBullets and enemyBullets) experience increased gravity
+            // Gravity strength depends on object type
+            let baseGravityStrength = blackHoleConfig.baseGravityStrength;
+
+            // Bullets experience increased gravity
             if (obj.hasOwnProperty('type') && (obj.type === 'player' || obj.type === 'enemy')) {
-                baseGravityStrength = planetConfig.baseGravityStrength * planetConfig.bulletGravityMultiplier;
+                baseGravityStrength = blackHoleConfig.baseGravityStrength * blackHoleConfig.bulletGravityMultiplier;
             }
-            
+
             // Gravity falls off from full strength at center to min at edge
-            // At dist = 0: factor = 1.0 (full strength)
-            // At dist = gravityRadius: factor = gravityFalloffMin
-            const distanceFactor = planetConfig.gravityFalloffMin + 
-                                  (1 - dist / this.gravityRadius) * planetConfig.gravityFalloffMax;
+            const distanceFactor = blackHoleConfig.gravityFalloffMin +
+                                  (1 - dist / this.gravityRadius) * blackHoleConfig.gravityFalloffMax;
             const gravityFactor = baseGravityStrength * distanceFactor;
 
             // Apply gravity acceleration to velocity
@@ -114,11 +121,17 @@ class Planet {
     }
 
     render() {
+        // Update distortion field position
+        this.distortionField.style.left = (this.x - this.distortionRadius) + 'px';
+        this.distortionField.style.top = (this.y - this.distortionRadius) + 'px';
+
+        // Update event horizon position
         this.element.style.left = (this.x - this.radius) + 'px';
         this.element.style.top = (this.y - this.radius) + 'px';
     }
 
     destroy() {
+        this.distortionField.remove();
         this.element.remove();
     }
 

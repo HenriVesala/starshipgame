@@ -9,6 +9,8 @@ let player = new Player();
 const spaceship = document.getElementById('spaceship');
 const positionDisplay = document.getElementById('position');
 const gameContainer = document.querySelector('.game-container');
+const healthBar = document.getElementById('healthBar');
+const healthText = document.getElementById('healthText');
 
 // Game objects arrays
 let enemies = [];
@@ -17,6 +19,8 @@ let enemyBullets = [];
 let meteors = [];
 let planets = [];
 let nebulaClouds = [];
+let blackHoles = [];
+let healthOrbs = [];
 
 // Enemy spawning configuration
 const enemySpawnConfigs = [
@@ -44,6 +48,12 @@ let nextPlanetSpawnTime = Math.random() * (planetSpawnIntervalMax - planetSpawnI
 // Nebula cloud spawning
 let nebulaCloudSpawnTimer = 0;
 const nebulaCloudSpawnInterval = Math.random() * 8000 + 12000; // 12-20 seconds in ms
+
+// Black hole spawning
+let blackHoleSpawnTimer = 0;
+const blackHoleSpawnIntervalMin = 20000; // 20 seconds
+const blackHoleSpawnIntervalMax = 35000; // 35 seconds
+let nextBlackHoleSpawnTime = Math.random() * (blackHoleSpawnIntervalMax - blackHoleSpawnIntervalMin) + blackHoleSpawnIntervalMin;
 
 // Input tracking
 const keys = {
@@ -82,6 +92,15 @@ document.addEventListener('keyup', (e) => {
 
 // Update position based on input
 function updatePosition(dt) {
+    // Päivitä immuniteetti-ajastin
+    if (player.isInvulnerable) {
+        player.invulnerabilityTimer -= dt;
+        if (player.invulnerabilityTimer <= 0) {
+            player.isInvulnerable = false;
+            player.invulnerabilityTimer = 0;
+        }
+    }
+
     // Rotation (scaled by dt for frame-independent speed)
     if (keys.ArrowLeft) {
         player.angle -= playerConfig.rotationSpeed * dt;
@@ -131,251 +150,6 @@ function updatePosition(dt) {
     }
 }
 
-// Collision detection
-function distance(x1, y1, x2, y2) {
-    return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
-}
-
-function checkCollisions() {
-    // Check enemy bullets hitting player
-    for (let i = enemyBullets.length - 1; i >= 0; i--) {
-        const bullet = enemyBullets[i];
-        if (distance(player.x + 20, player.y + 20, bullet.x, bullet.y) < 30) {
-            endGame();
-            return;
-        }
-    }
-
-    // Check player colliding with enemies (all types)
-    for (let i = enemies.length - 1; i >= 0; i--) {
-        const enemy = enemies[i];
-        if (distance(player.x + 20, player.y + 20, enemy.x + 20, enemy.y + 20) < 40) {
-            endGame();
-            return;
-        }
-    }
-
-    // Check player colliding with planets
-    for (let i = planets.length - 1; i >= 0; i--) {
-        const planet = planets[i];
-        if (distance(player.x + 20, player.y + 20, planet.x, planet.y) < planet.radius + 20) {
-            endGame();
-            return;
-        }
-    }
-
-    // Check player colliding with meteors
-    for (let i = meteors.length - 1; i >= 0; i--) {
-        const meteor = meteors[i];
-        if (distance(player.x + 20, player.y + 20, meteor.x, meteor.y) < meteor.radius + 20) {
-            endGame();
-            return;
-        }
-    }
-
-    // Check meteors colliding with each other
-    for (let i = meteors.length - 1; i >= 0; i--) {
-        const meteor1 = meteors[i];
-        for (let j = i - 1; j >= 0; j--) {
-            const meteor2 = meteors[j];
-            if (distance(meteor1.x, meteor1.y, meteor2.x, meteor2.y) < meteor1.radius + meteor2.radius) {
-                // Calculate collision normal
-                const dx = meteor2.x - meteor1.x;
-                const dy = meteor2.y - meteor1.y;
-                const normalLength = Math.sqrt(dx * dx + dy * dy);
-                const nx = dx / normalLength;
-                const ny = dy / normalLength;
-
-                // Reflect both meteorites
-                // Meteor 1 reflection
-                const dotProduct1 = meteor1.vx * nx + meteor1.vy * ny;
-                meteor1.vx = meteor1.vx - 2 * dotProduct1 * nx;
-                meteor1.vy = meteor1.vy - 2 * dotProduct1 * ny;
-
-                // Meteor 2 reflection (opposite direction)
-                const dotProduct2 = meteor2.vx * nx + meteor2.vy * ny;
-                meteor2.vx = meteor2.vx - 2 * dotProduct2 * nx;
-                meteor2.vy = meteor2.vy - 2 * dotProduct2 * ny;
-
-                // Push meteors apart to prevent overlap
-                const overlap = meteor1.radius + meteor2.radius - normalLength;
-                const pushDistance = (overlap / 2) + 1;
-                meteor1.x -= nx * pushDistance;
-                meteor1.y -= ny * pushDistance;
-                meteor2.x += nx * pushDistance;
-                meteor2.y += ny * pushDistance;
-                break;
-            }
-        }
-    }
-
-    // Check enemies colliding with meteors (all types)
-    for (let i = enemies.length - 1; i >= 0; i--) {
-        const enemy = enemies[i];
-        for (let j = meteors.length - 1; j >= 0; j--) {
-            const meteor = meteors[j];
-            if (distance(enemy.x + 20, enemy.y + 20, meteor.x, meteor.y) < meteor.radius + 20) {
-                enemy.destroy();
-                enemies.splice(i, 1);
-                break;
-            }
-        }
-    }
-
-    // Check enemies colliding with planets (all types)
-    for (let i = enemies.length - 1; i >= 0; i--) {
-        const enemy = enemies[i];
-        for (let j = planets.length - 1; j >= 0; j--) {
-            const planet = planets[j];
-            if (distance(enemy.x + 20, enemy.y + 20, planet.x, planet.y) < planet.radius + 20) {
-                enemy.destroy();
-                enemies.splice(i, 1);
-                break;
-            }
-        }
-    }
-
-    // Check meteors colliding with planets (bounce back)
-    for (let i = meteors.length - 1; i >= 0; i--) {
-        const meteor = meteors[i];
-        for (let j = planets.length - 1; j >= 0; j--) {
-            const planet = planets[j];
-            if (distance(meteor.x, meteor.y, planet.x, planet.y) < meteor.radius + planet.radius) {
-                // Calculate bounce angle based on collision normal
-                const dx = meteor.x - planet.x;
-                const dy = meteor.y - planet.y;
-                const normalLength = Math.sqrt(dx * dx + dy * dy);
-                const nx = dx / normalLength;
-                const ny = dy / normalLength;
-
-                // Calculate reflected velocity: v - 2(v·n)n
-                const dotProduct = meteor.vx * nx + meteor.vy * ny;
-                let reflectedVx = (meteor.vx - 2 * dotProduct * nx);
-                let reflectedVy = (meteor.vy - 2 * dotProduct * ny);
-
-                // Ensure meteor speed is high enough to escape gravity
-                // Planet gravity strength is 0.3, so we need speed that overcomes this
-                const speed = Math.sqrt(reflectedVx * reflectedVx + reflectedVy * reflectedVy);
-                const minEscapeSpeed = planet.gravityStrength * 2.5; // 2.5x stronger than gravity pull
-                
-                if (speed < minEscapeSpeed) {
-                    // Boost the velocity to escape speed
-                    const speedMultiplier = minEscapeSpeed / speed;
-                    reflectedVx *= speedMultiplier;
-                    reflectedVy *= speedMultiplier;
-                }
-
-                meteor.vx = reflectedVx;
-                meteor.vy = reflectedVy;
-
-                // Push meteor away from planet to prevent overlap
-                const overlap = meteor.radius + planet.radius - normalLength;
-                meteor.x += nx * (overlap + 2);
-                meteor.y += ny * (overlap + 2);
-                break;
-            }
-        }
-    }
-
-    // Check player bullets hitting meteors (bounce back)
-    for (let i = playerBullets.length - 1; i >= 0; i--) {
-        const bullet = playerBullets[i];
-        let hitMeteor = false;
-        
-        // Check collision with meteors
-        for (let j = meteors.length - 1; j >= 0; j--) {
-            const meteor = meteors[j];
-            if (distance(bullet.x, bullet.y, meteor.x, meteor.y) < meteor.radius + 3) {
-                // Calculate bounce angle based on collision normal
-                const dx = bullet.x - meteor.x;
-                const dy = bullet.y - meteor.y;
-                const normalLength = Math.sqrt(dx * dx + dy * dy);
-                const nx = dx / normalLength;
-                const ny = dy / normalLength;
-
-                // Calculate reflected velocity: v - 2(v·n)n
-                const dotProduct = bullet.vx * nx + bullet.vy * ny;
-                bullet.vx = (bullet.vx - 2 * dotProduct * nx);
-                bullet.vy = (bullet.vy - 2 * dotProduct * ny);
-                hitMeteor = true;
-                break;
-            }
-        }
-
-        // Check collision with planets
-        if (!hitMeteor) {
-            for (let j = planets.length - 1; j >= 0; j--) {
-                const planet = planets[j];
-                if (distance(bullet.x, bullet.y, planet.x, planet.y) < planet.radius + 3) {
-                    bullet.destroy();
-                    playerBullets.splice(i, 1);
-                    break;
-                }
-            }
-        }
-    }
-
-    // Check enemy bullets hitting meteors (bounce back)
-    for (let i = enemyBullets.length - 1; i >= 0; i--) {
-        const bullet = enemyBullets[i];
-        let hitMeteor = false;
-        
-        // Check collision with meteors
-        for (let j = meteors.length - 1; j >= 0; j--) {
-            const meteor = meteors[j];
-            if (distance(bullet.x, bullet.y, meteor.x, meteor.y) < meteor.radius + 3) {
-                // Calculate bounce angle based on collision normal
-                const dx = bullet.x - meteor.x;
-                const dy = bullet.y - meteor.y;
-                const normalLength = Math.sqrt(dx * dx + dy * dy);
-                const nx = dx / normalLength;
-                const ny = dy / normalLength;
-
-                // Calculate reflected velocity: v - 2(v·n)n
-                const dotProduct = bullet.vx * nx + bullet.vy * ny;
-                bullet.vx = (bullet.vx - 2 * dotProduct * nx);
-                bullet.vy = (bullet.vy - 2 * dotProduct * ny);
-                hitMeteor = true;
-                break;
-            }
-        }
-
-        // Check collision with planets
-        if (!hitMeteor) {
-            for (let j = planets.length - 1; j >= 0; j--) {
-                const planet = planets[j];
-                if (distance(bullet.x, bullet.y, planet.x, planet.y) < planet.radius + 3) {
-                    bullet.destroy();
-                    enemyBullets.splice(i, 1);
-                    break;
-                }
-            }
-        }
-    }
-
-    // Check player bullets hitting enemies (all types)
-    for (let i = playerBullets.length - 1; i >= 0; i--) {
-        const bullet = playerBullets[i];
-        for (let j = enemies.length - 1; j >= 0; j--) {
-            const enemy = enemies[j];
-            if (distance(enemy.x + 20, enemy.y + 20, bullet.x, bullet.y) < 40) {
-                // Determine score based on enemy type
-                const scoreMap = {
-                    'Enemy': 10,
-                    'EliteEnemy': 25,
-                    'AggressiveEnemy': 30
-                };
-                player.score += scoreMap[enemy.constructor.name] || 10;
-                enemy.destroy();
-                enemies.splice(j, 1);
-                bullet.destroy();
-                playerBullets.splice(i, 1);
-                break;
-            }
-        }
-    }
-}
-
 function spawnEnemy(spawner) {
     // Count existing enemies of this type
     const typeCount = enemies.filter(e => e.constructor.name === spawner.type.name).length;
@@ -409,176 +183,60 @@ function spawnNebulaCloud() {
     }
 }
 
+function spawnBlackHole() {
+    const tier = getCurrentGameplayTier(player.score);
+    if (blackHoles.length < tier.maxBlackHoles) {
+        blackHoles.push(new BlackHole(gameContainer));
+        blackHoleSpawnTimer = 0;
+        nextBlackHoleSpawnTime = Math.random() * (blackHoleSpawnIntervalMax - blackHoleSpawnIntervalMin) + blackHoleSpawnIntervalMin;
+    }
+}
+
+// Spawn health orb when enemy is destroyed
+function spawnHealthOrb(enemy) {
+    // Determine health value based on enemy type
+    const healthValueMap = {
+        'Enemy': 10,
+        'EliteEnemy': 20,
+        'AggressiveEnemy': 50
+    };
+    const healthValue = healthValueMap[enemy.constructor.name] || 10;
+
+    // Create health orb at enemy's position
+    const orb = new HealthOrb(enemy.x + 20, enemy.y + 20, healthValue, gameContainer);
+    healthOrbs.push(orb);
+}
+
+// Update health bar display
+function updateHealthBar() {
+    const healthPercent = (player.health / player.maxHealth) * 100;
+    healthBar.style.width = healthPercent + '%';
+    healthText.textContent = `${Math.ceil(player.health)}/${player.maxHealth}`;
+
+    // Update health bar color based on health percentage
+    healthBar.classList.remove('low', 'critical');
+    if (healthPercent <= 33) {
+        healthBar.classList.add('critical');
+    } else if (healthPercent <= 66) {
+        healthBar.classList.add('low');
+    }
+}
+
 // Render spaceship and UI
 function render() {
     spaceship.style.left = player.x + 'px';
     spaceship.style.top = player.y + 'px';
     spaceship.style.transform = `rotate(${player.angle}deg)`;
     positionDisplay.textContent = `Score: ${player.score}`;
-}
 
-// Game loop
-function gameLoop(currentTime) {
-    if (player.gameOver) return;
-
-    // Calculate delta time in seconds
-    deltaTime = (currentTime - lastFrameTime) / 1000;
-    lastFrameTime = currentTime;
-    
-    // Cap delta time to prevent huge jumps (if frame drops spike)
-    const dt = Math.min(deltaTime, 0.032); // Max 32ms (~30fps equivalent)
-
-    updatePosition(dt);
-
-    // Update difficulty based on score
-    updateEnemySpawnerLimits(player.score);
-    updateMeteorSpawnerLimit(player.score);
-    updatePlanetSpawnerLimit(player.score);
-    updateNebulaCloudSpawnerLimit(player.score);
-
-    // Update enemy spawn timers for all enemy types
-    for (const spawner of enemySpawners) {
-        spawner.timer += dt * 1000; // Convert dt to ms
-        if (spawner.timer >= spawner.nextSpawnTime) {
-            spawnEnemy(spawner);
-            spawner.timer = 0;
-            spawner.nextSpawnTime = Math.random() * (spawner.timerMax - spawner.timerMin) + spawner.timerMin;
-        }
+    // Update invulnerability visual effect
+    if (player.isInvulnerable) {
+        spaceship.classList.add('invulnerable');
+    } else {
+        spaceship.classList.remove('invulnerable');
     }
 
-    // Update meteor spawn timer
-    meteorSpawnTimer += dt * 1000; // Convert dt to ms
-    if (meteorSpawnTimer >= meteorSpawnInterval) {
-        spawnMeteor();
-        meteorSpawnTimer = 0;
-    }
-
-    // Update planet spawn timer
-    planetSpawnTimer += dt * 1000;
-    if (planetSpawnTimer >= nextPlanetSpawnTime) {
-        spawnPlanet();
-        planetSpawnTimer = 0;
-    }
-
-    // Update nebula cloud spawn timer
-    nebulaCloudSpawnTimer += dt * 1000;
-    if (nebulaCloudSpawnTimer >= nebulaCloudSpawnInterval) {
-        spawnNebulaCloud();
-        nebulaCloudSpawnTimer = 0;
-    }
-
-    // Update enemies (all types in single array)
-    for (let i = enemies.length - 1; i >= 0; i--) {
-        enemies[i].update(enemyBullets, player.x, player.y, dt);
-    }
-
-    // Update planets
-    for (let i = planets.length - 1; i >= 0; i--) {
-        const planet = planets[i];
-        planet.update(dt);
-        
-        // Apply gravity to player
-        planet.applyGravity(player, dt);
-        
-        // Apply gravity to all enemies
-        for (let j = 0; j < enemies.length; j++) {
-            planet.applyGravity(enemies[j], dt);
-        }
-        
-        // Apply gravity to player bullets
-        for (let j = 0; j < playerBullets.length; j++) {
-            planet.applyGravity(playerBullets[j], dt);
-        }
-        
-        // Apply gravity to enemy bullets
-        for (let j = 0; j < enemyBullets.length; j++) {
-            planet.applyGravity(enemyBullets[j], dt);
-        }
-        
-        // Apply gravity to meteors
-        for (let j = 0; j < meteors.length; j++) {
-            planet.applyGravity(meteors[j], dt);
-        }
-
-        if (planet.isOffscreen()) {
-            planet.destroy();
-            planets.splice(i, 1);
-        }
-    }
-
-    // Update nebula clouds
-    for (let i = nebulaClouds.length - 1; i >= 0; i--) {
-        const nebulaCloud = nebulaClouds[i];
-        nebulaCloud.update(dt);
-        
-        // Apply slowdown to player if inside nebula cloud
-        if (nebulaCloudConfig.affectsPlayer && nebulaCloud.isObjectInside(player)) {
-            nebulaCloud.applySlowdown(player, false, playerConfig.minVelocityInNebula);
-        }
-        
-        // Apply slowdown to all enemies if inside nebula cloud
-        if (nebulaCloudConfig.affectsEnemies) {
-            for (let j = enemies.length - 1; j >= 0; j--) {
-                if (nebulaCloud.isObjectInside(enemies[j])) {
-                    nebulaCloud.applySlowdown(enemies[j], false, enemyConfig.minVelocityInNebula);
-                }
-            }
-        }
-        
-        // Apply slowdown to player bullets if inside nebula cloud
-        if (nebulaCloudConfig.affectsBullets) {
-            for (let j = playerBullets.length - 1; j >= 0; j--) {
-                if (nebulaCloud.isObjectInside(playerBullets[j])) {
-                    nebulaCloud.applySlowdown(playerBullets[j], true, bulletConfig.playerBullet.minVelocityInNebula);
-                }
-            }
-        }
-        
-        // Apply slowdown to enemy bullets if inside nebula cloud
-        if (nebulaCloudConfig.affectsBullets) {
-            for (let j = enemyBullets.length - 1; j >= 0; j--) {
-                if (nebulaCloud.isObjectInside(enemyBullets[j])) {
-                    nebulaCloud.applySlowdown(enemyBullets[j], true, bulletConfig.enemyBullet.minVelocityInNebula);
-                }
-            }
-        }
-
-        if (nebulaCloud.isOffscreen()) {
-            nebulaCloud.destroy();
-            nebulaClouds.splice(i, 1);
-        }
-    }
-
-    // Update meteors
-    for (let i = meteors.length - 1; i >= 0; i--) {
-        meteors[i].update(dt);
-        if (meteors[i].isOffscreen()) {
-            meteors[i].destroy();
-            meteors.splice(i, 1);
-        }
-    }
-
-    // Update player bullets
-    for (let i = playerBullets.length - 1; i >= 0; i--) {
-        playerBullets[i].update(dt);
-        if (playerBullets[i].isOffscreen()) {
-            playerBullets[i].destroy();
-            playerBullets.splice(i, 1);
-        }
-    }
-
-    // Update enemy bullets
-    for (let i = enemyBullets.length - 1; i >= 0; i--) {
-        enemyBullets[i].update(dt);
-        if (enemyBullets[i].isOffscreen()) {
-            enemyBullets[i].destroy();
-            enemyBullets.splice(i, 1);
-        }
-    }
-
-    checkCollisions();
-    render();
-    requestAnimationFrame(gameLoop);
+    updateHealthBar();
 }
 
 function endGame() {
@@ -603,6 +261,9 @@ function restartGame() {
     enemies.forEach(enemy => enemy.destroy());
     meteors.forEach(meteor => meteor.destroy());
     planets.forEach(planet => planet.destroy());
+    blackHoles.forEach(blackHole => blackHole.destroy());
+    healthOrbs.forEach(orb => orb.destroy());
+    nebulaClouds.forEach(cloud => cloud.destroy());
 
     // Reset game state
     player.x = 580;
@@ -612,6 +273,7 @@ function restartGame() {
     player.angle = 0;
     player.vx = 0;
     player.vy = 0;
+    player.resetHealth();
 
     // Reset all keys
     keys.ArrowUp = false;
@@ -627,6 +289,8 @@ function restartGame() {
     meteors = [];
     planets = [];
     nebulaClouds = [];
+    blackHoles = [];
+    healthOrbs = [];
     
     // Reset spawn timers
     for (const spawner of enemySpawners) {
@@ -637,6 +301,8 @@ function restartGame() {
     planetSpawnTimer = 0;
     nextPlanetSpawnTime = Math.random() * (planetSpawnIntervalMax - planetSpawnIntervalMin) + planetSpawnIntervalMin;
     nebulaCloudSpawnTimer = 0;
+    blackHoleSpawnTimer = 0;
+    nextBlackHoleSpawnTime = Math.random() * (blackHoleSpawnIntervalMax - blackHoleSpawnIntervalMin) + blackHoleSpawnIntervalMin;
 
     // Reset spaceship position and render
     spaceship.style.left = player.x + 'px';

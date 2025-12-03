@@ -17,10 +17,69 @@ body {
     position: relative;
     width: 1200px;
     height: 900px;
-    background: linear-gradient(to bottom, #000033, #0a0a1a);
+    background:
+        radial-gradient(ellipse at 20% 20%, rgba(30, 0, 60, 0.4) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(0, 20, 60, 0.4) 0%, transparent 50%),
+        linear-gradient(to bottom, #000011, #0a0a1a, #000033);
     border: 3px solid #00ffff;
     overflow: hidden;
     box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+}
+
+/* Tähtitausta */
+.game-container::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-image:
+        radial-gradient(2px 2px at 20% 30%, white, transparent),
+        radial-gradient(2px 2px at 60% 70%, white, transparent),
+        radial-gradient(1px 1px at 50% 50%, white, transparent),
+        radial-gradient(1px 1px at 80% 10%, white, transparent),
+        radial-gradient(2px 2px at 90% 60%, white, transparent),
+        radial-gradient(1px 1px at 33% 80%, white, transparent),
+        radial-gradient(1px 1px at 15% 60%, white, transparent),
+        radial-gradient(2px 2px at 70% 40%, white, transparent);
+    background-size: 200% 200%;
+    background-position: 0% 0%, 40% 60%, 50% 50%, 80% 10%, 90% 60%, 33% 80%, 15% 60%, 70% 40%;
+    animation: twinkle 3s ease-in-out infinite;
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+/* Lisää tähtiä */
+.game-container::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-image:
+        radial-gradient(1px 1px at 10% 20%, rgba(255, 255, 255, 0.8), transparent),
+        radial-gradient(1px 1px at 25% 40%, rgba(255, 255, 255, 0.6), transparent),
+        radial-gradient(1px 1px at 45% 15%, rgba(255, 255, 255, 0.7), transparent),
+        radial-gradient(1px 1px at 65% 35%, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(1px 1px at 75% 65%, rgba(255, 255, 255, 0.8), transparent),
+        radial-gradient(1px 1px at 85% 85%, rgba(255, 255, 255, 0.6), transparent),
+        radial-gradient(1px 1px at 40% 90%, rgba(255, 255, 255, 0.7), transparent),
+        radial-gradient(1px 1px at 95% 25%, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(1px 1px at 5% 75%, rgba(255, 255, 255, 0.8), transparent),
+        radial-gradient(1px 1px at 30% 55%, rgba(255, 255, 255, 0.6), transparent),
+        radial-gradient(2px 2px at 55% 75%, rgba(200, 220, 255, 0.9), transparent),
+        radial-gradient(1px 1px at 12% 45%, rgba(255, 255, 255, 0.7), transparent);
+    background-size: 100% 100%;
+    animation: twinkle 4s ease-in-out infinite reverse;
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+@keyframes twinkle {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
 }
 
 .spaceship {
@@ -33,6 +92,19 @@ body {
     clip-path: polygon(50% 0%, 100% 100%, 50% 85%, 0% 100%);
     box-shadow: 0 0 10px #00ff00;
     transform-origin: center center;
+}
+
+.spaceship.invulnerable {
+    animation: invulnerable-flash 0.15s ease-in-out infinite;
+}
+
+@keyframes invulnerable-flash {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.3;
+    }
 }
 
 .enemy {
@@ -94,6 +166,48 @@ body {
     box-shadow: 0 0 8px #ff0000;
 }
 
+.health-orb {
+    position: absolute;
+    background: radial-gradient(circle at 30% 30%, #00ff88, #00cc66);
+    border-radius: 50%;
+    box-shadow:
+        0 0 10px rgba(0, 255, 136, 0.8),
+        0 0 20px rgba(0, 255, 136, 0.5),
+        inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+        inset 2px 2px 4px rgba(255, 255, 255, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: orb-float 2s ease-in-out infinite;
+}
+
+@keyframes orb-float {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow:
+            0 0 10px rgba(0, 255, 136, 0.8),
+            0 0 20px rgba(0, 255, 136, 0.5),
+            inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+            inset 2px 2px 4px rgba(255, 255, 255, 0.5);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow:
+            0 0 15px rgba(0, 255, 136, 1),
+            0 0 25px rgba(0, 255, 136, 0.7),
+            inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+            inset 2px 2px 4px rgba(255, 255, 255, 0.5);
+    }
+}
+
+.health-orb-plus {
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+    user-select: none;
+}
+
 .meteor {
     position: absolute;
     background: radial-gradient(circle at 30% 30%, #888, #333);
@@ -105,8 +219,73 @@ body {
     position: absolute;
     background: radial-gradient(circle at 35% 35%, #4a90e2, #1a3a5c);
     border-radius: 50%;
-    box-shadow: inset -3px -3px 6px rgba(0, 0, 0, 0.6), 0 0 20px rgba(74, 144, 226, 0.6), 
+    box-shadow: inset -3px -3px 6px rgba(0, 0, 0, 0.6), 0 0 20px rgba(74, 144, 226, 0.6),
                 inset 2px 2px 4px rgba(255, 255, 255, 0.1);
+}
+
+.black-hole-distortion {
+    position: absolute;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 50% 50%,
+            transparent 0%,
+            rgba(60, 0, 100, 0.1) 40%,
+            rgba(100, 0, 150, 0.15) 60%,
+            transparent 100%);
+    filter: url(#blackHoleDistortion);
+    pointer-events: none;
+    z-index: 1;
+    animation: distortion-wave 4s ease-in-out infinite;
+}
+
+@keyframes distortion-wave {
+    0%, 100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 0.7;
+    }
+    25% {
+        transform: scale(1.05) rotate(5deg);
+        opacity: 0.8;
+    }
+    50% {
+        transform: scale(1) rotate(0deg);
+        opacity: 0.7;
+    }
+    75% {
+        transform: scale(0.95) rotate(-5deg);
+        opacity: 0.8;
+    }
+}
+
+.black-hole {
+    position: absolute;
+    background:
+        radial-gradient(circle at 50% 50%, #000000 0%, #000000 70%, transparent 100%);
+    border-radius: 50%;
+    box-shadow:
+        inset 0 0 15px rgba(0, 0, 0, 1),
+        0 0 20px rgba(100, 0, 150, 0.6),
+        0 0 40px rgba(80, 0, 120, 0.4),
+        0 0 60px rgba(60, 0, 100, 0.2);
+    animation: black-hole-pulse 2s ease-in-out infinite;
+    z-index: 2;
+}
+
+@keyframes black-hole-pulse {
+    0%, 100% {
+        box-shadow:
+            inset 0 0 15px rgba(0, 0, 0, 1),
+            0 0 20px rgba(100, 0, 150, 0.6),
+            0 0 40px rgba(80, 0, 120, 0.4),
+            0 0 60px rgba(60, 0, 100, 0.2);
+    }
+    50% {
+        box-shadow:
+            inset 0 0 15px rgba(0, 0, 0, 1),
+            0 0 25px rgba(120, 0, 180, 0.8),
+            0 0 50px rgba(100, 0, 150, 0.6),
+            0 0 80px rgba(80, 0, 120, 0.3);
+    }
 }
 
 .nebula-cloud {
@@ -148,6 +327,71 @@ body {
 
 .info p {
     margin: 3px 0;
+}
+
+.health-bar-container {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 8px 12px;
+    border: 2px solid #00ff00;
+    border-radius: 6px;
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+}
+
+.health-bar-label {
+    color: #00ff00;
+    font-weight: bold;
+    font-size: 14px;
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.8);
+}
+
+.health-bar-bg {
+    width: 200px;
+    height: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid #00ff00;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.health-bar-fill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #00ff00, #00cc00);
+    transition: width 0.3s ease, background 0.3s ease;
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3);
+}
+
+.health-bar-fill.low {
+    background: linear-gradient(90deg, #ffaa00, #ff8800);
+}
+
+.health-bar-fill.critical {
+    background: linear-gradient(90deg, #ff0000, #cc0000);
+    animation: health-critical 0.5s ease-in-out infinite;
+}
+
+@keyframes health-critical {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.health-bar-text {
+    color: #00ff00;
+    font-weight: bold;
+    font-size: 12px;
+    min-width: 65px;
+    text-align: right;
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.8);
 }
 
 .game-over {

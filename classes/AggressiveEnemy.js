@@ -1,13 +1,16 @@
+// Aggressiivisen vihollisen konfiguraatio
+const aggressiveEnemyConfig = {
+    enterSpeed: 180,            // Tulokulkunopeus (pikselit/sekunti) - 1.5x nopeampi!
+    chaseEnabled: true,         // Jahtaa pelaajaa
+    shootCooldownMin: 1.0,      // Pienin ampumisaikaväli (sekunti)
+    shootCooldownMax: 2.67,     // Suurin ampumisaikaväli (sekunti)
+    bounceEnabled: false,       // Ei kimppoa seinistä (jahtaa läpi seinien)
+    enemyClassName: 'aggressive-enemy'  // CSS-luokan nimi
+};
+
 // Aggressive Enemy class - moves 1.5x faster and chases the player
 class AggressiveEnemy extends BaseEnemy {
     constructor(gameContainer) {
-        super(gameContainer, {
-            enterSpeed: 180, // 1.5x faster (120 * 1.5 = 180 pixels per second)
-            chaseEnabled: true,
-            shootCooldownMin: 1.0, // seconds (was 60 frames)
-            shootCooldownMax: 2.67, // seconds (was 160 frames)
-            bounceEnabled: false,
-            enemyClassName: 'aggressive-enemy'
-        });
+        super(gameContainer, aggressiveEnemyConfig);
     }
 }
