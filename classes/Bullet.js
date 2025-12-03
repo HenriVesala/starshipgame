@@ -43,6 +43,8 @@ class Bullet {
     render() {
         this.element.style.left = this.x + 'px';
         this.element.style.top = this.y + 'px';
+        // Aseta ammuksen suunta ampumasuunnan mukaan
+        this.element.style.transform = `rotate(${this.angle}deg)`;
     }
 
     destroy() {

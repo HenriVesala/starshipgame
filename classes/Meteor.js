@@ -59,6 +59,11 @@ class Meteor {
         this.rotation = 0;
         this.rotationSpeed = Math.random() * (meteorConfig.rotationSpeedMax - meteorConfig.rotationSpeedMin) + meteorConfig.rotationSpeedMin;
 
+        // Kutistumisanimaatio
+        this.isShrinking = false;    // Kutistumistila (mustan aukon tapahtumahorisontti)
+        this.shrinkProgress = 0;     // Kutistumisen edistyminen (0-1)
+        this.shrinkDuration = 0.5;   // Kutistumisen kesto sekunteina
+
         this.element = document.createElement('div');
         this.element.className = 'meteor';
         this.element.style.width = (this.radius * 2) + 'px';
@@ -83,7 +88,14 @@ class Meteor {
     render() {
         this.element.style.left = (this.x - this.radius) + 'px';
         this.element.style.top = (this.y - this.radius) + 'px';
-        this.element.style.transform = `rotate(${this.rotation}deg)`;
+
+        // Lisää kutistumisanimaatio
+        if (this.isShrinking) {
+            const scale = 1 - this.shrinkProgress;
+            this.element.style.transform = `rotate(${this.rotation}deg) scale(${scale})`;
+        } else {
+            this.element.style.transform = `rotate(${this.rotation}deg)`;
+        }
     }
 
     destroy() {

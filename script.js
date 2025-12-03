@@ -21,6 +21,7 @@ let planets = [];
 let nebulaClouds = [];
 let blackHoles = [];
 let healthOrbs = [];
+let explosions = [];
 
 // Enemy spawning configuration
 const enemySpawnConfigs = [
@@ -88,12 +89,25 @@ document.addEventListener('keyup', (e) => {
 
 // Update position based on input
 function updatePosition(dt) {
+    // Jos pelaaja kutistuu, älä anna liikkua tai ampua
+    if (player.isShrinking) {
+        return;
+    }
+
     // Päivitä immuniteetti-ajastin
     if (player.isInvulnerable) {
         player.invulnerabilityTimer -= dt;
         if (player.invulnerabilityTimer <= 0) {
             player.isInvulnerable = false;
             player.invulnerabilityTimer = 0;
+        }
+    }
+
+    // Päivitä ampumisen cooldown-ajastin
+    if (player.shootCooldownTimer > 0) {
+        player.shootCooldownTimer -= dt;
+        if (player.shootCooldownTimer < 0) {
+            player.shootCooldownTimer = 0;
         }
     }
 
@@ -140,8 +154,9 @@ function updatePosition(dt) {
     if (player.y < -40) player.y = 900;
     if (player.y > 900) player.y = -40;
 
-    if (keys.Space) {
+    if (keys.Space && player.canShoot()) {
         playerBullets.push(new Bullet(gameContainer, player.x, player.y, player.angle, 'player'));
+        player.setShootCooldown();
         keys.Space = false;
     }
 }
@@ -222,7 +237,15 @@ function updateHealthBar() {
 function render() {
     spaceship.style.left = player.x + 'px';
     spaceship.style.top = player.y + 'px';
-    spaceship.style.transform = `rotate(${player.angle}deg)`;
+
+    // Lisää kutistumisanimaatio
+    if (player.isShrinking) {
+        const scale = 1 - player.shrinkProgress;
+        spaceship.style.transform = `rotate(${player.angle}deg) scale(${scale})`;
+    } else {
+        spaceship.style.transform = `rotate(${player.angle}deg)`;
+    }
+
     positionDisplay.textContent = `Score: ${player.score}`;
 
     // Update invulnerability visual effect
@@ -260,6 +283,7 @@ function restartGame() {
     blackHoles.forEach(blackHole => blackHole.destroy());
     healthOrbs.forEach(orb => orb.destroy());
     nebulaClouds.forEach(cloud => cloud.destroy());
+    explosions.forEach(explosion => explosion.destroy());
 
     // Reset game state
     player.x = 580;
@@ -287,6 +311,7 @@ function restartGame() {
     nebulaClouds = [];
     blackHoles = [];
     healthOrbs = [];
+    explosions = [];
     
     // Reset spawn timers
     for (const spawner of enemySpawners) {

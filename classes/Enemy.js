@@ -1,11 +1,19 @@
 // Normaalin vihollisen konfiguraatio
 const normalEnemyConfig = {
+    // Liikkeen konfiguraatio
     enterSpeed: 120,            // Tulokulkunopeus (pikselit/sekunti)
     chaseEnabled: false,        // Ei jahtaa pelaajaa
+    bounceEnabled: true,        // Kimpoaa seinistä
+
+    // Ampumisen konfiguraatio
     shootCooldownMin: 1.0,      // Pienin ampumisaikaväli (sekunti)
     shootCooldownMax: 2.67,     // Suurin ampumisaikaväli (sekunti)
-    bounceEnabled: true,        // Kimpoaa seinistä
+
+    // Ulkoasu
     enemyClassName: 'enemy',    // CSS-luokan nimi
+
+    // Kestopisteet
+    health: 100,                // Vihollisen kestopisteet
 
     // Spawnaus
     spawnIntervalMin: 3000,     // Pienin spawnausväli (millisekuntia)

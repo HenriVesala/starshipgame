@@ -15,6 +15,8 @@ function checkCollisions() {
             bullet.destroy();
             enemyBullets.splice(i, 1);
             if (destroyed) {
+                // Luo iso räjähdys pelaajan sijainnissa
+                explosions.push(new Explosion(player.x + 20, player.y + 20, 'large', gameContainer));
                 endGame();
                 return;
             }
@@ -63,6 +65,15 @@ function checkCollisions() {
             }
 
             if (enemyDestroyed) {
+                // Luo räjähdys vihollisen sijainnissa (koko riippuu tyypistä)
+                const explosionSizeMap = {
+                    'Enemy': 'small',
+                    'EliteEnemy': 'medium',
+                    'AggressiveEnemy': 'medium'
+                };
+                const explosionSize = explosionSizeMap[enemy.constructor.name] || 'small';
+                explosions.push(new Explosion(enemy.x + 20, enemy.y + 20, explosionSize, gameContainer));
+
                 // Spawna terveyspallo
                 spawnHealthOrb(enemy);
 
@@ -71,6 +82,8 @@ function checkCollisions() {
             }
 
             if (playerDestroyed) {
+                // Luo iso räjähdys pelaajan sijainnissa
+                explosions.push(new Explosion(player.x + 20, player.y + 20, 'large', gameContainer));
                 endGame();
                 return;
             }
@@ -83,6 +96,8 @@ function checkCollisions() {
         if (distance(player.x + 20, player.y + 20, planet.x, planet.y) < planet.radius + 20) {
             const destroyed = player.takeDamage(planet.damage, true);
             if (destroyed) {
+                // Luo iso räjähdys pelaajan sijainnissa
+                explosions.push(new Explosion(player.x + 20, player.y + 20, 'large', gameContainer));
                 endGame();
                 return;
             }
@@ -130,19 +145,23 @@ function checkCollisions() {
             }
 
             if (destroyed) {
+                // Luo iso räjähdys pelaajan sijainnissa
+                explosions.push(new Explosion(player.x + 20, player.y + 20, 'large', gameContainer));
                 endGame();
                 return;
             }
         }
     }
 
-    // Tarkista pelaaja törmäämässä mustiin aukkoihin (välitön kuolema)
+    // Tarkista pelaaja törmäämässä mustiin aukkoihin (kutistuu olemattomiin)
     for (let i = blackHoles.length - 1; i >= 0; i--) {
         const blackHole = blackHoles[i];
         if (distance(player.x + 20, player.y + 20, blackHole.x, blackHole.y) < blackHole.radius + 20) {
-            player.health = 0; // Välitön kuolema
-            endGame();
-            return;
+            if (!player.isShrinking) {
+                player.isShrinking = true;
+                player.shrinkProgress = 0;
+                player.shrinkDuration = 0.5; // 0.5 sekuntia kutistumiseen
+            }
         }
     }
 
@@ -226,6 +245,15 @@ function checkCollisions() {
                 }
 
                 if (destroyed) {
+                    // Luo räjähdys vihollisen sijainnissa
+                    const explosionSizeMap = {
+                        'Enemy': 'small',
+                        'EliteEnemy': 'medium',
+                        'AggressiveEnemy': 'medium'
+                    };
+                    const explosionSize = explosionSizeMap[enemy.constructor.name] || 'small';
+                    explosions.push(new Explosion(enemy.x + 20, enemy.y + 20, explosionSize, gameContainer));
+
                     // Spawna terveyspallo
                     spawnHealthOrb(enemy);
 
@@ -285,6 +313,15 @@ function checkCollisions() {
         for (let j = planets.length - 1; j >= 0; j--) {
             const planet = planets[j];
             if (distance(enemy.x + 20, enemy.y + 20, planet.x, planet.y) < planet.radius + 20) {
+                // Luo räjähdys vihollisen sijainnissa
+                const explosionSizeMap = {
+                    'Enemy': 'small',
+                    'EliteEnemy': 'medium',
+                    'AggressiveEnemy': 'medium'
+                };
+                const explosionSize = explosionSizeMap[enemy.constructor.name] || 'small';
+                explosions.push(new Explosion(enemy.x + 20, enemy.y + 20, explosionSize, gameContainer));
+
                 // Spawna terveyspallo
                 spawnHealthOrb(enemy);
 
@@ -295,19 +332,20 @@ function checkCollisions() {
         }
     }
 
-    // Tarkista viholliset törmäämässä mustiin aukkoihin (välitön kuolema)
+    // Tarkista viholliset törmäämässä mustiin aukkoihin (kutistuvat olemattomiin)
     for (let i = enemies.length - 1; i >= 0; i--) {
         const enemy = enemies[i];
         for (let j = blackHoles.length - 1; j >= 0; j--) {
             const blackHole = blackHoles[j];
             if (distance(enemy.x + 20, enemy.y + 20, blackHole.x, blackHole.y) < blackHole.radius + 20) {
-                enemy.health = 0; // Välitön kuolema
+                if (!enemy.isShrinking) {
+                    enemy.isShrinking = true;
+                    enemy.shrinkProgress = 0;
+                    enemy.shrinkDuration = 0.5; // 0.5 sekuntia kutistumiseen
 
-                // Spawna terveyspallo
-                spawnHealthOrb(enemy);
-
-                enemy.destroy();
-                enemies.splice(i, 1);
+                    // Spawna terveyspallo ennen kutistumista
+                    spawnHealthOrb(enemy);
+                }
                 break;
             }
         }
@@ -354,14 +392,17 @@ function checkCollisions() {
         }
     }
 
-    // Tarkista meteoriitit törmäämässä mustiin aukkoihin (tuhoutuvat)
+    // Tarkista meteoriitit törmäämässä mustiin aukkoihin (kutistuvat olemattomiin)
     for (let i = meteors.length - 1; i >= 0; i--) {
         const meteor = meteors[i];
         for (let j = blackHoles.length - 1; j >= 0; j--) {
             const blackHole = blackHoles[j];
             if (distance(meteor.x, meteor.y, blackHole.x, blackHole.y) < meteor.radius + blackHole.radius) {
-                meteor.destroy();
-                meteors.splice(i, 1);
+                if (!meteor.isShrinking) {
+                    meteor.isShrinking = true;
+                    meteor.shrinkProgress = 0;
+                    meteor.shrinkDuration = 0.5; // 0.5 sekuntia kutistumiseen
+                }
                 break;
             }
         }
@@ -485,6 +526,15 @@ function checkCollisions() {
                         'AggressiveEnemy': 30
                     };
                     player.score += scoreMap[enemy.constructor.name] || 10;
+
+                    // Luo räjähdys vihollisen sijainnissa
+                    const explosionSizeMap = {
+                        'Enemy': 'small',
+                        'EliteEnemy': 'medium',
+                        'AggressiveEnemy': 'medium'
+                    };
+                    const explosionSize = explosionSizeMap[enemy.constructor.name] || 'small';
+                    explosions.push(new Explosion(enemy.x + 20, enemy.y + 20, explosionSize, gameContainer));
 
                     // Spawna terveyspallo
                     spawnHealthOrb(enemy);

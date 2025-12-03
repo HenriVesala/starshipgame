@@ -25,7 +25,10 @@ class BaseEnemy {
         this.config = { ...defaultConfig, ...spawnConfig };
         this.health = this.config.health;
         this.maxHealth = this.config.health;
-        
+        this.isShrinking = false;    // Kutistumistila (mustan aukon tapahtumahorisontti)
+        this.shrinkProgress = 0;     // Kutistumisen edistyminen (0-1)
+        this.shrinkDuration = 0.5;   // Kutistumisen kesto sekunteina
+
         // Spawn ruudun reunoilta
         const side = Math.floor(Math.random() * 4);
         const randomX = Math.random() * (gameConfig.screenWidth - gameConfig.playerWidth);
@@ -68,6 +71,12 @@ class BaseEnemy {
     }
 
     update(enemyBullets, playerX = null, playerY = null, dt = 0.016) {
+        // Jos kutistuu, älä tee mitään muuta kuin renderöi
+        if (this.isShrinking) {
+            this.render();
+            return;
+        }
+
         this.x += this.vx * dt;
         this.y += this.vy * dt;
 
@@ -128,7 +137,14 @@ class BaseEnemy {
     render() {
         this.element.style.left = this.x + 'px';
         this.element.style.top = this.y + 'px';
-        this.element.style.transform = `rotate(${this.angle + 180}deg)`;
+
+        // Lisää kutistumisanimaatio
+        if (this.isShrinking) {
+            const scale = 1 - this.shrinkProgress;
+            this.element.style.transform = `rotate(${this.angle + 180}deg) scale(${scale})`;
+        } else {
+            this.element.style.transform = `rotate(${this.angle + 180}deg)`;
+        }
     }
 
     // Ota vahinkoa

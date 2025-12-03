@@ -23,7 +23,10 @@ const playerConfig = {
     collisionDamage: 200,           // Vahinko joka pelaaja aiheuttaa törmätessään
 
     // Immuniteetti
-    invulnerabilityDuration: 0.3    // Immuniteettiaika sekunteina vahingon jälkeen
+    invulnerabilityDuration: 0.3,   // Immuniteettiaika sekunteina vahingon jälkeen
+
+    // Ampuminen
+    shootCooldown: 0.7              // Ampumisen cooldown (sekuntia) - 3 ampumista/sekunti
 };
 
 // Pelaajan alus -luokka
@@ -40,6 +43,10 @@ class Player {
         this.maxHealth = playerConfig.maxHealth;
         this.isInvulnerable = false;
         this.invulnerabilityTimer = 0;
+        this.shootCooldownTimer = 0; // Ampumisen cooldown-ajastin
+        this.isShrinking = false;    // Kutistumistila (mustan aukon tapahtumahorisontti)
+        this.shrinkProgress = 0;     // Kutistumisen edistyminen (0-1)
+        this.shrinkDuration = 0.5;   // Kutistumisen kesto sekunteina
     }
 
     // Ota vahinkoa
@@ -67,6 +74,17 @@ class Player {
         this.health = this.maxHealth;
         this.isInvulnerable = false;
         this.invulnerabilityTimer = 0;
+        this.shootCooldownTimer = 0;
+    }
+
+    // Tarkista voiko ampua
+    canShoot() {
+        return this.shootCooldownTimer <= 0;
+    }
+
+    // Aseta ampumisen cooldown
+    setShootCooldown() {
+        this.shootCooldownTimer = playerConfig.shootCooldown;
     }
 
     // Päivitä pelaajan asento ja nopeus
@@ -77,6 +95,14 @@ class Player {
             if (this.invulnerabilityTimer <= 0) {
                 this.isInvulnerable = false;
                 this.invulnerabilityTimer = 0;
+            }
+        }
+
+        // Päivitä ampumisen cooldown-ajastin
+        if (this.shootCooldownTimer > 0) {
+            this.shootCooldownTimer -= dt;
+            if (this.shootCooldownTimer < 0) {
+                this.shootCooldownTimer = 0;
             }
         }
 

@@ -1,11 +1,19 @@
 // Elite-vihollisen konfiguraatio
 const eliteEnemyConfig = {
+    // Liikkeen konfiguraatio
     enterSpeed: 120,            // Tulokulkunopeus (pikselit/sekunti)
     chaseEnabled: false,        // Ei jahtaa pelaajaa
+    bounceEnabled: true,        // Kimpoaa seinistä
+
+    // Ampumisen konfiguraatio
     shootCooldownMin: 0.5,      // Pienin ampumisaikaväli (sekunti) - ampuu nopeammin!
     shootCooldownMax: 1.33,     // Suurin ampumisaikaväli (sekunti)
-    bounceEnabled: true,        // Kimpoaa seinistä
+
+    // Ulkoasu
     enemyClassName: 'elite-enemy',  // CSS-luokan nimi
+
+    // Kestopisteet
+    health: 300,                // Vihollisen kestopisteet - vahvempi kuin normaali
 
     // Spawnaus
     spawnIntervalMin: 10000,    // Pienin spawnausväli (millisekuntia)

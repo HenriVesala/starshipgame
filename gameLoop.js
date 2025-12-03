@@ -11,6 +11,16 @@ function gameLoop(currentTime) {
 
     updatePosition(dt);
 
+    // Päivitä pelaajan kutistuminen
+    if (player.isShrinking) {
+        player.shrinkProgress += dt / player.shrinkDuration;
+        if (player.shrinkProgress >= 1.0) {
+            player.health = 0;
+            endGame();
+            return;
+        }
+    }
+
     // Päivitä vaikeustaso pisteiden perusteella
     updateEnemySpawnerLimits(player.score);
     updateMeteorSpawnerLimit(player.score);
@@ -24,7 +34,7 @@ function gameLoop(currentTime) {
         if (spawner.timer >= spawner.nextSpawnTime) {
             spawnEnemy(spawner);
             spawner.timer = 0;
-            spawner.nextSpawnTime = Math.random() * (spawner.timerMax - spawner.timerMin) + spawner.timerMin;
+            spawner.nextSpawnTime = Math.random() * (spawner.spawnIntervalMax - spawner.spawnIntervalMin) + spawner.spawnIntervalMin;
         }
     }
 
@@ -58,7 +68,19 @@ function gameLoop(currentTime) {
 
     // Päivitä viholliset (kaikki tyypit yhdessä taulukossa)
     for (let i = enemies.length - 1; i >= 0; i--) {
-        enemies[i].update(enemyBullets, player.x, player.y, dt);
+        const enemy = enemies[i];
+
+        // Päivitä kutistuminen
+        if (enemy.isShrinking) {
+            enemy.shrinkProgress += dt / enemy.shrinkDuration;
+            if (enemy.shrinkProgress >= 1.0) {
+                enemy.destroy();
+                enemies.splice(i, 1);
+                continue;
+            }
+        }
+
+        enemy.update(enemyBullets, player.x, player.y, dt);
     }
 
     // Päivitä planeetat
@@ -174,9 +196,21 @@ function gameLoop(currentTime) {
 
     // Päivitä meteoriitit
     for (let i = meteors.length - 1; i >= 0; i--) {
-        meteors[i].update(dt);
-        if (meteors[i].isOffscreen()) {
-            meteors[i].destroy();
+        const meteor = meteors[i];
+
+        // Päivitä kutistuminen
+        if (meteor.isShrinking) {
+            meteor.shrinkProgress += dt / meteor.shrinkDuration;
+            if (meteor.shrinkProgress >= 1.0) {
+                meteor.destroy();
+                meteors.splice(i, 1);
+                continue;
+            }
+        }
+
+        meteor.update(dt);
+        if (meteor.isOffscreen()) {
+            meteor.destroy();
             meteors.splice(i, 1);
         }
     }
@@ -205,6 +239,15 @@ function gameLoop(currentTime) {
         if (expired) {
             healthOrbs[i].destroy();
             healthOrbs.splice(i, 1);
+        }
+    }
+
+    // Päivitä räjähdykset
+    for (let i = explosions.length - 1; i >= 0; i--) {
+        const completed = explosions[i].update(dt);
+        if (completed) {
+            explosions[i].destroy();
+            explosions.splice(i, 1);
         }
     }
 
