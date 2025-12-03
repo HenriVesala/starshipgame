@@ -457,3 +457,18 @@ body {
     box-shadow: 0 0 10px rgba(255, 200, 0, 0.8);
     pointer-events: none;
 }
+
+/* Vahinkoa ottaessa välähtävä efekti */
+.damage-flash {
+    filter: brightness(2) saturate(1.5);
+    animation: damage-flash-anim 0.15s ease-in-out;
+}
+
+@keyframes damage-flash-anim {
+    0%, 100% {
+        filter: brightness(2) saturate(1.5);
+    }
+    50% {
+        filter: brightness(3) saturate(2);
+    }
+}

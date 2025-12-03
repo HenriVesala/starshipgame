@@ -47,6 +47,8 @@ class Player {
         this.isShrinking = false;    // Kutistumistila (mustan aukon tapahtumahorisontti)
         this.shrinkProgress = 0;     // Kutistumisen edistyminen (0-1)
         this.shrinkDuration = 0.5;   // Kutistumisen kesto sekunteina
+        this.damageFlashTimer = 0;   // Välähdysajastin vahingon jälkeen
+        this.damageFlashDuration = 0.15; // Välähdyksen kesto sekunteina
     }
 
     // Ota vahinkoa
@@ -64,6 +66,11 @@ class Player {
         if (isCollisionDamage && this.health > 0 && !this.isInvulnerable) {
             this.isInvulnerable = true;
             this.invulnerabilityTimer = playerConfig.invulnerabilityDuration;
+        }
+
+        // Aktivoi välähdys jos alus ei tuhoudu
+        if (this.health > 0) {
+            this.damageFlashTimer = this.damageFlashDuration;
         }
 
         return this.health <= 0; // Palauta true jos alus tuhoutui
@@ -103,6 +110,14 @@ class Player {
             this.shootCooldownTimer -= dt;
             if (this.shootCooldownTimer < 0) {
                 this.shootCooldownTimer = 0;
+            }
+        }
+
+        // Päivitä vahinkoválähdys-ajastin
+        if (this.damageFlashTimer > 0) {
+            this.damageFlashTimer -= dt;
+            if (this.damageFlashTimer < 0) {
+                this.damageFlashTimer = 0;
             }
         }
 

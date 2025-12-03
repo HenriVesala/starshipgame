@@ -28,6 +28,8 @@ class BaseEnemy {
         this.isShrinking = false;    // Kutistumistila (mustan aukon tapahtumahorisontti)
         this.shrinkProgress = 0;     // Kutistumisen edistyminen (0-1)
         this.shrinkDuration = 0.5;   // Kutistumisen kesto sekunteina
+        this.damageFlashTimer = 0;   // Välähdysajastin vahingon jälkeen
+        this.damageFlashDuration = 0.15; // Välähdyksen kesto sekunteina
 
         // Spawn ruudun reunoilta
         const side = Math.floor(Math.random() * 4);
@@ -75,6 +77,14 @@ class BaseEnemy {
         if (this.isShrinking) {
             this.render();
             return;
+        }
+
+        // Päivitä vahinkoválähdys-ajastin
+        if (this.damageFlashTimer > 0) {
+            this.damageFlashTimer -= dt;
+            if (this.damageFlashTimer < 0) {
+                this.damageFlashTimer = 0;
+            }
         }
 
         this.x += this.vx * dt;
@@ -145,12 +155,25 @@ class BaseEnemy {
         } else {
             this.element.style.transform = `rotate(${this.angle + 180}deg)`;
         }
+
+        // Lisää vahinkoválähdys
+        if (this.damageFlashTimer > 0) {
+            this.element.classList.add('damage-flash');
+        } else {
+            this.element.classList.remove('damage-flash');
+        }
     }
 
     // Ota vahinkoa
     takeDamage(damage) {
         this.health -= damage;
         if (this.health < 0) this.health = 0;
+
+        // Aktivoi välähdys jos alus ei tuhoudu
+        if (this.health > 0) {
+            this.damageFlashTimer = this.damageFlashDuration;
+        }
+
         return this.health <= 0; // Palauta true jos alus tuhoutui
     }
 

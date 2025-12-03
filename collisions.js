@@ -161,6 +161,17 @@ function checkCollisions() {
                 player.isShrinking = true;
                 player.shrinkProgress = 0;
                 player.shrinkDuration = 0.5; // 0.5 sekuntia kutistumiseen
+
+                // Musta aukko kasvaa 1% aluksen nielaistessa
+                blackHole.radius *= 1.01;
+                blackHole.gravityRadius = blackHole.radius * blackHoleConfig.gravityRadiusMultiplier;
+                blackHole.distortionRadius *= 1.01;
+
+                // Päivitä visuaaliset elementit
+                blackHole.element.style.width = (blackHole.radius * 2) + 'px';
+                blackHole.element.style.height = (blackHole.radius * 2) + 'px';
+                blackHole.distortionField.style.width = (blackHole.distortionRadius * 2) + 'px';
+                blackHole.distortionField.style.height = (blackHole.distortionRadius * 2) + 'px';
             }
         }
     }
@@ -343,9 +354,45 @@ function checkCollisions() {
                     enemy.shrinkProgress = 0;
                     enemy.shrinkDuration = 0.5; // 0.5 sekuntia kutistumiseen
 
+                    // Musta aukko kasvaa 1% aluksen nielaistessa
+                    blackHole.radius *= 1.01;
+                    blackHole.gravityRadius = blackHole.radius * blackHoleConfig.gravityRadiusMultiplier;
+                    blackHole.distortionRadius *= 1.01;
+
+                    // Päivitä visuaaliset elementit
+                    blackHole.element.style.width = (blackHole.radius * 2) + 'px';
+                    blackHole.element.style.height = (blackHole.radius * 2) + 'px';
+                    blackHole.distortionField.style.width = (blackHole.distortionRadius * 2) + 'px';
+                    blackHole.distortionField.style.height = (blackHole.distortionRadius * 2) + 'px';
+
                     // Spawna terveyspallo ennen kutistumista
                     spawnHealthOrb(enemy);
                 }
+                break;
+            }
+        }
+    }
+
+    // Tarkista mustat aukot törmäämässä planeettoihin (musta aukko nielaisee planeetan)
+    for (let i = blackHoles.length - 1; i >= 0; i--) {
+        const blackHole = blackHoles[i];
+        for (let j = planets.length - 1; j >= 0; j--) {
+            const planet = planets[j];
+            if (distance(blackHole.x, blackHole.y, planet.x, planet.y) < blackHole.radius + planet.radius) {
+                // Musta aukko nielaisee planeetan - tapahtumahorisontti kasvaa 50%
+                blackHole.radius *= 1.5;
+                blackHole.gravityRadius = blackHole.radius * blackHoleConfig.gravityRadiusMultiplier;
+                blackHole.distortionRadius *= 1.5; // Kasvata myös vääristymäkenttää
+
+                // Päivitä visuaaliset elementit
+                blackHole.element.style.width = (blackHole.radius * 2) + 'px';
+                blackHole.element.style.height = (blackHole.radius * 2) + 'px';
+                blackHole.distortionField.style.width = (blackHole.distortionRadius * 2) + 'px';
+                blackHole.distortionField.style.height = (blackHole.distortionRadius * 2) + 'px';
+
+                // Poista planeetta
+                planet.destroy();
+                planets.splice(j, 1);
                 break;
             }
         }
@@ -402,6 +449,17 @@ function checkCollisions() {
                     meteor.isShrinking = true;
                     meteor.shrinkProgress = 0;
                     meteor.shrinkDuration = 0.5; // 0.5 sekuntia kutistumiseen
+
+                    // Musta aukko kasvaa 10% meteoriitin nielaistessa
+                    blackHole.radius *= 1.10;
+                    blackHole.gravityRadius = blackHole.radius * blackHoleConfig.gravityRadiusMultiplier;
+                    blackHole.distortionRadius *= 1.10;
+
+                    // Päivitä visuaaliset elementit
+                    blackHole.element.style.width = (blackHole.radius * 2) + 'px';
+                    blackHole.element.style.height = (blackHole.radius * 2) + 'px';
+                    blackHole.distortionField.style.width = (blackHole.distortionRadius * 2) + 'px';
+                    blackHole.distortionField.style.height = (blackHole.distortionRadius * 2) + 'px';
                 }
                 break;
             }

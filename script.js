@@ -111,6 +111,14 @@ function updatePosition(dt) {
         }
     }
 
+    // Päivitä vahinkoválähdys-ajastin
+    if (player.damageFlashTimer > 0) {
+        player.damageFlashTimer -= dt;
+        if (player.damageFlashTimer < 0) {
+            player.damageFlashTimer = 0;
+        }
+    }
+
     // Rotation (scaled by dt for frame-independent speed)
     if (keys.ArrowLeft) {
         player.angle -= playerConfig.rotationSpeed * dt;
@@ -155,7 +163,17 @@ function updatePosition(dt) {
     if (player.y > 900) player.y = -40;
 
     if (keys.Space && player.canShoot()) {
-        playerBullets.push(new Bullet(gameContainer, player.x, player.y, player.angle, 'player'));
+        // Laske ammuksen aloituspaikka aluksen keskipisteestä
+        const halfShipSize = playerConfig.width / 2;
+
+        // Laske offset eteenpäin aluksen suunnan mukaan
+        const adjustedAngle = player.angle - 90;
+        const radians = (adjustedAngle * Math.PI) / 180;
+        const forwardOffset = 20; // Kuinka kaukana keskipisteestä eteen
+        const bulletX = player.x + halfShipSize + Math.cos(radians) * forwardOffset;
+        const bulletY = player.y + halfShipSize + Math.sin(radians) * forwardOffset;
+
+        playerBullets.push(new Bullet(gameContainer, bulletX, bulletY, player.angle, 'player'));
         player.setShootCooldown();
         keys.Space = false;
     }
@@ -253,6 +271,13 @@ function render() {
         spaceship.classList.add('invulnerable');
     } else {
         spaceship.classList.remove('invulnerable');
+    }
+
+    // Update damage flash visual effect
+    if (player.damageFlashTimer > 0) {
+        spaceship.classList.add('damage-flash');
+    } else {
+        spaceship.classList.remove('damage-flash');
     }
 
     updateHealthBar();
