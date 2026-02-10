@@ -9,6 +9,7 @@ const gameplayProgression = {
         maxBasicEnemies: 1,
         maxEliteEnemies: 0,
         maxAggressiveEnemies: 0,
+        maxMissileEnemies: 0,
         maxTotalEnemies: 1,
         maxMeteors: 0,
         maxPlanets: 1,
@@ -24,6 +25,7 @@ const gameplayProgression = {
         maxBasicEnemies: 1,
         maxEliteEnemies: 0,
         maxAggressiveEnemies: 0,
+        maxMissileEnemies: 0,
         maxTotalEnemies: 1,
         maxMeteors: 1,
         maxPlanets: 1,
@@ -39,6 +41,7 @@ const gameplayProgression = {
         maxBasicEnemies: 2,
         maxEliteEnemies: 0,
         maxAggressiveEnemies: 0,
+        maxMissileEnemies: 0,
         maxTotalEnemies: 2,
         maxMeteors: 1,
         maxPlanets: 1,
@@ -52,8 +55,9 @@ const gameplayProgression = {
     tier3: {
         minScore: 80,
         maxBasicEnemies: 2,
-        maxEliteEnemies: 1,
-        maxAggressiveEnemies: 0,
+        maxEliteEnemies: 0,
+        maxAggressiveEnemies: 1,
+        maxMissileEnemies: 0,
         maxTotalEnemies: 3,
         maxMeteors: 1,
         maxPlanets: 1,
@@ -69,6 +73,7 @@ const gameplayProgression = {
         maxBasicEnemies: 2,
         maxEliteEnemies: 1,
         maxAggressiveEnemies: 0,
+        maxMissileEnemies: 1,
         maxTotalEnemies: 3,
         maxMeteors: 1,
         maxPlanets: 1,
@@ -84,12 +89,13 @@ const gameplayProgression = {
         maxBasicEnemies: 2,
         maxEliteEnemies: 1,
         maxAggressiveEnemies: 1,
-        maxTotalEnemies: 4,
+        maxMissileEnemies: 1,
+        maxTotalEnemies: 5,
         maxMeteors: 1,
         maxPlanets: 1,
         maxNebulaClouds: 1,
         maxBlackHoles: 1,
-        description: "120 points - aggressive enemies appear"
+        description: "120 points - aggressive + missile enemies appear"
     },
 
     // Score: 130 points
@@ -99,7 +105,8 @@ const gameplayProgression = {
         maxBasicEnemies: 2,
         maxEliteEnemies: 1,
         maxAggressiveEnemies: 1,
-        maxTotalEnemies: 4,
+        maxMissileEnemies: 1,
+        maxTotalEnemies: 5,
         maxMeteors: 2,
         maxPlanets: 1,
         maxNebulaClouds: 1,
@@ -112,9 +119,10 @@ const gameplayProgression = {
     tier7: {
         minScore: 200,
         maxBasicEnemies: 10,
-        maxEliteEnemies: 5,
-        maxAggressiveEnemies: 5,
-        maxTotalEnemies: 10,
+        maxEliteEnemies: 3,
+        maxAggressiveEnemies: 3,
+        maxMissileEnemies: 3,
+        maxTotalEnemies: 11,
         maxMeteors: 3,
         maxPlanets: 1,
         maxNebulaClouds: 1,
@@ -158,6 +166,9 @@ function updateEnemySpawnerLimits(currentScore) {
                 break;
             case 'aggressive':
                 spawner.maxCount = tier.maxAggressiveEnemies;
+                break;
+            case 'missile':
+                spawner.maxCount = tier.maxMissileEnemies;
                 break;
         }
     }

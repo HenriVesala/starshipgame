@@ -15,12 +15,16 @@ class BaseEnemy {
         const defaultConfig = {
             enterSpeed: 120,            // Nopeus (pikselit/sekunti)
             chaseMode: 'none',          // 'none', 'periodic', 'continuous', 'distance-based'
-            wallBehavior: 'bounce',     // 'bounce', 'ignore', 'clamp'
+            wallBehavior: 'wrap',       // 'wrap', 'clamp', 'ignore'
             turnSpeed: 90,              // Maksimi kääntymiskulma (astetta/sekunti)
             turnInterval: 5.0,          // Kääntymistaajuus (sekunti) - vain 'periodic' modelle
             minSpeed: 30,               // Minimi nopeus - vain 'distance-based' modelle
             slowdownStartDistance: 200, // Hidastamisen aloitusetäisyys - vain 'distance-based'
             slowdownStopDistance: 100,  // Hidastamisen loppuetäisyys - vain 'distance-based'
+            keepDistance: false,         // Perääntyy jos liian lähellä - vain 'distance-based'
+            weapon: 'bullet',           // Asetyyppi: 'bullet' | 'missile'
+            shootMinDistance: 0,         // Minimi ampumisetäisyys (0 = ei rajaa)
+            shootMaxDistance: Infinity,  // Maksimi ampumisetäisyys (Infinity = ei rajaa)
             shootCooldownMin: 1.0,      // Pienin ampumisaikaväli (sekunti)
             shootCooldownMax: 2.67,     // Suurin ampumisaikaväli (sekunti)
             enemyClassName: 'enemy',
@@ -43,7 +47,7 @@ class BaseEnemy {
         // Spawn ruudun reunoilta
         const side = Math.floor(Math.random() * 4);
         const randomX = Math.random() * (gameConfig.screenWidth - gameConfig.playerWidth);
-        const randomY = Math.random() * gameConfig.screenHeight;
+        const randomY = Math.random() * (gameConfig.screenHeight - gameConfig.playerHeight);
         const spawnOffset = 50; // Kuinka kaukana ruudun ulkopuolella spawnaus tapahtuu
 
         switch(side) {
@@ -90,7 +94,7 @@ class BaseEnemy {
         return diff;
     }
 
-    update(enemyBullets, playerX = null, playerY = null, dt = 0.016) {
+    update(enemyBullets, enemyMissiles, playerX = null, playerY = null, dt = 0.016) {
         // Jos kutistuu, älä tee mitään muuta kuin renderöi
         if (this.isShrinking) {
             this.render();
@@ -129,10 +133,17 @@ class BaseEnemy {
 
         this.shootCooldown -= dt;
 
-        // Shoot
-        if (this.shootCooldown <= 0) {
-            this.shoot(enemyBullets);
-            this.shootCooldown = Math.random() * (this.config.shootCooldownMax - this.config.shootCooldownMin) + this.config.shootCooldownMin;
+        // Shoot (tarkista ampumisetäisyys jos konfiguroitu)
+        if (this.shootCooldown <= 0 && playerX !== null && playerY !== null) {
+            const halfShipSize = gameConfig.playerWidth / 2;
+            const sdx = playerX + halfShipSize - (this.x + halfShipSize);
+            const sdy = playerY + halfShipSize - (this.y + halfShipSize);
+            const shootDist = Math.sqrt(sdx * sdx + sdy * sdy);
+
+            if (shootDist >= this.config.shootMinDistance && shootDist <= this.config.shootMaxDistance) {
+                this.shoot(enemyBullets, enemyMissiles);
+                this.shootCooldown = Math.random() * (this.config.shootCooldownMax - this.config.shootCooldownMin) + this.config.shootCooldownMin;
+            }
         }
 
         this.render();
@@ -207,16 +218,27 @@ class BaseEnemy {
                     let speed = this.config.enterSpeed;
 
                     if (distance < this.config.slowdownStopDistance) {
-                        speed = this.config.minSpeed;
+                        if (this.config.keepDistance) {
+                            // Peräänny pelaajasta - liiku poispäin
+                            speed = this.config.minSpeed;
+                            this.vx = -dirX * speed;
+                            this.vy = -dirY * speed;
+                        } else {
+                            speed = this.config.minSpeed;
+                            this.vx = dirX * speed;
+                            this.vy = dirY * speed;
+                        }
                     } else if (distance < this.config.slowdownStartDistance) {
                         const slowdownRange = this.config.slowdownStartDistance - this.config.slowdownStopDistance;
                         const distanceInRange = distance - this.config.slowdownStopDistance;
                         const slowdownFactor = distanceInRange / slowdownRange;
                         speed = this.config.minSpeed + (this.config.enterSpeed - this.config.minSpeed) * slowdownFactor;
+                        this.vx = dirX * speed;
+                        this.vy = dirY * speed;
+                    } else {
+                        this.vx = dirX * speed;
+                        this.vy = dirY * speed;
                     }
-
-                    this.vx = dirX * speed;
-                    this.vy = dirY * speed;
                 }
 
                 this.x += this.vx * dt;
@@ -258,9 +280,11 @@ class BaseEnemy {
         if (this.isEntering) return;
 
         switch (this.config.wallBehavior) {
-            case 'bounce':
-                if (this.x < 0 || this.x > gameConfig.screenWidth - gameConfig.playerWidth) this.vx *= -1;
-                if (this.y < 0 || this.y > gameConfig.screenHeight - gameConfig.playerHeight) this.vy *= -1;
+            case 'wrap':
+                if (this.x < -gameConfig.playerWidth) this.x = gameConfig.screenWidth;
+                if (this.x > gameConfig.screenWidth) this.x = -gameConfig.playerWidth;
+                if (this.y < -gameConfig.playerHeight) this.y = gameConfig.screenHeight;
+                if (this.y > gameConfig.screenHeight) this.y = -gameConfig.playerHeight;
                 break;
 
             case 'clamp':
@@ -281,10 +305,16 @@ class BaseEnemy {
         }
     }
 
-    shoot(enemyBullets) {
+    shoot(enemyBullets, enemyMissiles) {
         const halfShipSize = gameConfig.playerWidth / 2;
-        const bullet = new Bullet(this.gameContainer, this.x + halfShipSize, this.y + gameConfig.playerHeight, this.angle, 'enemy');
-        enemyBullets.push(bullet);
+        const spawnX = this.x + halfShipSize;
+        const spawnY = this.y + halfShipSize;
+
+        if (this.config.weapon === 'missile') {
+            enemyMissiles.push(new Missile(this.gameContainer, spawnX, spawnY, this.angle, 'enemy'));
+        } else {
+            enemyBullets.push(new Bullet(this.gameContainer, spawnX, spawnY + halfShipSize, this.angle, 'enemy'));
+        }
     }
 
     render() {

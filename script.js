@@ -31,13 +31,17 @@ let planets = [];
 let nebulaClouds = [];
 let blackHoles = [];
 let healthOrbs = [];
+let rateOfFireBoosts = [];
 let explosions = [];
+let playerMissiles = [];
+let enemyMissiles = [];
 
 // Enemy spawning configuration
 const enemySpawnConfigs = [
     { type: WeakEnemy, spawnIntervalMin: weakEnemyConfig.spawnIntervalMin, spawnIntervalMax: weakEnemyConfig.spawnIntervalMax, maxCount: weakEnemyConfig.maxCount, label: 'regular' },
     { type: EliteEnemy, spawnIntervalMin: eliteEnemyConfig.spawnIntervalMin, spawnIntervalMax: eliteEnemyConfig.spawnIntervalMax, maxCount: eliteEnemyConfig.maxCount, label: 'elite' },
-    { type: AggressiveEnemy, spawnIntervalMin: aggressiveEnemyConfig.spawnIntervalMin, spawnIntervalMax: aggressiveEnemyConfig.spawnIntervalMax, maxCount: aggressiveEnemyConfig.maxCount, label: 'aggressive' }
+    { type: AggressiveEnemy, spawnIntervalMin: aggressiveEnemyConfig.spawnIntervalMin, spawnIntervalMax: aggressiveEnemyConfig.spawnIntervalMax, maxCount: aggressiveEnemyConfig.maxCount, label: 'aggressive' },
+    { type: MissileEnemy, spawnIntervalMin: missileEnemyConfig.spawnIntervalMin, spawnIntervalMax: missileEnemyConfig.spawnIntervalMax, maxCount: missileEnemyConfig.maxCount, label: 'missile' }
 ];
 
 const enemySpawners = enemySpawnConfigs.map(config => ({
@@ -172,23 +176,28 @@ function updatePosition(dt) {
     player.y += player.vy * dt;
 
     // Boundary wrapping
-    if (player.x < -40) player.x = 1200;
-    if (player.x > 1200) player.x = -40;
-    if (player.y < -40) player.y = 900;
-    if (player.y > 900) player.y = -40;
+    if (player.x < -playerConfig.width) player.x = gameConfig.screenWidth;
+    if (player.x > gameConfig.screenWidth) player.x = -playerConfig.width;
+    if (player.y < -playerConfig.height) player.y = gameConfig.screenHeight;
+    if (player.y > gameConfig.screenHeight) player.y = -playerConfig.height;
 
     if (keys.Space && player.canShoot()) {
-        // Laske ammuksen aloituspaikka aluksen keskipisteestä
+        // Laske ammuksen/ohjuksen aloituspaikka aluksen keskipisteestä
         const halfShipSize = playerConfig.width / 2;
 
         // Laske offset eteenpäin aluksen suunnan mukaan
         const adjustedAngle = player.angle - 90;
         const radians = (adjustedAngle * Math.PI) / 180;
         const forwardOffset = 20; // Kuinka kaukana keskipisteestä eteen
-        const bulletX = player.x + halfShipSize + Math.cos(radians) * forwardOffset;
-        const bulletY = player.y + halfShipSize + Math.sin(radians) * forwardOffset;
+        const spawnX = player.x + halfShipSize + Math.cos(radians) * forwardOffset;
+        const spawnY = player.y + halfShipSize + Math.sin(radians) * forwardOffset;
 
-        playerBullets.push(new Bullet(gameContainer, bulletX, bulletY, player.angle, 'player'));
+        if (player.weapon === 'missile') {
+            playerMissiles.push(new Missile(gameContainer, spawnX, spawnY, player.angle, 'player'));
+        } else {
+            // 'bullet' tai muu oletusase
+            playerBullets.push(new Bullet(gameContainer, spawnX, spawnY, player.angle, 'player'));
+        }
         player.setShootCooldown();
         keys.Space = false;
     }
@@ -234,21 +243,6 @@ function spawnBlackHole() {
         blackHoleSpawnTimer = 0;
         nextBlackHoleSpawnTime = Math.random() * (blackHoleConfig.spawnIntervalMax - blackHoleConfig.spawnIntervalMin) + blackHoleConfig.spawnIntervalMin;
     }
-}
-
-// Spawn health orb when enemy is destroyed
-function spawnHealthOrb(enemy) {
-    // Determine health value based on enemy type
-    const healthValueMap = {
-        'WeakEnemy': 10,
-        'EliteEnemy': 20,
-        'AggressiveEnemy': 50
-    };
-    const healthValue = healthValueMap[enemy.constructor.name] || 10;
-
-    // Create health orb at enemy's position
-    const orb = new HealthOrb(enemy.x + 20, enemy.y + 20, healthValue, gameContainer);
-    healthOrbs.push(orb);
 }
 
 // Update health bar display
@@ -328,8 +322,11 @@ function restartGame() {
     planets.forEach(planet => planet.destroy());
     blackHoles.forEach(blackHole => blackHole.destroy());
     healthOrbs.forEach(orb => orb.destroy());
+    rateOfFireBoosts.forEach(boost => boost.destroy());
     nebulaClouds.forEach(cloud => cloud.destroy());
     explosions.forEach(explosion => explosion.destroy());
+    playerMissiles.forEach(m => m.destroy());
+    enemyMissiles.forEach(m => m.destroy());
 
     // Start the game from the beginning
     startGame();
@@ -372,7 +369,10 @@ function startGame() {
     nebulaClouds = [];
     blackHoles = [];
     healthOrbs = [];
+    rateOfFireBoosts = [];
     explosions = [];
+    playerMissiles = [];
+    enemyMissiles = [];
 
     // Reset spawn timers
     for (const spawner of enemySpawners) {

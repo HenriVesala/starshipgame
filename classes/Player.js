@@ -26,7 +26,11 @@ const playerConfig = {
     invulnerabilityDuration: 0.3,   // Immuniteettiaika sekunteina vahingon jälkeen
 
     // Ampuminen
-    shootCooldown: 0.7              // Ampumisen cooldown (sekuntia) - 3 ampumista/sekunti
+    shootCooldown: 0.7,             // Ampumisen cooldown (sekuntia) - 3 ampumista/sekunti
+    rateOfFireBoostMultiplier: 0.95, // Ampumisnopeuden lisäys per boosti (5% nopeampi = 0.95x cooldown)
+
+    // Aloitusase
+    startWeapon: 'missile'          // Aloitusase: 'missile' | 'bullet'
 };
 
 // Pelaajan alus -luokka
@@ -44,11 +48,13 @@ class Player {
         this.isInvulnerable = false;
         this.invulnerabilityTimer = 0;
         this.shootCooldownTimer = 0; // Ampumisen cooldown-ajastin
+        this.shootSpeedMultiplier = 1.0; // Ampumisnopeuden kerroin (alkaa 1.0, pienenee boostien myötä)
         this.isShrinking = false;    // Kutistumistila (mustan aukon tapahtumahorisontti)
         this.shrinkProgress = 0;     // Kutistumisen edistyminen (0-1)
         this.shrinkDuration = 0.5;   // Kutistumisen kesto sekunteina
         this.damageFlashTimer = 0;   // Välähdysajastin vahingon jälkeen
         this.damageFlashDuration = 0.15; // Välähdyksen kesto sekunteina
+        this.weapon = playerConfig.startWeapon; // Nykyinen ase
     }
 
     // Ota vahinkoa
@@ -91,7 +97,12 @@ class Player {
 
     // Aseta ampumisen cooldown
     setShootCooldown() {
-        this.shootCooldownTimer = playerConfig.shootCooldown;
+        this.shootCooldownTimer = playerConfig.shootCooldown * this.shootSpeedMultiplier;
+    }
+
+    // Lisää ampumisnopeusboosti
+    applyRateOfFireBoost() {
+        this.shootSpeedMultiplier *= playerConfig.rateOfFireBoostMultiplier;
     }
 
     // Päivitä pelaajan asento ja nopeus

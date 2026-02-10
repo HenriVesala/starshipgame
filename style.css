@@ -159,6 +159,22 @@ body {
     50% { box-shadow: 0 0 20px #ff00ff, 0 0 35px rgba(255, 0, 255, 0.8); }
 }
 
+.missile-enemy {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #00ffaa, #00cc88);
+    clip-path: polygon(50% 100%, 0% 0%, 50% 15%, 100% 0%);
+    box-shadow: 0 0 15px #00ffaa, 0 0 25px rgba(0, 255, 170, 0.5);
+    transform-origin: center center;
+    animation: missile-enemy-pulse 1.2s infinite;
+}
+
+@keyframes missile-enemy-pulse {
+    0%, 100% { box-shadow: 0 0 15px #00ffaa, 0 0 25px rgba(0, 255, 170, 0.5); }
+    50% { box-shadow: 0 0 20px #00ffaa, 0 0 35px rgba(0, 255, 170, 0.8); }
+}
+
 .bullet {
     position: absolute;
     width: 6px;
@@ -195,6 +211,79 @@ body {
         0 0 20px rgba(255, 0, 0, 0.3),
         inset 0 -2px 4px rgba(0, 0, 0, 0.2),
         inset 0 2px 4px rgba(255, 255, 255, 0.4);
+}
+
+.missile {
+    position: absolute;
+    width: 10px;
+    height: 16px;
+    transform-origin: center center;
+}
+
+.missile-body {
+    width: 100%;
+    height: 100%;
+    clip-path: polygon(50% 0%, 100% 70%, 80% 100%, 20% 100%, 0% 70%);
+    animation: missile-glow 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes missile-glow {
+    0% {
+        filter: brightness(1);
+    }
+    100% {
+        filter: brightness(1.5);
+    }
+}
+
+.player-missile .missile-body {
+    background: linear-gradient(to bottom, #ffffff, #ff8800, #ff4400);
+    box-shadow:
+        0 0 10px rgba(255, 136, 0, 0.9),
+        0 0 20px rgba(255, 68, 0, 0.6),
+        0 0 30px rgba(255, 68, 0, 0.3);
+}
+
+.enemy-missile .missile-body {
+    background: linear-gradient(to bottom, #ffffff, #ff0088, #cc0066);
+    box-shadow:
+        0 0 10px rgba(255, 0, 136, 0.9),
+        0 0 20px rgba(204, 0, 102, 0.6),
+        0 0 30px rgba(204, 0, 102, 0.3);
+}
+
+/* Ohjuksen liekki - näkyy vain hakeutuessa */
+.missile-flame {
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 8px;
+    border-radius: 50% 50% 20% 20%;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.missile-flame.active {
+    opacity: 1;
+    background: radial-gradient(ellipse at 50% 30%, #ffffff 0%, #66ccff 30%, #3399ff 60%, #0044cc 100%);
+    box-shadow:
+        0 0 4px rgba(100, 200, 255, 0.9),
+        0 0 8px rgba(50, 150, 255, 0.6),
+        0 2px 6px rgba(50, 150, 255, 0.4);
+    animation: flame-flicker 0.1s ease-in-out infinite alternate;
+}
+
+@keyframes flame-flicker {
+    0% {
+        height: 7px;
+        opacity: 0.85;
+    }
+    100% {
+        height: 9px;
+        opacity: 1;
+    }
 }
 
 .health-orb {
@@ -236,6 +325,48 @@ body {
     font-size: 16px;
     font-weight: bold;
     text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+    user-select: none;
+}
+
+.rate-of-fire-boost {
+    position: absolute;
+    background: radial-gradient(circle at 30% 30%, #ffdd00, #ff9900);
+    border-radius: 50%;
+    box-shadow:
+        0 0 12px rgba(255, 221, 0, 0.9),
+        0 0 24px rgba(255, 153, 0, 0.6),
+        inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+        inset 2px 2px 4px rgba(255, 255, 255, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: rate-of-fire-boost-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes rate-of-fire-boost-pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow:
+            0 0 12px rgba(255, 221, 0, 0.9),
+            0 0 24px rgba(255, 153, 0, 0.6),
+            inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+            inset 2px 2px 4px rgba(255, 255, 255, 0.6);
+    }
+    50% {
+        transform: scale(1.15);
+        box-shadow:
+            0 0 18px rgba(255, 221, 0, 1),
+            0 0 30px rgba(255, 153, 0, 0.8),
+            inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+            inset 2px 2px 4px rgba(255, 255, 255, 0.6);
+    }
+}
+
+.rate-of-fire-boost-arrow {
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.7);
     user-select: none;
 }
 
@@ -319,28 +450,22 @@ body {
     }
 }
 
-.nebula-cloud {
+.nebula-circle {
     position: absolute;
-    background: 
-        radial-gradient(circle at 30% 40%, rgba(138, 43, 226, 0.4) 0%, transparent 50%),
-        radial-gradient(circle at 70% 60%, rgba(75, 0, 130, 0.4) 0%, transparent 50%),
-        radial-gradient(circle at 50% 50%, rgba(147, 112, 219, 0.3) 0%, transparent 60%);
-    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
-    box-shadow: 
-        inset -5px -5px 15px rgba(0, 0, 0, 0.5),
-        0 0 30px rgba(138, 43, 226, 0.3),
-        inset 2px 2px 8px rgba(200, 150, 255, 0.2);
-    opacity: 0.7;
-    animation: nebula-drift 8s ease-in-out infinite;
-    filter: blur(8px);
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(12px);
+    animation: nebula-circle-pulse 4s ease-in-out infinite;
 }
 
-@keyframes nebula-drift {
-    0%, 100% { 
-        border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+@keyframes nebula-circle-pulse {
+    0%, 100% {
+        opacity: 0.5;
+        transform: scale(1);
     }
-    50% { 
-        border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    50% {
+        opacity: 0.75;
+        transform: scale(1.05);
     }
 }
 

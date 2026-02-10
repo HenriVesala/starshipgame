@@ -69,13 +69,17 @@ function checkCollisions() {
                 const explosionSizeMap = {
                     'WeakEnemy': 'small',
                     'EliteEnemy': 'medium',
-                    'AggressiveEnemy': 'medium'
+                    'AggressiveEnemy': 'medium',
+                    'MissileEnemy': 'medium'
                 };
                 const explosionSize = explosionSizeMap[enemy.constructor.name] || 'small';
                 explosions.push(new Explosion(enemy.x + 20, enemy.y + 20, explosionSize, gameContainer));
 
                 // Spawna terveyspallo
                 spawnHealthOrb(enemy);
+
+                // Spawna ampumisnopeusboosti (todennäköisyyspohjainen)
+                spawnRateOfFireBoost(enemy);
 
                 enemy.destroy();
                 enemies.splice(i, 1);
@@ -268,6 +272,9 @@ function checkCollisions() {
                     // Spawna terveyspallo
                     spawnHealthOrb(enemy);
 
+                    // Spawna ampumisnopeusboosti (todennäköisyyspohjainen)
+                    spawnRateOfFireBoost(enemy);
+
                     enemy.destroy();
                     enemies.splice(i, 1);
                 }
@@ -328,13 +335,17 @@ function checkCollisions() {
                 const explosionSizeMap = {
                     'WeakEnemy': 'small',
                     'EliteEnemy': 'medium',
-                    'AggressiveEnemy': 'medium'
+                    'AggressiveEnemy': 'medium',
+                    'MissileEnemy': 'medium'
                 };
                 const explosionSize = explosionSizeMap[enemy.constructor.name] || 'small';
                 explosions.push(new Explosion(enemy.x + 20, enemy.y + 20, explosionSize, gameContainer));
 
                 // Spawna terveyspallo
                 spawnHealthOrb(enemy);
+
+                // Spawna ampumisnopeusboosti (todennäköisyyspohjainen)
+                spawnRateOfFireBoost(enemy);
 
                 enemy.destroy();
                 enemies.splice(i, 1);
@@ -367,6 +378,9 @@ function checkCollisions() {
 
                     // Spawna terveyspallo ennen kutistumista
                     spawnHealthOrb(enemy);
+
+                    // Spawna ampumisnopeusboosti (todennäköisyyspohjainen)
+                    spawnRateOfFireBoost(enemy);
                 }
                 break;
             }
@@ -597,9 +611,266 @@ function checkCollisions() {
                     // Spawna terveyspallo
                     spawnHealthOrb(enemy);
 
+                    // Spawna ampumisnopeusboosti (todennäköisyyspohjainen)
+                    spawnRateOfFireBoost(enemy);
+
                     enemy.destroy();
                     enemies.splice(j, 1);
                 }
+                break;
+            }
+        }
+    }
+
+    // Tarkista pelaajan ohjukset osumassa pelaajaan itseensä (vain aktivoituneet ohjukset)
+    for (let i = playerMissiles.length - 1; i >= 0; i--) {
+        const missile = playerMissiles[i];
+        if (missile.age < missileConfig.armingTime) continue; // Ei vielä aktivoitunut
+        if (distance(player.x + 20, player.y + 20, missile.x, missile.y) < 20 + missileConfig.collisionRadius) {
+            const destroyed = player.takeDamage(missile.damage);
+
+            // Ohjus räjähtää
+            explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+            missile.destroy();
+            playerMissiles.splice(i, 1);
+
+            if (destroyed) {
+                explosions.push(new Explosion(player.x + 20, player.y + 20, 'large', gameContainer));
+                endGame();
+                return;
+            }
+        }
+    }
+
+    // Tarkista pelaajan ohjukset osumassa vihollisiin
+    for (let i = playerMissiles.length - 1; i >= 0; i--) {
+        const missile = playerMissiles[i];
+        for (let j = enemies.length - 1; j >= 0; j--) {
+            const enemy = enemies[j];
+            if (distance(enemy.x + 20, enemy.y + 20, missile.x, missile.y) < 20 + missileConfig.collisionRadius) {
+                const destroyed = enemy.takeDamage(missile.damage);
+
+                // Ohjus räjähtää aina osuessaan
+                explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+                missile.destroy();
+                playerMissiles.splice(i, 1);
+
+                if (destroyed) {
+                    // Määrittele pisteet vihollisen tyypin perusteella
+                    const scoreMap = {
+                        'WeakEnemy': 10,
+                        'EliteEnemy': 25,
+                        'AggressiveEnemy': 30
+                    };
+                    player.score += scoreMap[enemy.constructor.name] || 10;
+
+                    // Luo räjähdys vihollisen sijainnissa
+                    const explosionSizeMap = {
+                        'WeakEnemy': 'small',
+                        'EliteEnemy': 'medium',
+                        'AggressiveEnemy': 'medium'
+                    };
+                    const explosionSize = explosionSizeMap[enemy.constructor.name] || 'small';
+                    explosions.push(new Explosion(enemy.x + 20, enemy.y + 20, explosionSize, gameContainer));
+
+                    // Spawna terveyspallo
+                    spawnHealthOrb(enemy);
+
+                    // Spawna ampumisnopeusboosti (todennäköisyyspohjainen)
+                    spawnRateOfFireBoost(enemy);
+
+                    enemy.destroy();
+                    enemies.splice(j, 1);
+                }
+                break;
+            }
+        }
+    }
+
+    // Tarkista vihollisten ammukset osumassa pelaajan ohjuksiin
+    for (let i = enemyBullets.length - 1; i >= 0; i--) {
+        const bullet = enemyBullets[i];
+        for (let j = playerMissiles.length - 1; j >= 0; j--) {
+            const missile = playerMissiles[j];
+            if (distance(bullet.x, bullet.y, missile.x, missile.y) < 3 + missileConfig.collisionRadius) {
+                // Ohjus tuhoutuu (1 HP)
+                explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+                missile.destroy();
+                playerMissiles.splice(j, 1);
+
+                // Ammus tuhoutuu myös
+                bullet.destroy();
+                enemyBullets.splice(i, 1);
+                break;
+            }
+        }
+    }
+
+    // Tarkista pelaajan ohjukset osumassa meteoriitteihin
+    for (let i = playerMissiles.length - 1; i >= 0; i--) {
+        const missile = playerMissiles[i];
+        for (let j = meteors.length - 1; j >= 0; j--) {
+            const meteor = meteors[j];
+            if (distance(missile.x, missile.y, meteor.x, meteor.y) < meteor.radius + missileConfig.collisionRadius) {
+                // Ohjus räjähtää (ei kimpoa kuten ammukset)
+                explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+                missile.destroy();
+                playerMissiles.splice(i, 1);
+                break;
+            }
+        }
+    }
+
+    // Tarkista pelaajan ohjukset osumassa planeettoihin
+    for (let i = playerMissiles.length - 1; i >= 0; i--) {
+        const missile = playerMissiles[i];
+        for (let j = planets.length - 1; j >= 0; j--) {
+            const planet = planets[j];
+            if (distance(missile.x, missile.y, planet.x, planet.y) < planet.radius + missileConfig.collisionRadius) {
+                explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+                missile.destroy();
+                playerMissiles.splice(i, 1);
+                break;
+            }
+        }
+    }
+
+    // Tarkista pelaajan ohjukset osumassa mustiin aukkoihin
+    for (let i = playerMissiles.length - 1; i >= 0; i--) {
+        const missile = playerMissiles[i];
+        for (let j = blackHoles.length - 1; j >= 0; j--) {
+            const blackHole = blackHoles[j];
+            if (distance(missile.x, missile.y, blackHole.x, blackHole.y) < blackHole.radius + missileConfig.collisionRadius) {
+                missile.destroy();
+                playerMissiles.splice(i, 1);
+                break;
+            }
+        }
+    }
+
+    // Tarkista vihollisten ohjukset osumassa vihollisiin
+    for (let i = enemyMissiles.length - 1; i >= 0; i--) {
+        const missile = enemyMissiles[i];
+        if (missile.age < missileConfig.armingTime) continue;
+        for (let j = enemies.length - 1; j >= 0; j--) {
+            const enemy = enemies[j];
+            if (distance(enemy.x + 20, enemy.y + 20, missile.x, missile.y) < 20 + missileConfig.collisionRadius) {
+                const destroyed = enemy.takeDamage(missile.damage);
+
+                explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+                missile.destroy();
+                enemyMissiles.splice(i, 1);
+
+                if (destroyed) {
+                    const explosionSizeMap = {
+                        'WeakEnemy': 'small',
+                        'EliteEnemy': 'medium',
+                        'AggressiveEnemy': 'medium'
+                    };
+                    const explosionSize = explosionSizeMap[enemy.constructor.name] || 'small';
+                    explosions.push(new Explosion(enemy.x + 20, enemy.y + 20, explosionSize, gameContainer));
+
+                    spawnHealthOrb(enemy);
+                    spawnRateOfFireBoost(enemy);
+
+                    enemy.destroy();
+                    enemies.splice(j, 1);
+                }
+                break;
+            }
+        }
+    }
+
+    // Tarkista vihollisten ohjukset osumassa pelaajaan
+    for (let i = enemyMissiles.length - 1; i >= 0; i--) {
+        const missile = enemyMissiles[i];
+        if (missile.age < missileConfig.armingTime) continue;
+        if (distance(player.x + 20, player.y + 20, missile.x, missile.y) < 20 + missileConfig.collisionRadius) {
+            const destroyed = player.takeDamage(missile.damage);
+
+            explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+            missile.destroy();
+            enemyMissiles.splice(i, 1);
+
+            if (destroyed) {
+                explosions.push(new Explosion(player.x + 20, player.y + 20, 'large', gameContainer));
+                endGame();
+                return;
+            }
+        }
+    }
+
+    // Tarkista pelaajan ammukset osumassa vihollisten ohjuksiin
+    for (let i = playerBullets.length - 1; i >= 0; i--) {
+        const bullet = playerBullets[i];
+        for (let j = enemyMissiles.length - 1; j >= 0; j--) {
+            const missile = enemyMissiles[j];
+            if (distance(bullet.x, bullet.y, missile.x, missile.y) < 3 + missileConfig.collisionRadius) {
+                explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+                missile.destroy();
+                enemyMissiles.splice(j, 1);
+
+                bullet.destroy();
+                playerBullets.splice(i, 1);
+                break;
+            }
+        }
+    }
+
+    // Tarkista pelaajan ohjukset osumassa vihollisten ohjuksiin
+    for (let i = playerMissiles.length - 1; i >= 0; i--) {
+        const pMissile = playerMissiles[i];
+        for (let j = enemyMissiles.length - 1; j >= 0; j--) {
+            const eMissile = enemyMissiles[j];
+            if (distance(pMissile.x, pMissile.y, eMissile.x, eMissile.y) < missileConfig.collisionRadius * 2) {
+                explosions.push(new Explosion(pMissile.x, pMissile.y, 'small', gameContainer));
+                pMissile.destroy();
+                playerMissiles.splice(i, 1);
+
+                explosions.push(new Explosion(eMissile.x, eMissile.y, 'small', gameContainer));
+                eMissile.destroy();
+                enemyMissiles.splice(j, 1);
+                break;
+            }
+        }
+    }
+
+    // Tarkista vihollisten ohjukset osumassa meteoriitteihin
+    for (let i = enemyMissiles.length - 1; i >= 0; i--) {
+        const missile = enemyMissiles[i];
+        for (let j = meteors.length - 1; j >= 0; j--) {
+            const meteor = meteors[j];
+            if (distance(missile.x, missile.y, meteor.x, meteor.y) < meteor.radius + missileConfig.collisionRadius) {
+                explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+                missile.destroy();
+                enemyMissiles.splice(i, 1);
+                break;
+            }
+        }
+    }
+
+    // Tarkista vihollisten ohjukset osumassa planeettoihin
+    for (let i = enemyMissiles.length - 1; i >= 0; i--) {
+        const missile = enemyMissiles[i];
+        for (let j = planets.length - 1; j >= 0; j--) {
+            const planet = planets[j];
+            if (distance(missile.x, missile.y, planet.x, planet.y) < planet.radius + missileConfig.collisionRadius) {
+                explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+                missile.destroy();
+                enemyMissiles.splice(i, 1);
+                break;
+            }
+        }
+    }
+
+    // Tarkista vihollisten ohjukset osumassa mustiin aukkoihin
+    for (let i = enemyMissiles.length - 1; i >= 0; i--) {
+        const missile = enemyMissiles[i];
+        for (let j = blackHoles.length - 1; j >= 0; j--) {
+            const blackHole = blackHoles[j];
+            if (distance(missile.x, missile.y, blackHole.x, blackHole.y) < blackHole.radius + missileConfig.collisionRadius) {
+                missile.destroy();
+                enemyMissiles.splice(i, 1);
                 break;
             }
         }
@@ -615,6 +886,19 @@ function checkCollisions() {
             // Poista pallo
             orb.destroy();
             healthOrbs.splice(i, 1);
+        }
+    }
+
+    // Tarkista pelaaja keräämässä ampumisnopeusboosteja
+    for (let i = rateOfFireBoosts.length - 1; i >= 0; i--) {
+        const boost = rateOfFireBoosts[i];
+        if (boost.checkCollision(player)) {
+            // Lisää ampumisnopeusboosti
+            player.applyRateOfFireBoost();
+
+            // Poista boosti
+            boost.destroy();
+            rateOfFireBoosts.splice(i, 1);
         }
     }
 }

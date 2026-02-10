@@ -88,7 +88,15 @@ function gameLoop(currentTime) {
             }
         }
 
-        enemy.update(enemyBullets, player.x, player.y, dt);
+        enemy.update(enemyBullets, enemyMissiles, player.x, player.y, dt);
+
+        // Poista viholliset jotka ovat kaukana ruudun ulkopuolella (eivät enää palaa)
+        if (!enemy.isShrinking && !enemy.isEntering &&
+            (enemy.x < -200 || enemy.x > gameConfig.screenWidth + 200 ||
+             enemy.y < -200 || enemy.y > gameConfig.screenHeight + 200)) {
+            enemy.destroy();
+            enemies.splice(i, 1);
+        }
     }
 
     // Päivitä planeetat
@@ -117,6 +125,16 @@ function gameLoop(currentTime) {
         // Käytä painovoimaa meteoriitteihin
         for (let j = 0; j < meteors.length; j++) {
             planet.applyGravity(meteors[j], dt);
+        }
+
+        // Käytä painovoimaa pelaajan ohjuksiin
+        for (let j = 0; j < playerMissiles.length; j++) {
+            planet.applyGravity(playerMissiles[j], dt);
+        }
+
+        // Käytä painovoimaa vihollisten ohjuksiin
+        for (let j = 0; j < enemyMissiles.length; j++) {
+            planet.applyGravity(enemyMissiles[j], dt);
         }
 
         if (planet.isOffscreen()) {
@@ -153,6 +171,16 @@ function gameLoop(currentTime) {
             blackHole.applyGravity(meteors[j], dt);
         }
 
+        // Käytä painovoimaa pelaajan ohjuksiin
+        for (let j = 0; j < playerMissiles.length; j++) {
+            blackHole.applyGravity(playerMissiles[j], dt);
+        }
+
+        // Käytä painovoimaa vihollisten ohjuksiin
+        for (let j = 0; j < enemyMissiles.length; j++) {
+            blackHole.applyGravity(enemyMissiles[j], dt);
+        }
+
         if (blackHole.isOffscreen()) {
             blackHole.destroy();
             blackHoles.splice(i, 1);
@@ -163,6 +191,18 @@ function gameLoop(currentTime) {
     for (let i = nebulaClouds.length - 1; i >= 0; i--) {
         const nebulaCloud = nebulaClouds[i];
         nebulaCloud.update(dt);
+
+        // Tarkista mustan aukon ja tähtisumun vuorovaikutus
+        for (let j = 0; j < blackHoles.length; j++) {
+            nebulaCloud.shrinkCirclesTouchingBlackHole(blackHoles[j], dt);
+        }
+
+        // Tarkista onko tähtisumu täysin tuhoutunut
+        if (nebulaCloud.isFullyDestroyed()) {
+            nebulaCloud.destroy();
+            nebulaClouds.splice(i, 1);
+            continue;
+        }
 
         // Käytä hidastusta pelaajaan jos tähtisumun sisällä
         if (nebulaCloudConfig.affectsPlayer && nebulaCloud.isObjectInside(player)) {
@@ -192,6 +232,24 @@ function gameLoop(currentTime) {
             for (let j = enemyBullets.length - 1; j >= 0; j--) {
                 if (nebulaCloud.isObjectInside(enemyBullets[j])) {
                     nebulaCloud.applySlowdown(enemyBullets[j], true, bulletConfig.enemyBullet.minVelocityInNebula);
+                }
+            }
+        }
+
+        // Käytä hidastusta pelaajan ohjuksiin jos tähtisumun sisällä
+        if (nebulaCloudConfig.affectsBullets) {
+            for (let j = playerMissiles.length - 1; j >= 0; j--) {
+                if (nebulaCloud.isObjectInside(playerMissiles[j])) {
+                    playerMissiles[j].speedMultiplier = missileConfig.nebulaSlowdown;
+                }
+            }
+        }
+
+        // Käytä hidastusta vihollisten ohjuksiin jos tähtisumun sisällä
+        if (nebulaCloudConfig.affectsBullets) {
+            for (let j = enemyMissiles.length - 1; j >= 0; j--) {
+                if (nebulaCloud.isObjectInside(enemyMissiles[j])) {
+                    enemyMissiles[j].speedMultiplier = missileConfig.nebulaSlowdown;
                 }
             }
         }
@@ -241,12 +299,39 @@ function gameLoop(currentTime) {
         }
     }
 
+    // Päivitä pelaajan ohjukset
+    for (let i = playerMissiles.length - 1; i >= 0; i--) {
+        playerMissiles[i].update(dt, [...enemies, player]);
+        if (playerMissiles[i].isOffscreen()) {
+            playerMissiles[i].destroy();
+            playerMissiles.splice(i, 1);
+        }
+    }
+
+    // Päivitä vihollisten ohjukset
+    for (let i = enemyMissiles.length - 1; i >= 0; i--) {
+        enemyMissiles[i].update(dt, [...enemies, player]);
+        if (enemyMissiles[i].isOffscreen()) {
+            enemyMissiles[i].destroy();
+            enemyMissiles.splice(i, 1);
+        }
+    }
+
     // Päivitä terveyspallot
     for (let i = healthOrbs.length - 1; i >= 0; i--) {
         const expired = healthOrbs[i].update(dt);
         if (expired) {
             healthOrbs[i].destroy();
             healthOrbs.splice(i, 1);
+        }
+    }
+
+    // Päivitä ampumisnopeusboostit
+    for (let i = rateOfFireBoosts.length - 1; i >= 0; i--) {
+        const expired = rateOfFireBoosts[i].update(dt);
+        if (expired) {
+            rateOfFireBoosts[i].destroy();
+            rateOfFireBoosts.splice(i, 1);
         }
     }
 

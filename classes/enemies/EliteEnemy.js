@@ -3,7 +3,7 @@ const eliteEnemyConfig = {
     // Liikkeen konfiguraatio
     enterSpeed: 120,            // Maksimi nopeus (pikselit/sekunti)
     chaseMode: 'distance-based', // Älykäs jahtaaminen etäisyyden mukaan
-    wallBehavior: 'clamp',      // Pysyy pelialueella
+    wallBehavior: 'wrap',       // Ilmestyy toiselle puolelle
     turnSpeed: 120,             // Maksimi kääntymiskulma (astetta/sekunti) - nopeampi kuin normaali
     minSpeed: 30,               // Minimi nopeus kun hyvin lähellä pelaajaa
     slowdownStartDistance: 400, // Aloita hidastaminen tällä etäisyydellä (pikselit)
@@ -22,7 +22,10 @@ const eliteEnemyConfig = {
     // Spawnaus
     spawnIntervalMin: 10000,    // Pienin spawnausväli (millisekuntia)
     spawnIntervalMax: 20000,    // Suurin spawnausväli (millisekuntia)
-    maxCount: 2                 // Maksimimäärä samanaikaisia vihollisia
+    maxCount: 2,                // Maksimimäärä samanaikaisia vihollisia
+
+    // Pudotukset
+    rateOfFireBoostDropChance: 0.20  // 20% todennäköisyys pudottaa ampumisnopeusboosti
 };
 
 // Elite Enemy class - intelligent enemy that maintains shooting angle and distance

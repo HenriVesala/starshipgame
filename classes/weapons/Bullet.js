@@ -52,6 +52,6 @@ class Bullet {
     }
 
     isOffscreen() {
-        return this.x < -20 || this.x > 1220 || this.y < -20 || this.y > 920;
+        return this.x < -20 || this.x > gameConfig.screenWidth + 20 || this.y < -20 || this.y > gameConfig.screenHeight + 20;
     }
 }
