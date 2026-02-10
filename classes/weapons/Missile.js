@@ -39,6 +39,9 @@ class Missile {
         const adjustedAngle = (angle - 90) * Math.PI / 180;
         this.vx = Math.cos(adjustedAngle) * this.speed;
         this.vy = Math.sin(adjustedAngle) * this.speed;
+        // Tallenna "puhdas" työntövoiman nopeus painovoiman erottelua varten
+        this.thrustVx = this.vx;
+        this.thrustVy = this.vy;
 
         // Luo DOM-elementit
         this.element = document.createElement('div');
@@ -156,11 +159,19 @@ class Missile {
             }
         }
 
+        // Erota painovoiman vaikutus (ulkoiset voimat jotka muuttivat vx/vy edellisellä framella)
+        const gravDx = this.vx - this.thrustVx;
+        const gravDy = this.vy - this.thrustVy;
+
         // Päivitä nopeus kulman perusteella (huomioi hidastuskerroin)
         const effectiveSpeed = this.currentSpeed * this.speedMultiplier;
         const adjustedAngle = (this.angle - 90) * Math.PI / 180;
-        this.vx = Math.cos(adjustedAngle) * effectiveSpeed;
-        this.vy = Math.sin(adjustedAngle) * effectiveSpeed;
+        this.thrustVx = Math.cos(adjustedAngle) * effectiveSpeed;
+        this.thrustVy = Math.sin(adjustedAngle) * effectiveSpeed;
+
+        // Yhdistä työntövoima + painovoiman kertymä
+        this.vx = this.thrustVx + gravDx;
+        this.vy = this.thrustVy + gravDy;
 
         // Päivitä sijainti
         this.x += this.vx * dt;

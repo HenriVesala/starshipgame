@@ -379,10 +379,8 @@ body {
 
 .planet {
     position: absolute;
-    background: radial-gradient(circle at 35% 35%, #4a90e2, #1a3a5c);
     border-radius: 50%;
-    box-shadow: inset -3px -3px 6px rgba(0, 0, 0, 0.6), 0 0 20px rgba(74, 144, 226, 0.6),
-                inset 2px 2px 4px rgba(255, 255, 255, 0.1);
+    background-color: transparent;
 }
 
 .black-hole-distortion {
