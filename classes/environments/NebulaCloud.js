@@ -16,9 +16,8 @@ const nebulaCloudConfig = {
     speedMin: 20,                // Pienin nopeus (pikselit/sekunti)
     speedMax: 40,                // Suurin nopeus (pikselit/sekunti)
 
-    // Hidastuskonfiguraatio
-    slowdownStrength: 0.5,       // Hidastuskerroin pelaajalle ja vihollisille (50% normaalista)
-    bulletSlowdownStrength: 0.8, // Hidastuskerroin ammuksille (80% normaalista)
+    // Hidastuskonfiguraatio (nopeusperusteinen vastus)
+    dragStrength: 0.005,         // Vastuskerroin — hidastusprosentti kasvaa nopeuden mukaan
 
     // Vaikutuksen konfiguraatio
     affectsPlayer: true,         // Vaikuttaa pelaajaan
@@ -137,31 +136,18 @@ class NebulaCloud {
         return false;
     }
 
-    // Levitetään hidastava vaikutus objektiin
-    applySlowdown(obj, isBullet = false, minVelocity = 0) {
-        if (obj.hasOwnProperty('vx') && obj.hasOwnProperty('vy')) {
-            // Käytä eri kerrainta ammuksille ja muille objekteille
-            const slowdownFactor = isBullet ?
-                nebulaCloudConfig.bulletSlowdownStrength :
-                nebulaCloudConfig.slowdownStrength;
+    // Levitetään hidastava vaikutus objektiin — hidastusprosentti kasvaa nopeuden mukaan
+    applySlowdown(obj, dt) {
+        const coeff = obj.nebulaCoefficient;
+        if (!coeff) return;
 
-            // Laske nykyinen nopeus
-            const currentSpeed = Math.sqrt(obj.vx * obj.vx + obj.vy * obj.vy);
+        const speed = Math.sqrt(obj.vx * obj.vx + obj.vy * obj.vy);
+        if (speed === 0) return;
 
-            // Käytä hidastusta vain jos nopeus on suurempi kuin minimi
-            if (currentSpeed > minVelocity) {
-                obj.vx *= slowdownFactor;
-                obj.vy *= slowdownFactor;
-
-                // Varmista että nopeus ei mene alle minimin
-                const newSpeed = Math.sqrt(obj.vx * obj.vx + obj.vy * obj.vy);
-                if (newSpeed < minVelocity) {
-                    const scale = minVelocity / newSpeed;
-                    obj.vx *= scale;
-                    obj.vy *= scale;
-                }
-            }
-        }
+        // Vastuskerroin: mitä nopeampi kappale, sitä suurempi hidastusprosentti
+        const dragFactor = Math.max(0, 1 - nebulaCloudConfig.dragStrength * speed * dt * coeff);
+        obj.vx *= dragFactor;
+        obj.vy *= dragFactor;
     }
 
     // Kutista ympyrät jotka koskettavat mustaa aukkoa

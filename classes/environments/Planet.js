@@ -212,6 +212,11 @@ class Planet {
         this.element.style.backgroundSize = 'cover';
         this.element.style.boxShadow = `inset -3px -3px 6px rgba(0, 0, 0, 0.6), 0 0 20px ${this.planetType.atmosphere}, inset 2px 2px 4px rgba(255, 255, 255, 0.1)`;
         gameContainer.appendChild(this.element);
+
+        // Kutistumisanimaatio (mustan aukon nielaisu)
+        this.isShrinking = false;
+        this.shrinkProgress = 0;
+        this.shrinkDuration = 0.8;
     }
 
     update(dt = 0.016) {
@@ -263,6 +268,11 @@ class Planet {
     render() {
         this.element.style.left = (this.x - this.radius) + 'px';
         this.element.style.top = (this.y - this.radius) + 'px';
+
+        if (this.isShrinking) {
+            const scale = 1 - this.shrinkProgress;
+            this.element.style.transform = `scale(${scale})`;
+        }
     }
 
     destroy() {

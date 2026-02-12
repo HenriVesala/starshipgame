@@ -14,6 +14,8 @@ class SpaceShip {
         this.shrinkDuration = 0.5;
         this.damageFlashTimer = 0;
         this.damageFlashDuration = 0.15;
+        this.nebulaCoefficient = config.nebulaCoefficient ?? 1.0;
+        this.thrustState = 'none'; // 'none', 'forward', 'reverse'
         this.element = null;
     }
 

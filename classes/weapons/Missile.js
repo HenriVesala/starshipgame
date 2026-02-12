@@ -14,34 +14,33 @@ const missileConfig = {
     height: 16,                  // Korkeus pikseleissä
     collisionRadius: 10,         // Törmäyssäde pikseleissä
     armingTime: 1,               // Aktivointiaika sekunteina (ei osu omistajaan ennen tätä)
-    nebulaSlowdown: 0.3,         // Hidastuskerroin nebulassa (30% normaalista)
-    minSpeedInNebula: 10         // Minimi nopeus nebulassa (pikselit/sekunti)
+    nebulaCoefficient: 1.0       // Nebulan vastuskerroin (0 = ei vaikutusta, 1 = normaali)
 };
 
 // Hakeutuva ohjus -luokka
-class Missile {
+class Missile extends Weapon {
     constructor(gameContainer, x, y, angle, owner, ownerVx = 0, ownerVy = 0) {
-        this.gameContainer = gameContainer;
-        this.x = x;
-        this.y = y;
-        this.angle = angle;
-        this.owner = owner; // 'player' tai 'enemy'
-        this.maxSpeed = missileConfig.maxSpeed;
+        super({
+            gameContainer,
+            x, y, angle,
+            damage: missileConfig.damage,
+            maxSpeed: missileConfig.maxSpeed,
+            initialSpeed: missileConfig.initialSpeed,
+            nebulaCoefficient: missileConfig.nebulaCoefficient,
+            owner,
+            ownerVx, ownerVy
+        });
+
         this.currentSpeed = missileConfig.initialSpeed; // Lähtönopeus, kiihtyy ajan myötä
-        this.damage = missileConfig.damage;
         this.health = missileConfig.health;
         this.turnSpeed = missileConfig.turnSpeed;
         this.target = null;
         this.age = 0; // Aika laukaisusta (sekunteina)
-        this.speedMultiplier = 1.0;
 
-        // Laske alkunopeus kulman perusteella (lähtönopeudella) + ampujan nopeus
+        // Erota työntövoima ampujan nopeudesta (painovoiman laskentaa varten)
         const adjustedAngle = (angle - 90) * Math.PI / 180;
         this.thrustVx = Math.cos(adjustedAngle) * this.currentSpeed;
         this.thrustVy = Math.sin(adjustedAngle) * this.currentSpeed;
-        // Kokonaisnopeus = oma työntövoima + ampujan liikemäärä
-        this.vx = this.thrustVx + ownerVx;
-        this.vy = this.thrustVy + ownerVy;
 
         // Luo DOM-elementit
         this.element = document.createElement('div');
@@ -116,7 +115,6 @@ class Missile {
 
     update(dt, targets) {
         this.age += dt;
-        this.speedMultiplier = 1.0; // Nollataan joka ruudussa (nebula voi muokata)
 
         // ArmingTime: lentää vain suoraan eteenpäin, ei hakeudu
         if (this.age < missileConfig.armingTime) {
@@ -159,8 +157,8 @@ class Missile {
         const gravDx = this.vx - this.thrustVx;
         const gravDy = this.vy - this.thrustVy;
 
-        // Päivitä nopeus kulman perusteella (huomioi hidastuskerroin)
-        const effectiveSpeed = this.currentSpeed * this.speedMultiplier;
+        // Päivitä nopeus kulman perusteella
+        const effectiveSpeed = this.currentSpeed;
         const adjustedAngle = (this.angle - 90) * Math.PI / 180;
         this.thrustVx = Math.cos(adjustedAngle) * effectiveSpeed;
         this.thrustVy = Math.sin(adjustedAngle) * effectiveSpeed;
@@ -197,14 +195,5 @@ class Missile {
         this.element.style.left = (this.x - missileConfig.width / 2) + 'px';
         this.element.style.top = (this.y - missileConfig.height / 2) + 'px';
         this.element.style.transform = `rotate(${this.angle}deg)`;
-    }
-
-    destroy() {
-        this.element.remove();
-    }
-
-    isOffscreen() {
-        return this.x < -20 || this.x > gameConfig.screenWidth + 20 ||
-               this.y < -20 || this.y > gameConfig.screenHeight + 20;
     }
 }

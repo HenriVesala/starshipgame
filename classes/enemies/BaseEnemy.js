@@ -1,9 +1,9 @@
 // Vihollisten konfiguraatio
 const enemyConfig = {
-    minVelocityInNebula: 30,  // Minimi nopeus tähtisumassa (px/s)
     baseHealth: 100,          // Perus vihollisen kestopisteet
     collisionDamage: 200,     // Vahinko joka viholliset aiheuttavat törmätessään
-    maxSpeed: 400             // Oletus maksiminopeus (pikselit/sekunti)
+    maxSpeed: 400,            // Oletus maksiminopeus (pikselit/sekunti)
+    nebulaCoefficient: 1.0    // Nebulan vastuskerroin (0 = ei vaikutusta, 1 = normaali)
 };
 
 // Base Enemy class - parent class for all enemy types
@@ -27,14 +27,16 @@ class BaseEnemy extends SpaceShip {
             shootCooldownMax: 2.67,     // Suurin ampumisaikaväli (sekunti)
             enemyClassName: 'enemy',
             health: enemyConfig.baseHealth,
-            maxSpeed: enemyConfig.maxSpeed
+            maxSpeed: enemyConfig.maxSpeed,
+            nebulaCoefficient: enemyConfig.nebulaCoefficient
         };
 
         const config = { ...defaultConfig, ...spawnConfig };
 
         super({
             health: config.health,
-            maxSpeed: config.maxSpeed
+            maxSpeed: config.maxSpeed,
+            nebulaCoefficient: config.nebulaCoefficient
         });
 
         this.gameContainer = gameContainer;
@@ -83,6 +85,15 @@ class BaseEnemy extends SpaceShip {
 
         this.element = document.createElement('div');
         this.element.className = this.config.enemyClassName;
+
+        this.bodyElement = document.createElement('div');
+        this.bodyElement.className = 'ship-body';
+        this.element.appendChild(this.bodyElement);
+
+        this.flameMain = document.createElement('div');
+        this.flameMain.className = 'ship-flame-main active';
+        this.element.appendChild(this.flameMain);
+
         gameContainer.appendChild(this.element);
     }
 
@@ -306,13 +317,21 @@ class BaseEnemy extends SpaceShip {
 
     shoot(enemyBullets, enemyMissiles) {
         const halfShipSize = gameConfig.playerWidth / 2;
-        const spawnX = this.x + halfShipSize;
-        const spawnY = this.y + halfShipSize;
+        const centerX = this.x + halfShipSize;
+        const centerY = this.y + halfShipSize;
+
+        // Ammu aluksen nokan suuntaan (kulman perusteella)
+        const radians = (this.angle - 90) * Math.PI / 180;
+        const forwardOffset = 20;
+        const spawnX = centerX + Math.cos(radians) * forwardOffset;
+        const spawnY = centerY + Math.sin(radians) * forwardOffset;
 
         if (this.config.weapon === 'missile') {
-            enemyMissiles.push(new Missile(this.gameContainer, spawnX, spawnY, this.angle, 'enemy'));
+            enemyMissiles.push(new Missile(this.gameContainer, spawnX, spawnY, this.angle, 'enemy', this.vx, this.vy));
         } else {
-            enemyBullets.push(new Bullet(this.gameContainer, spawnX, spawnY + halfShipSize, this.angle, 'enemy'));
+            const bullet = new Bullet(this.gameContainer, spawnX, spawnY, this.angle, 'enemy', this.vx, this.vy);
+            bullet.firedBy = this;
+            enemyBullets.push(bullet);
         }
     }
 
@@ -324,6 +343,7 @@ class BaseEnemy extends SpaceShip {
         if (this.isShrinking) {
             const scale = 1 - this.shrinkProgress;
             this.element.style.transform = `rotate(${this.angle + 180}deg) scale(${scale})`;
+            this.flameMain.classList.remove('active');
         } else {
             this.element.style.transform = `rotate(${this.angle + 180}deg)`;
         }

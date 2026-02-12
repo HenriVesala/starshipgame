@@ -7,7 +7,7 @@ const playerConfig = {
     // Liikkeen konfiguraatio
     rotationSpeed: 200,             // Astetta/sekunti
     acceleration: 200,              // Pikselit/sekunnin²
-    maxSpeed: 500,                  // Pikselit/sekunti
+    maxSpeed: 600,                  // Pikselit/sekunti
 
     // Sijainti konfiguraatio
     startX: 580,                    // Aloituspaikka X
@@ -16,7 +16,7 @@ const playerConfig = {
     maxY: 900 - 40,                 // Maksimi Y (ruudun korkeus - korkeus)
 
     // Tähtisumun vaikutus
-    minVelocityInNebula: 120,       // Minimi nopeus tähtisumassa (px/s)
+    nebulaCoefficient: 1.0,         // Nebulan vastuskerroin (0 = ei vaikutusta, 1 = normaali)
 
     // Kestopisteet ja vahinko
     maxHealth: 300,                 // Pelaajan maksimi kestopisteet
@@ -30,7 +30,7 @@ const playerConfig = {
     rateOfFireBoostMultiplier: 0.95, // Ampumisnopeuden lisäys per boosti (5% nopeampi = 0.95x cooldown)
 
     // Aloitusase
-    startWeapon: 'missile'          // Aloitusase: 'missile' | 'bullet'
+    startWeapon: 'bullet'          // Aloitusase: 'missile' | 'bullet'
 };
 
 // Pelaajan alus -luokka
@@ -40,7 +40,8 @@ class Player extends SpaceShip {
             x: playerConfig.startX,
             y: playerConfig.startY,
             health: playerConfig.maxHealth,
-            maxSpeed: playerConfig.maxSpeed
+            maxSpeed: playerConfig.maxSpeed,
+            nebulaCoefficient: playerConfig.nebulaCoefficient
         });
         this.score = 0;
         this.gameOver = false;

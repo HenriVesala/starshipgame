@@ -96,6 +96,17 @@ function gameLoop(currentTime) {
     // Päivitä planeetat
     for (let i = planets.length - 1; i >= 0; i--) {
         const planet = planets[i];
+
+        // Päivitä kutistuminen
+        if (planet.isShrinking) {
+            planet.shrinkProgress += dt / planet.shrinkDuration;
+            if (planet.shrinkProgress >= 1.0) {
+                planet.destroy();
+                planets.splice(i, 1);
+                continue;
+            }
+        }
+
         planet.update(dt);
 
         // Käytä painovoimaa pelaajaan
@@ -200,50 +211,47 @@ function gameLoop(currentTime) {
 
         // Käytä hidastusta pelaajaan jos tähtisumun sisällä
         if (nebulaCloudConfig.affectsPlayer && nebulaCloud.isObjectInside(player)) {
-            nebulaCloud.applySlowdown(player, false, playerConfig.minVelocityInNebula);
+            nebulaCloud.applySlowdown(player, dt);
         }
 
         // Käytä hidastusta kaikkiin vihollisiin jos tähtisumun sisällä
         if (nebulaCloudConfig.affectsEnemies) {
             for (let j = enemies.length - 1; j >= 0; j--) {
                 if (nebulaCloud.isObjectInside(enemies[j])) {
-                    nebulaCloud.applySlowdown(enemies[j], false, enemyConfig.minVelocityInNebula);
+                    nebulaCloud.applySlowdown(enemies[j], dt);
                 }
             }
         }
 
-        // Käytä hidastusta pelaajan ammuksiin jos tähtisumun sisällä
+        // Käytä hidastusta ammuksiin ja ohjuksiin jos tähtisumun sisällä
         if (nebulaCloudConfig.affectsBullets) {
             for (let j = playerBullets.length - 1; j >= 0; j--) {
                 if (nebulaCloud.isObjectInside(playerBullets[j])) {
-                    nebulaCloud.applySlowdown(playerBullets[j], true, bulletConfig.playerBullet.minVelocityInNebula);
+                    nebulaCloud.applySlowdown(playerBullets[j], dt);
                 }
             }
-        }
-
-        // Käytä hidastusta vihollisten ammuksiin jos tähtisumun sisällä
-        if (nebulaCloudConfig.affectsBullets) {
             for (let j = enemyBullets.length - 1; j >= 0; j--) {
                 if (nebulaCloud.isObjectInside(enemyBullets[j])) {
-                    nebulaCloud.applySlowdown(enemyBullets[j], true, bulletConfig.enemyBullet.minVelocityInNebula);
+                    nebulaCloud.applySlowdown(enemyBullets[j], dt);
                 }
             }
-        }
-
-        // Käytä hidastusta pelaajan ohjuksiin jos tähtisumun sisällä
-        if (nebulaCloudConfig.affectsBullets) {
             for (let j = playerMissiles.length - 1; j >= 0; j--) {
                 if (nebulaCloud.isObjectInside(playerMissiles[j])) {
-                    playerMissiles[j].speedMultiplier = missileConfig.nebulaSlowdown;
+                    nebulaCloud.applySlowdown(playerMissiles[j], dt);
+                }
+            }
+            for (let j = enemyMissiles.length - 1; j >= 0; j--) {
+                if (nebulaCloud.isObjectInside(enemyMissiles[j])) {
+                    nebulaCloud.applySlowdown(enemyMissiles[j], dt);
                 }
             }
         }
 
-        // Käytä hidastusta vihollisten ohjuksiin jos tähtisumun sisällä
-        if (nebulaCloudConfig.affectsBullets) {
-            for (let j = enemyMissiles.length - 1; j >= 0; j--) {
-                if (nebulaCloud.isObjectInside(enemyMissiles[j])) {
-                    enemyMissiles[j].speedMultiplier = missileConfig.nebulaSlowdown;
+        // Käytä hidastusta meteoriitteihin jos tähtisumun sisällä
+        if (nebulaCloudConfig.affectsMeteors) {
+            for (let j = meteors.length - 1; j >= 0; j--) {
+                if (nebulaCloud.isObjectInside(meteors[j])) {
+                    nebulaCloud.applySlowdown(meteors[j], dt);
                 }
             }
         }

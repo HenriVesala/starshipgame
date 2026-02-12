@@ -15,6 +15,9 @@ const meteorConfig = {
     // Vahinko
     collisionDamage: 200,       // Vahinko joka meteoriitti aiheuttaa törmätessään
 
+    // Tähtisumun vaikutus
+    nebulaCoefficient: 0.3,     // Nebulan vastuskerroin (0 = ei vaikutusta, 1 = normaali)
+
     // Spawnaus
     spawnIntervalMin: 5000,     // Pienin spawnausväli (millisekuntia)
     spawnIntervalMax: 10000     // Suurin spawnausväli (millisekuntia)
@@ -58,6 +61,9 @@ class Meteor {
         // Satunnainen kiertokulma
         this.rotation = 0;
         this.rotationSpeed = Math.random() * (meteorConfig.rotationSpeedMax - meteorConfig.rotationSpeedMin) + meteorConfig.rotationSpeedMin;
+
+        // Nebulan vastuskerroin
+        this.nebulaCoefficient = meteorConfig.nebulaCoefficient;
 
         // Kutistumisanimaatio
         this.isShrinking = false;    // Kutistumistila (mustan aukon tapahtumahorisontti)

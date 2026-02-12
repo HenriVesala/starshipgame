@@ -88,10 +88,15 @@ body {
     height: 40px;
     left: 380px;
     top: 280px;
+    transform-origin: center center;
+}
+
+.spaceship .ship-body {
+    width: 100%;
+    height: 100%;
     background: linear-gradient(135deg, #00ff00, #00cc00);
     clip-path: polygon(50% 0%, 100% 100%, 50% 85%, 0% 100%);
     box-shadow: 0 0 10px #00ff00;
-    transform-origin: center center;
 }
 
 .spaceship.invulnerable {
@@ -107,34 +112,32 @@ body {
     }
 }
 
-.enemy {
+.enemy,
+.weak-enemy,
+.elite-enemy,
+.aggressive-enemy,
+.missile-enemy {
     position: absolute;
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, #ff0000, #cc0000);
-    clip-path: polygon(50% 100%, 0% 0%, 50% 15%, 100% 0%);
-    box-shadow: 0 0 10px #ff0000;
     transform-origin: center center;
 }
 
-.weak-enemy {
-    position: absolute;
-    width: 40px;
-    height: 40px;
+.enemy .ship-body,
+.weak-enemy .ship-body {
+    width: 100%;
+    height: 100%;
     background: linear-gradient(135deg, #ff0000, #cc0000);
     clip-path: polygon(50% 100%, 0% 0%, 50% 15%, 100% 0%);
     box-shadow: 0 0 10px #ff0000;
-    transform-origin: center center;
 }
 
-.elite-enemy {
-    position: absolute;
-    width: 40px;
-    height: 40px;
+.elite-enemy .ship-body {
+    width: 100%;
+    height: 100%;
     background: linear-gradient(135deg, #ffaa00, #ff6600);
     clip-path: polygon(50% 100%, 0% 0%, 50% 15%, 100% 0%);
     box-shadow: 0 0 15px #ffaa00, 0 0 25px rgba(255, 170, 0, 0.5);
-    transform-origin: center center;
     animation: elite-pulse 1s infinite;
 }
 
@@ -143,14 +146,12 @@ body {
     50% { box-shadow: 0 0 20px #ffaa00, 0 0 35px rgba(255, 170, 0, 0.8); }
 }
 
-.aggressive-enemy {
-    position: absolute;
-    width: 40px;
-    height: 40px;
+.aggressive-enemy .ship-body {
+    width: 100%;
+    height: 100%;
     background: linear-gradient(135deg, #ff00ff, #cc00ff);
     clip-path: polygon(50% 100%, 0% 0%, 50% 15%, 100% 0%);
     box-shadow: 0 0 15px #ff00ff, 0 0 25px rgba(255, 0, 255, 0.5);
-    transform-origin: center center;
     animation: aggressive-pulse 0.6s infinite;
 }
 
@@ -159,20 +160,124 @@ body {
     50% { box-shadow: 0 0 20px #ff00ff, 0 0 35px rgba(255, 0, 255, 0.8); }
 }
 
-.missile-enemy {
-    position: absolute;
-    width: 40px;
-    height: 40px;
+.missile-enemy .ship-body {
+    width: 100%;
+    height: 100%;
     background: linear-gradient(135deg, #00ffaa, #00cc88);
     clip-path: polygon(50% 100%, 0% 0%, 50% 15%, 100% 0%);
     box-shadow: 0 0 15px #00ffaa, 0 0 25px rgba(0, 255, 170, 0.5);
-    transform-origin: center center;
     animation: missile-enemy-pulse 1.2s infinite;
 }
 
 @keyframes missile-enemy-pulse {
     0%, 100% { box-shadow: 0 0 15px #00ffaa, 0 0 25px rgba(0, 255, 170, 0.5); }
     50% { box-shadow: 0 0 20px #00ffaa, 0 0 35px rgba(0, 255, 170, 0.8); }
+}
+
+/* Aluksen pääliekki - pelaaja (peräosa alhaalla) */
+.spaceship .ship-flame-main {
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 10px;
+    height: 14px;
+    border-radius: 50% 50% 20% 20%;
+    opacity: 0;
+    transition: opacity 0.1s;
+}
+
+.spaceship .ship-flame-main.active {
+    opacity: 1;
+    background: radial-gradient(ellipse at 50% 30%, #ffffff 0%, #66ccff 30%, #3399ff 60%, #0044cc 100%);
+    box-shadow:
+        0 0 6px rgba(100, 200, 255, 0.9),
+        0 0 12px rgba(50, 150, 255, 0.6),
+        0 2px 8px rgba(50, 150, 255, 0.4);
+    animation: ship-flame-flicker 0.1s ease-in-out infinite alternate;
+}
+
+/* Sivuliekit peruutukselle - pelaaja */
+.spaceship .ship-flame-left,
+.spaceship .ship-flame-right {
+    position: absolute;
+    width: 5px;
+    height: 8px;
+    border-radius: 50% 50% 20% 20%;
+    opacity: 0;
+    transition: opacity 0.1s;
+}
+
+.spaceship .ship-flame-left {
+    top: 4px;
+    left: 5px;
+    transform: rotate(135deg);
+}
+
+.spaceship .ship-flame-right {
+    top: 4px;
+    right: 5px;
+    transform: rotate(-135deg);
+}
+
+.spaceship .ship-flame-left.active,
+.spaceship .ship-flame-right.active {
+    opacity: 1;
+    background: radial-gradient(ellipse at 50% 30%, #ffffff 0%, #66ccff 40%, #3399ff 70%, #0044cc 100%);
+    box-shadow:
+        0 0 4px rgba(100, 200, 255, 0.9),
+        0 0 8px rgba(50, 150, 255, 0.5);
+    animation: ship-side-flame-flicker 0.1s ease-in-out infinite alternate;
+}
+
+/* Aluksen pääliekki - viholliset (peräosa ylhäällä, käännetty +180° renderissä) */
+.enemy .ship-flame-main,
+.weak-enemy .ship-flame-main,
+.elite-enemy .ship-flame-main,
+.aggressive-enemy .ship-flame-main,
+.missile-enemy .ship-flame-main {
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 10px;
+    border-radius: 20% 20% 50% 50%;
+    opacity: 0;
+    transition: opacity 0.1s;
+}
+
+.enemy .ship-flame-main.active,
+.weak-enemy .ship-flame-main.active,
+.elite-enemy .ship-flame-main.active,
+.aggressive-enemy .ship-flame-main.active,
+.missile-enemy .ship-flame-main.active {
+    opacity: 1;
+    background: radial-gradient(ellipse at 50% 70%, #ffffff 0%, #66ccff 30%, #3399ff 60%, #0044cc 100%);
+    box-shadow:
+        0 0 4px rgba(100, 200, 255, 0.9),
+        0 0 8px rgba(50, 150, 255, 0.6);
+    animation: ship-flame-flicker 0.1s ease-in-out infinite alternate;
+}
+
+@keyframes ship-flame-flicker {
+    0% {
+        transform: translateX(-50%) scaleY(0.85);
+        opacity: 0.85;
+    }
+    100% {
+        transform: translateX(-50%) scaleY(1.1);
+        opacity: 1;
+    }
+}
+
+@keyframes ship-side-flame-flicker {
+    0% {
+        opacity: 0.85;
+    }
+    100% {
+        opacity: 1;
+    }
 }
 
 .bullet {

@@ -22,6 +22,11 @@ const gameContainer = document.querySelector('.game-container');
 const healthBar = document.getElementById('healthBar');
 const healthText = document.getElementById('healthText');
 
+// Pelaajan liekki-elementit
+const playerFlameMain = spaceship.querySelector('.ship-flame-main');
+const playerFlameLeft = spaceship.querySelector('.ship-flame-left');
+const playerFlameRight = spaceship.querySelector('.ship-flame-right');
+
 // Game objects arrays
 let enemies = [];
 let playerBullets = [];
@@ -110,6 +115,7 @@ function updatePosition(dt) {
 
     // Jos pelaaja kutistuu, älä anna liikkua tai ampua
     if (player.isShrinking) {
+        player.thrustState = 'none';
         return;
     }
 
@@ -156,6 +162,15 @@ function updatePosition(dt) {
     if (keys.ArrowDown) {
         player.vx -= dirX * playerConfig.acceleration * dt;
         player.vy -= dirY * playerConfig.acceleration * dt;
+    }
+
+    // Aseta kiihtyvyystila liekkejä varten
+    if (keys.ArrowUp && !keys.ArrowDown) {
+        player.thrustState = 'forward';
+    } else if (keys.ArrowDown && !keys.ArrowUp) {
+        player.thrustState = 'reverse';
+    } else {
+        player.thrustState = 'none';
     }
     
     // Rajoita maksiminopeus
@@ -282,6 +297,21 @@ function render() {
         spaceship.classList.add('damage-flash');
     } else {
         spaceship.classList.remove('damage-flash');
+    }
+
+    // Päivitä kiihtyvyysliekit
+    if (player.thrustState === 'forward') {
+        playerFlameMain.classList.add('active');
+        playerFlameLeft.classList.remove('active');
+        playerFlameRight.classList.remove('active');
+    } else if (player.thrustState === 'reverse') {
+        playerFlameMain.classList.remove('active');
+        playerFlameLeft.classList.add('active');
+        playerFlameRight.classList.add('active');
+    } else {
+        playerFlameMain.classList.remove('active');
+        playerFlameLeft.classList.remove('active');
+        playerFlameRight.classList.remove('active');
     }
 
     updateHealthBar();
