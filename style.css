@@ -260,6 +260,63 @@ body {
     animation: ship-flame-flicker 0.1s ease-in-out infinite alternate;
 }
 
+/* Sivuliekit jarrutukselle - viholliset (nokan kärki alhaalla CSS:ssä, +180° kääntää ylös) */
+.enemy .ship-flame-left,
+.weak-enemy .ship-flame-left,
+.elite-enemy .ship-flame-left,
+.aggressive-enemy .ship-flame-left,
+.missile-enemy .ship-flame-left,
+.enemy .ship-flame-right,
+.weak-enemy .ship-flame-right,
+.elite-enemy .ship-flame-right,
+.aggressive-enemy .ship-flame-right,
+.missile-enemy .ship-flame-right {
+    position: absolute;
+    width: 5px;
+    height: 8px;
+    border-radius: 50% 50% 20% 20%;
+    opacity: 0;
+    transition: opacity 0.1s;
+}
+
+.enemy .ship-flame-left,
+.weak-enemy .ship-flame-left,
+.elite-enemy .ship-flame-left,
+.aggressive-enemy .ship-flame-left,
+.missile-enemy .ship-flame-left {
+    bottom: 4px;
+    left: 5px;
+    transform: rotate(45deg);
+}
+
+.enemy .ship-flame-right,
+.weak-enemy .ship-flame-right,
+.elite-enemy .ship-flame-right,
+.aggressive-enemy .ship-flame-right,
+.missile-enemy .ship-flame-right {
+    bottom: 4px;
+    right: 5px;
+    transform: rotate(-45deg);
+}
+
+.enemy .ship-flame-left.active,
+.weak-enemy .ship-flame-left.active,
+.elite-enemy .ship-flame-left.active,
+.aggressive-enemy .ship-flame-left.active,
+.missile-enemy .ship-flame-left.active,
+.enemy .ship-flame-right.active,
+.weak-enemy .ship-flame-right.active,
+.elite-enemy .ship-flame-right.active,
+.aggressive-enemy .ship-flame-right.active,
+.missile-enemy .ship-flame-right.active {
+    opacity: 1;
+    background: radial-gradient(ellipse at 50% 30%, #ffffff 0%, #66ccff 40%, #3399ff 70%, #0044cc 100%);
+    box-shadow:
+        0 0 4px rgba(100, 200, 255, 0.9),
+        0 0 8px rgba(50, 150, 255, 0.5);
+    animation: ship-side-flame-flicker 0.1s ease-in-out infinite alternate;
+}
+
 @keyframes ship-flame-flicker {
     0% {
         transform: translateX(-50%) scaleY(0.85);

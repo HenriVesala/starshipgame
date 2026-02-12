@@ -98,6 +98,14 @@ class BaseEnemy extends SpaceShip {
         this.flameMain.className = 'ship-flame-main';
         this.element.appendChild(this.flameMain);
 
+        this.flameLeft = document.createElement('div');
+        this.flameLeft.className = 'ship-flame-left';
+        this.element.appendChild(this.flameLeft);
+
+        this.flameRight = document.createElement('div');
+        this.flameRight.className = 'ship-flame-right';
+        this.element.appendChild(this.flameRight);
+
         gameContainer.appendChild(this.element);
     }
 
@@ -241,20 +249,22 @@ class BaseEnemy extends SpaceShip {
         const dvx = desiredVx - this.vx;
         const dvy = desiredVy - this.vy;
         const dLen = Math.sqrt(dvx * dvx + dvy * dvy);
+        let thrustDot = 0;
 
         if (dLen > 0) {
             // Valitse kiihtyvyys: eteenpäin jos kiihdytetään nopeuden suuntaan, taaksepäin jos jarrutetaan
-            const dot = dvx * this.vx + dvy * this.vy;
-            const accelRate = dot >= 0 ? this.config.accelerationForward : this.config.accelerationReverse;
-            const maxAccel = accelRate * dt;
+            thrustDot = dvx * this.vx + dvy * this.vy;
+            const accelRate = thrustDot >= 0 ? this.config.accelerationForward : this.config.accelerationReverse;
+            const nebulaAccelMult = this.inNebula ? 0.5 : 1.0;
+            const maxAccel = accelRate * nebulaAccelMult * dt;
             const accel = Math.min(maxAccel, dLen);
             this.vx += (dvx / dLen) * accel;
             this.vy += (dvy / dLen) * accel;
         }
 
-        // Päivitä liekin tila
+        // Päivitä liekin tila: forward = kiihdytys, reverse = jarrutus/peruutus
         if (dLen > 0.1) {
-            this.thrustState = 'forward';
+            this.thrustState = thrustDot >= 0 ? 'forward' : 'reverse';
         } else {
             this.thrustState = 'none';
         }
@@ -345,14 +355,24 @@ class BaseEnemy extends SpaceShip {
             const scale = 1 - this.shrinkProgress;
             this.element.style.transform = `rotate(${this.angle + 180}deg) scale(${scale})`;
             this.flameMain.classList.remove('active');
+            this.flameLeft.classList.remove('active');
+            this.flameRight.classList.remove('active');
         } else {
             this.element.style.transform = `rotate(${this.angle + 180}deg)`;
 
-            // Päivitä liekin näkyvyys kiihtyvyystilan mukaan
+            // Päivitä liekkien näkyvyys kiihtyvyystilan mukaan
             if (this.thrustState === 'forward') {
                 this.flameMain.classList.add('active');
+                this.flameLeft.classList.remove('active');
+                this.flameRight.classList.remove('active');
+            } else if (this.thrustState === 'reverse') {
+                this.flameMain.classList.remove('active');
+                this.flameLeft.classList.add('active');
+                this.flameRight.classList.add('active');
             } else {
                 this.flameMain.classList.remove('active');
+                this.flameLeft.classList.remove('active');
+                this.flameRight.classList.remove('active');
             }
         }
 

@@ -126,7 +126,8 @@ class Missile extends Weapon {
 
         // Kiihdy kohti maksiminopeutta (sekä armingTimen aikana että hakeutuessa)
         if (this.target || this.age < missileConfig.armingTime) {
-            this.currentSpeed += missileConfig.acceleration * dt;
+            const nebulaAccelMult = this.inNebula ? 0.5 : 1.0;
+            this.currentSpeed += missileConfig.acceleration * nebulaAccelMult * dt;
             if (this.currentSpeed > this.maxSpeed) {
                 this.currentSpeed = this.maxSpeed;
             }

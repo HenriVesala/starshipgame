@@ -192,6 +192,12 @@ function gameLoop(currentTime) {
         }
     }
 
+    // Nollaa nebula-liput (asetetaan true alla jos objekti on tähtisumun sisällä)
+    player.inNebula = false;
+    for (let j = 0; j < enemies.length; j++) enemies[j].inNebula = false;
+    for (let j = 0; j < playerMissiles.length; j++) playerMissiles[j].inNebula = false;
+    for (let j = 0; j < enemyMissiles.length; j++) enemyMissiles[j].inNebula = false;
+
     // Päivitä tähtisumut
     for (let i = nebulaClouds.length - 1; i >= 0; i--) {
         const nebulaCloud = nebulaClouds[i];
@@ -211,6 +217,7 @@ function gameLoop(currentTime) {
 
         // Käytä hidastusta pelaajaan jos tähtisumun sisällä
         if (nebulaCloudConfig.affectsPlayer && nebulaCloud.isObjectInside(player)) {
+            player.inNebula = true;
             nebulaCloud.applySlowdown(player, dt);
         }
 
@@ -218,6 +225,7 @@ function gameLoop(currentTime) {
         if (nebulaCloudConfig.affectsEnemies) {
             for (let j = enemies.length - 1; j >= 0; j--) {
                 if (nebulaCloud.isObjectInside(enemies[j])) {
+                    enemies[j].inNebula = true;
                     nebulaCloud.applySlowdown(enemies[j], dt);
                 }
             }
@@ -237,11 +245,13 @@ function gameLoop(currentTime) {
             }
             for (let j = playerMissiles.length - 1; j >= 0; j--) {
                 if (nebulaCloud.isObjectInside(playerMissiles[j])) {
+                    playerMissiles[j].inNebula = true;
                     nebulaCloud.applySlowdown(playerMissiles[j], dt);
                 }
             }
             for (let j = enemyMissiles.length - 1; j >= 0; j--) {
                 if (nebulaCloud.isObjectInside(enemyMissiles[j])) {
+                    enemyMissiles[j].inNebula = true;
                     nebulaCloud.applySlowdown(enemyMissiles[j], dt);
                 }
             }

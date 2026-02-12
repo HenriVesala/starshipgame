@@ -132,6 +132,45 @@ function checkCollisions() {
         const planet = planets[i];
         if (distance(player.x + 20, player.y + 20, planet.x, planet.y) < planet.radius + 20) {
             const destroyed = player.takeDamage(planet.damage, true);
+
+            // Kimmoke - planeetta on liikkumaton ja massiivinen
+            const dx = (player.x + 20) - planet.x;
+            const dy = (player.y + 20) - planet.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist > 0) {
+                const nx = dx / dist;
+                const ny = dy / dist;
+
+                // Heijasta nopeus planeetan pinnasta: v - 2(v·n)n
+                const dotProduct = player.vx * nx + player.vy * ny;
+
+                // Kimpoa vain jos liikutaan planeettaa kohti
+                if (dotProduct < 0) {
+                    let reflectedVx = player.vx - 2 * dotProduct * nx;
+                    let reflectedVy = player.vy - 2 * dotProduct * ny;
+
+                    // Varmista riittävä pakonopeus painovoimasta
+                    const speed = Math.sqrt(reflectedVx * reflectedVx + reflectedVy * reflectedVy);
+                    const minEscapeSpeed = planet.gravityStrength * 2.5;
+
+                    if (speed < minEscapeSpeed) {
+                        const speedMultiplier = minEscapeSpeed / speed;
+                        reflectedVx *= speedMultiplier;
+                        reflectedVy *= speedMultiplier;
+                    }
+
+                    player.vx = reflectedVx;
+                    player.vy = reflectedVy;
+
+                    // Työnnä pelaaja pois planeetalta
+                    const collisionDist = planet.radius + 20;
+                    const overlap = collisionDist - dist;
+                    player.x += nx * (overlap + 2);
+                    player.y += ny * (overlap + 2);
+                }
+            }
+
             if (destroyed) {
                 // Luo iso räjähdys pelaajan sijainnissa
                 explosions.push(new Explosion(player.x + 20, player.y + 20, 'large', gameContainer));
@@ -364,24 +403,61 @@ function checkCollisions() {
         for (let j = planets.length - 1; j >= 0; j--) {
             const planet = planets[j];
             if (distance(enemy.x + 20, enemy.y + 20, planet.x, planet.y) < planet.radius + 20) {
-                // Luo räjähdys vihollisen sijainnissa
-                const explosionSizeMap = {
-                    'WeakEnemy': 'small',
-                    'EliteEnemy': 'medium',
-                    'AggressiveEnemy': 'medium',
-                    'MissileEnemy': 'medium'
-                };
-                const explosionSize = explosionSizeMap[enemy.constructor.name] || 'small';
-                explosions.push(new Explosion(enemy.x + 20, enemy.y + 20, explosionSize, gameContainer));
+                const destroyed = enemy.takeDamage(planet.damage);
 
-                // Spawna terveyspallo
-                spawnHealthOrb(enemy);
+                // Kimmoke - planeetta on liikkumaton ja massiivinen
+                const dx = (enemy.x + 20) - planet.x;
+                const dy = (enemy.y + 20) - planet.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
 
-                // Spawna ampumisnopeusboosti (todennäköisyyspohjainen)
-                spawnRateOfFireBoost(enemy);
+                if (dist > 0) {
+                    const nx = dx / dist;
+                    const ny = dy / dist;
 
-                enemy.destroy();
-                enemies.splice(i, 1);
+                    // Heijasta nopeus planeetan pinnasta
+                    const dotProduct = enemy.vx * nx + enemy.vy * ny;
+
+                    if (dotProduct < 0) {
+                        let reflectedVx = enemy.vx - 2 * dotProduct * nx;
+                        let reflectedVy = enemy.vy - 2 * dotProduct * ny;
+
+                        // Varmista riittävä pakonopeus painovoimasta
+                        const speed = Math.sqrt(reflectedVx * reflectedVx + reflectedVy * reflectedVy);
+                        const minEscapeSpeed = planet.gravityStrength * 2.5;
+
+                        if (speed < minEscapeSpeed) {
+                            const speedMultiplier = minEscapeSpeed / speed;
+                            reflectedVx *= speedMultiplier;
+                            reflectedVy *= speedMultiplier;
+                        }
+
+                        enemy.vx = reflectedVx;
+                        enemy.vy = reflectedVy;
+
+                        // Työnnä vihollinen pois planeetalta
+                        const collisionDist = planet.radius + 20;
+                        const overlap = collisionDist - dist;
+                        enemy.x += nx * (overlap + 2);
+                        enemy.y += ny * (overlap + 2);
+                    }
+                }
+
+                if (destroyed) {
+                    const explosionSizeMap = {
+                        'WeakEnemy': 'small',
+                        'EliteEnemy': 'medium',
+                        'AggressiveEnemy': 'medium',
+                        'MissileEnemy': 'medium'
+                    };
+                    const explosionSize = explosionSizeMap[enemy.constructor.name] || 'small';
+                    explosions.push(new Explosion(enemy.x + 20, enemy.y + 20, explosionSize, gameContainer));
+
+                    spawnHealthOrb(enemy);
+                    spawnRateOfFireBoost(enemy);
+
+                    enemy.destroy();
+                    enemies.splice(i, 1);
+                }
                 break;
             }
         }

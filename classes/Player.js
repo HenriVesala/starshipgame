@@ -20,7 +20,7 @@ const playerConfig = {
     nebulaCoefficient: 1.0,         // Nebulan vastuskerroin (0 = ei vaikutusta, 1 = normaali)
 
     // Kestopisteet ja vahinko
-    maxHealth: 300,                 // Pelaajan maksimi kestopisteet
+    maxHealth: 1000,                 // Pelaajan maksimi kestopisteet
     collisionDamage: 200,           // Vahinko joka pelaaja aiheuttaa törmätessään
 
     // Immuniteetti

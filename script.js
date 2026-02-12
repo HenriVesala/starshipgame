@@ -155,13 +155,14 @@ function updatePosition(dt) {
     const dirY = Math.sin(radians);
     
     // Acceleration based on input (no automatic deceleration)
+    const nebulaAccelMult = player.inNebula ? 0.5 : 1.0;
     if (keys.ArrowUp) {
-        player.vx += dirX * playerConfig.accelerationForward * dt;
-        player.vy += dirY * playerConfig.accelerationForward * dt;
+        player.vx += dirX * playerConfig.accelerationForward * nebulaAccelMult * dt;
+        player.vy += dirY * playerConfig.accelerationForward * nebulaAccelMult * dt;
     }
     if (keys.ArrowDown) {
-        player.vx -= dirX * playerConfig.accelerationReverse * dt;
-        player.vy -= dirY * playerConfig.accelerationReverse * dt;
+        player.vx -= dirX * playerConfig.accelerationReverse * nebulaAccelMult * dt;
+        player.vy -= dirY * playerConfig.accelerationReverse * nebulaAccelMult * dt;
     }
 
     // Aseta kiihtyvyystila liekkejä varten
