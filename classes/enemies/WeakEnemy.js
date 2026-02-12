@@ -6,6 +6,8 @@ const weakEnemyConfig = {
     wallBehavior: 'wrap',       // Ilmestyy toiselle puolelle
     turnInterval: 5.0,          // Kääntyy pelaajaa kohti kerran 5 sekunnissa
     turnSpeed: 90,              // Maksimi kääntymiskulma (astetta/sekunti)
+    accelerationForward: 100,   // Kiihtyvyys eteenpäin (pikselit/sekunti²) - hidas ja kömpelö
+    accelerationReverse: 100,   // Kiihtyvyys taaksepäin (pikselit/sekunti²)
 
     // Ampumisen konfiguraatio
     weapon: 'bullet',          // Asetyyppi: 'bullet' | 'missile'

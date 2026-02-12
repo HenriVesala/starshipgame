@@ -20,6 +20,8 @@ class BaseEnemy extends SpaceShip {
             slowdownStartDistance: 200, // Hidastamisen aloitusetäisyys - vain 'distance-based'
             slowdownStopDistance: 100,  // Hidastamisen loppuetäisyys - vain 'distance-based'
             keepDistance: false,         // Perääntyy jos liian lähellä - vain 'distance-based'
+            accelerationForward: 120,   // Kiihtyvyys eteenpäin (pikselit/sekunti²)
+            accelerationReverse: 120,   // Kiihtyvyys taaksepäin (pikselit/sekunti²)
             weapon: 'bullet',           // Asetyyppi: 'bullet' | 'missile'
             shootMinDistance: 0,         // Minimi ampumisetäisyys (0 = ei rajaa)
             shootMaxDistance: Infinity,  // Maksimi ampumisetäisyys (Infinity = ei rajaa)
@@ -46,6 +48,8 @@ class BaseEnemy extends SpaceShip {
         // Liikekäyttäytymisen tilamuuttujat
         this.timeSinceLastTurn = 0;  // Ajastin käännöksille (periodic mode)
         this.targetAngle = null;      // Kohdekulma johon käännytään (periodic mode)
+        this.desiredDirX = undefined; // Haluttu suuntavektori (periodic mode)
+        this.desiredDirY = undefined;
 
         // Spawn ruudun reunoilta
         const side = Math.floor(Math.random() * 4);
@@ -91,7 +95,7 @@ class BaseEnemy extends SpaceShip {
         this.element.appendChild(this.bodyElement);
 
         this.flameMain = document.createElement('div');
-        this.flameMain.className = 'ship-flame-main active';
+        this.flameMain.className = 'ship-flame-main';
         this.element.appendChild(this.flameMain);
 
         gameContainer.appendChild(this.element);
@@ -164,59 +168,39 @@ class BaseEnemy extends SpaceShip {
         const dx = playerX + halfShipSize - (this.x + halfShipSize);
         const dy = playerY + halfShipSize - (this.y + halfShipSize);
 
+        // Oletuksena nykyinen nopeus (ei kiihdytystä)
+        let desiredVx = this.vx;
+        let desiredVy = this.vy;
+
         switch (this.config.chaseMode) {
             case 'periodic':
-                // Käänny pelaajaa kohti määrävälein
+                // Päivitä kohdesuunta määrävälein
                 this.timeSinceLastTurn += dt;
                 if (this.timeSinceLastTurn >= this.config.turnInterval) {
-                    this.targetAngle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+                    const targetAngle = Math.atan2(dy, dx);
+                    this.desiredDirX = Math.cos(targetAngle);
+                    this.desiredDirY = Math.sin(targetAngle);
                     this.timeSinceLastTurn = 0;
                 }
 
-                // Käänny asteittain kohti kohdekulmaa
-                if (this.targetAngle !== null) {
-                    const currentVelocityAngle = Math.atan2(this.vy, this.vx) * (180 / Math.PI) + 90;
-                    const angleDiff = this.angleDifference(this.targetAngle, currentVelocityAngle);
-                    const maxTurn = this.config.turnSpeed * dt;
-
-                    let turnAmount = angleDiff;
-                    if (Math.abs(angleDiff) > maxTurn) {
-                        turnAmount = Math.sign(angleDiff) * maxTurn;
-                    }
-
-                    const newAngle = currentVelocityAngle + turnAmount;
-                    const radians = (newAngle - 90) * Math.PI / 180;
-                    const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-                    this.vx = Math.cos(radians) * speed;
-                    this.vy = Math.sin(radians) * speed;
+                // Kiihdytä kohdesuuntaan jos asetettu
+                if (this.desiredDirX !== undefined) {
+                    desiredVx = this.desiredDirX * this.config.enterSpeed;
+                    desiredVy = this.desiredDirY * this.config.enterSpeed;
                 }
-
-                this.x += this.vx * dt;
-                this.y += this.vy * dt;
                 break;
 
-            case 'continuous':
-                // Jatkuva jahtaus asteittaisella kääntymisellä
-                const targetAngle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
-                const currentVelocityAngle = Math.atan2(this.vy, this.vx) * (180 / Math.PI) + 90;
-                const angleDiff = this.angleDifference(targetAngle, currentVelocityAngle);
-                const maxTurn = this.config.turnSpeed * dt;
-
-                let turnAmount = angleDiff;
-                if (Math.abs(angleDiff) > maxTurn) {
-                    turnAmount = Math.sign(angleDiff) * maxTurn;
+            case 'continuous': {
+                // Jatkuvasti kohti pelaajaa
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > 0) {
+                    desiredVx = (dx / dist) * this.config.enterSpeed;
+                    desiredVy = (dy / dist) * this.config.enterSpeed;
                 }
-
-                const newAngle = currentVelocityAngle + turnAmount;
-                const radians = (newAngle - 90) * Math.PI / 180;
-                this.vx = Math.cos(radians) * this.config.enterSpeed;
-                this.vy = Math.sin(radians) * this.config.enterSpeed;
-
-                this.x += this.vx * dt;
-                this.y += this.vy * dt;
                 break;
+            }
 
-            case 'distance-based':
+            case 'distance-based': {
                 // Älykäs jahtaaminen etäisyyden mukaan
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
@@ -224,43 +208,60 @@ class BaseEnemy extends SpaceShip {
                     const dirX = dx / distance;
                     const dirY = dy / distance;
 
-                    // Laske nopeus etäisyyden perusteella
-                    let speed = this.config.enterSpeed;
-
                     if (distance < this.config.slowdownStopDistance) {
                         if (this.config.keepDistance) {
-                            // Peräänny pelaajasta - liiku poispäin
-                            speed = this.config.minSpeed;
-                            this.vx = -dirX * speed;
-                            this.vy = -dirY * speed;
+                            // Peräänny pelaajasta
+                            desiredVx = -dirX * this.config.minSpeed;
+                            desiredVy = -dirY * this.config.minSpeed;
                         } else {
-                            speed = this.config.minSpeed;
-                            this.vx = dirX * speed;
-                            this.vy = dirY * speed;
+                            desiredVx = dirX * this.config.minSpeed;
+                            desiredVy = dirY * this.config.minSpeed;
                         }
                     } else if (distance < this.config.slowdownStartDistance) {
                         const slowdownRange = this.config.slowdownStartDistance - this.config.slowdownStopDistance;
                         const distanceInRange = distance - this.config.slowdownStopDistance;
                         const slowdownFactor = distanceInRange / slowdownRange;
-                        speed = this.config.minSpeed + (this.config.enterSpeed - this.config.minSpeed) * slowdownFactor;
-                        this.vx = dirX * speed;
-                        this.vy = dirY * speed;
+                        const speed = this.config.minSpeed + (this.config.enterSpeed - this.config.minSpeed) * slowdownFactor;
+                        desiredVx = dirX * speed;
+                        desiredVy = dirY * speed;
                     } else {
-                        this.vx = dirX * speed;
-                        this.vy = dirY * speed;
+                        desiredVx = dirX * this.config.enterSpeed;
+                        desiredVy = dirY * this.config.enterSpeed;
                     }
                 }
-
-                this.x += this.vx * dt;
-                this.y += this.vy * dt;
                 break;
+            }
 
             default:
-                // 'none' - ei jahtaa, liiku vain eteenpäin
-                this.x += this.vx * dt;
-                this.y += this.vy * dt;
+                // 'none' - ei kiihdytystä, ajelehtii inertialla
                 break;
         }
+
+        // Kiihdytä kohti haluttua nopeutta
+        const dvx = desiredVx - this.vx;
+        const dvy = desiredVy - this.vy;
+        const dLen = Math.sqrt(dvx * dvx + dvy * dvy);
+
+        if (dLen > 0) {
+            // Valitse kiihtyvyys: eteenpäin jos kiihdytetään nopeuden suuntaan, taaksepäin jos jarrutetaan
+            const dot = dvx * this.vx + dvy * this.vy;
+            const accelRate = dot >= 0 ? this.config.accelerationForward : this.config.accelerationReverse;
+            const maxAccel = accelRate * dt;
+            const accel = Math.min(maxAccel, dLen);
+            this.vx += (dvx / dLen) * accel;
+            this.vy += (dvy / dLen) * accel;
+        }
+
+        // Päivitä liekin tila
+        if (dLen > 0.1) {
+            this.thrustState = 'forward';
+        } else {
+            this.thrustState = 'none';
+        }
+
+        // Päivitä sijainti
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
     }
 
     updateAngle(playerX, playerY, dt) {
@@ -346,6 +347,13 @@ class BaseEnemy extends SpaceShip {
             this.flameMain.classList.remove('active');
         } else {
             this.element.style.transform = `rotate(${this.angle + 180}deg)`;
+
+            // Päivitä liekin näkyvyys kiihtyvyystilan mukaan
+            if (this.thrustState === 'forward') {
+                this.flameMain.classList.add('active');
+            } else {
+                this.flameMain.classList.remove('active');
+            }
         }
 
         // Lisää vahinkoválähdys

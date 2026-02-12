@@ -6,7 +6,8 @@ const playerConfig = {
 
     // Liikkeen konfiguraatio
     rotationSpeed: 200,             // Astetta/sekunti
-    acceleration: 200,              // Pikselit/sekunnin²
+    accelerationForward: 200,       // Kiihtyvyys eteenpäin (pikselit/sekunnin²)
+    accelerationReverse: 100,       // Kiihtyvyys taaksepäin (pikselit/sekunnin²)
     maxSpeed: 600,                  // Pikselit/sekunti
 
     // Sijainti konfiguraatio
@@ -130,12 +131,12 @@ class Player extends SpaceShip {
         const dirY = Math.sin((this.angle - 90) * Math.PI / 180);
 
         if (keys.ArrowUp) {
-            this.vx += dirX * playerConfig.acceleration * dt;
-            this.vy += dirY * playerConfig.acceleration * dt;
+            this.vx += dirX * playerConfig.accelerationForward * dt;
+            this.vy += dirY * playerConfig.accelerationForward * dt;
         }
         if (keys.ArrowDown) {
-            this.vx -= dirX * playerConfig.acceleration * dt;
-            this.vy -= dirY * playerConfig.acceleration * dt;
+            this.vx -= dirX * playerConfig.accelerationReverse * dt;
+            this.vy -= dirY * playerConfig.accelerationReverse * dt;
         }
 
         // Rajoita maksimi nopeus

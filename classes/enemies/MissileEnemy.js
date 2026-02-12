@@ -9,6 +9,8 @@ const missileEnemyConfig = {
     slowdownStartDistance: 700,   // Hidasta 700px kohdalla
     slowdownStopDistance: 400,    // Peräänny alle 400px
     keepDistance: true,            // Pyrkii pysymään etäällä pelaajasta
+    accelerationForward: 80,      // Kiihtyvyys eteenpäin (pikselit/sekunti²) - hidas, suosii etäisyyttä
+    accelerationReverse: 80,      // Kiihtyvyys taaksepäin (pikselit/sekunti²)
 
     // Ampumisen konfiguraatio
     weapon: 'missile',            // Asetyyppi: ohjus

@@ -5,6 +5,8 @@ const aggressiveEnemyConfig = {
     chaseMode: 'continuous',    // Jatkuva jahtaus
     wallBehavior: 'wrap',       // Ilmestyy toiselle puolelle
     turnSpeed: 120,             // Maksimi kääntymiskulma (astetta/sekunti) - nopea käännös
+    accelerationForward: 250,   // Kiihtyvyys eteenpäin (pikselit/sekunti²) - nopea ja ketterä
+    accelerationReverse: 250,   // Kiihtyvyys taaksepäin (pikselit/sekunti²)
 
     // Ampumisen konfiguraatio
     shootCooldownMin: 1.0,      // Pienin ampumisaikaväli (sekunti)

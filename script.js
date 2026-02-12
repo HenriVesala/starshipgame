@@ -156,12 +156,12 @@ function updatePosition(dt) {
     
     // Acceleration based on input (no automatic deceleration)
     if (keys.ArrowUp) {
-        player.vx += dirX * playerConfig.acceleration * dt;
-        player.vy += dirY * playerConfig.acceleration * dt;
+        player.vx += dirX * playerConfig.accelerationForward * dt;
+        player.vy += dirY * playerConfig.accelerationForward * dt;
     }
     if (keys.ArrowDown) {
-        player.vx -= dirX * playerConfig.acceleration * dt;
-        player.vy -= dirY * playerConfig.acceleration * dt;
+        player.vx -= dirX * playerConfig.accelerationReverse * dt;
+        player.vy -= dirY * playerConfig.accelerationReverse * dt;
     }
 
     // Aseta kiihtyvyystila liekkejä varten

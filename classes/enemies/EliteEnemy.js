@@ -8,6 +8,8 @@ const eliteEnemyConfig = {
     minSpeed: 30,               // Minimi nopeus kun hyvin lähellä pelaajaa
     slowdownStartDistance: 400, // Aloita hidastaminen tällä etäisyydellä (pikselit)
     slowdownStopDistance: 200,  // Lopeta hidastaminen tällä etäisyydellä (pikselit)
+    accelerationForward: 150,   // Kiihtyvyys eteenpäin (pikselit/sekunti²) - taktinen
+    accelerationReverse: 150,   // Kiihtyvyys taaksepäin (pikselit/sekunti²)
 
     // Ampumisen konfiguraatio
     shootCooldownMin: 0.5,      // Pienin ampumisaikaväli (sekunti) - ampuu nopeammin!
