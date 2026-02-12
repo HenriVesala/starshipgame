@@ -20,13 +20,10 @@ function gameLoop(currentTime) {
     updatePosition(dt);
 
     // Päivitä pelaajan kutistuminen
-    if (player.isShrinking) {
-        player.shrinkProgress += dt / player.shrinkDuration;
-        if (player.shrinkProgress >= 1.0) {
-            player.health = 0;
-            endGame();
-            return;
-        }
+    if (player.updateShrinking(dt)) {
+        player.health = 0;
+        endGame();
+        return;
     }
 
     // Päivitä vaikeustaso pisteiden perusteella
@@ -79,13 +76,10 @@ function gameLoop(currentTime) {
         const enemy = enemies[i];
 
         // Päivitä kutistuminen
-        if (enemy.isShrinking) {
-            enemy.shrinkProgress += dt / enemy.shrinkDuration;
-            if (enemy.shrinkProgress >= 1.0) {
-                enemy.destroy();
-                enemies.splice(i, 1);
-                continue;
-            }
+        if (enemy.updateShrinking(dt)) {
+            enemy.destroy();
+            enemies.splice(i, 1);
+            continue;
         }
 
         enemy.update(enemyBullets, enemyMissiles, player.x, player.y, dt);

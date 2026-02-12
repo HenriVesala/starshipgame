@@ -13,8 +13,9 @@ const aggressiveEnemyConfig = {
     // Ulkoasu
     enemyClassName: 'aggressive-enemy',  // CSS-luokan nimi
 
-    // Kestopisteet
+    // Kestopisteet ja nopeus
     health: 100,                // Vihollisen kestopisteet
+    maxSpeed: 500,              // Maksiminopeus (pikselit/sekunti)
 
     // Spawnaus
     spawnIntervalMin: 12000,    // Pienin spawnausväli (millisekuntia)

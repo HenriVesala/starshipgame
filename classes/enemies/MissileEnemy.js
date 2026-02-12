@@ -20,8 +20,9 @@ const missileEnemyConfig = {
     // Ulkoasu
     enemyClassName: 'missile-enemy',  // CSS-luokan nimi
 
-    // Kestopisteet
+    // Kestopisteet ja nopeus
     health: 200,                  // Vahvempi kuin perusvihollinen
+    maxSpeed: 350,                // Maksiminopeus (pikselit/sekunti)
 
     // Spawnaus
     spawnIntervalMin: 15000,      // Pienin spawnausväli (millisekuntia)

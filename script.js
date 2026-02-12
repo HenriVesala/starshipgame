@@ -131,12 +131,7 @@ function updatePosition(dt) {
     }
 
     // Päivitä vahinkoválähdys-ajastin
-    if (player.damageFlashTimer > 0) {
-        player.damageFlashTimer -= dt;
-        if (player.damageFlashTimer < 0) {
-            player.damageFlashTimer = 0;
-        }
-    }
+    player.updateDamageFlash(dt);
 
     // Rotation (scaled by dt for frame-independent speed)
     if (keys.ArrowLeft) {
@@ -163,13 +158,8 @@ function updatePosition(dt) {
         player.vy -= dirY * playerConfig.acceleration * dt;
     }
     
-    // Limit maximum speed
-    const speed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
-    if (speed > playerConfig.maxSpeed) {
-        const scale = playerConfig.maxSpeed / speed;
-        player.vx *= scale;
-        player.vy *= scale;
-    }
+    // Rajoita maksiminopeus
+    player.capSpeed();
     
     // Update position based on velocity
     player.x += player.vx * dt;

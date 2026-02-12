@@ -15,8 +15,9 @@ const weakEnemyConfig = {
     // Ulkoasu
     enemyClassName: 'weak-enemy',    // CSS-luokan nimi
 
-    // Kestopisteet
+    // Kestopisteet ja nopeus
     health: 100,                // Vihollisen kestopisteet
+    maxSpeed: 400,              // Maksiminopeus (pikselit/sekunti)
 
     // Spawnaus
     spawnIntervalMin: 3000,     // Pienin spawnausväli (millisekuntia)

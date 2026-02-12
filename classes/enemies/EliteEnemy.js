@@ -16,8 +16,9 @@ const eliteEnemyConfig = {
     // Ulkoasu
     enemyClassName: 'elite-enemy',  // CSS-luokan nimi
 
-    // Kestopisteet
+    // Kestopisteet ja nopeus
     health: 300,                // Vihollisen kestopisteet - vahvempi kuin normaali
+    maxSpeed: 400,              // Maksiminopeus (pikselit/sekunti)
 
     // Spawnaus
     spawnIntervalMin: 10000,    // Pienin spawnausväli (millisekuntia)

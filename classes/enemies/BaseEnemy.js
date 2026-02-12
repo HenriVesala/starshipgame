@@ -2,15 +2,13 @@
 const enemyConfig = {
     minVelocityInNebula: 30,  // Minimi nopeus tähtisumassa (px/s)
     baseHealth: 100,          // Perus vihollisen kestopisteet
-    collisionDamage: 200      // Vahinko joka viholliset aiheuttavat törmätessään
+    collisionDamage: 200,     // Vahinko joka viholliset aiheuttavat törmätessään
+    maxSpeed: 400             // Oletus maksiminopeus (pikselit/sekunti)
 };
 
 // Base Enemy class - parent class for all enemy types
-class BaseEnemy {
+class BaseEnemy extends SpaceShip {
     constructor(gameContainer, spawnConfig = {}) {
-        this.gameContainer = gameContainer;
-        this.isEntering = true;
-
         // Default spawn configuration
         const defaultConfig = {
             enterSpeed: 120,            // Nopeus (pikselit/sekunti)
@@ -28,17 +26,20 @@ class BaseEnemy {
             shootCooldownMin: 1.0,      // Pienin ampumisaikaväli (sekunti)
             shootCooldownMax: 2.67,     // Suurin ampumisaikaväli (sekunti)
             enemyClassName: 'enemy',
-            health: enemyConfig.baseHealth
+            health: enemyConfig.baseHealth,
+            maxSpeed: enemyConfig.maxSpeed
         };
 
-        this.config = { ...defaultConfig, ...spawnConfig };
-        this.health = this.config.health;
-        this.maxHealth = this.config.health;
-        this.isShrinking = false;    // Kutistumistila (mustan aukon tapahtumahorisontti)
-        this.shrinkProgress = 0;     // Kutistumisen edistyminen (0-1)
-        this.shrinkDuration = 0.5;   // Kutistumisen kesto sekunteina
-        this.damageFlashTimer = 0;   // Välähdysajastin vahingon jälkeen
-        this.damageFlashDuration = 0.15; // Välähdyksen kesto sekunteina
+        const config = { ...defaultConfig, ...spawnConfig };
+
+        super({
+            health: config.health,
+            maxSpeed: config.maxSpeed
+        });
+
+        this.gameContainer = gameContainer;
+        this.config = config;
+        this.isEntering = true;
 
         // Liikekäyttäytymisen tilamuuttujat
         this.timeSinceLastTurn = 0;  // Ajastin käännöksille (periodic mode)
@@ -76,10 +77,10 @@ class BaseEnemy {
                 this.vy = (Math.random() - 0.5) * 2;
                 break;
         }
-        
+
         this.angle = 180;
         this.shootCooldown = Math.random() * (this.config.shootCooldownMax - this.config.shootCooldownMin) + this.config.shootCooldownMin;
-        
+
         this.element = document.createElement('div');
         this.element.className = this.config.enemyClassName;
         gameContainer.appendChild(this.element);
@@ -102,12 +103,7 @@ class BaseEnemy {
         }
 
         // Päivitä vahinkoválähdys-ajastin
-        if (this.damageFlashTimer > 0) {
-            this.damageFlashTimer -= dt;
-            if (this.damageFlashTimer < 0) {
-                this.damageFlashTimer = 0;
-            }
-        }
+        this.updateDamageFlash(dt);
 
         // Tarkista onko täysin tullut pelialueelle
         if (this.isEntering) {
@@ -126,6 +122,9 @@ class BaseEnemy {
             this.x += this.vx * dt;
             this.y += this.vy * dt;
         }
+
+        // Rajoita maksiminopeus (ulkoiset voimat kuten painovoima voivat kiihdyttää)
+        this.capSpeed();
 
         // Päivitä kulma ja käsittele seinät
         this.updateAngle(playerX, playerY, dt);
@@ -335,22 +334,5 @@ class BaseEnemy {
         } else {
             this.element.classList.remove('damage-flash');
         }
-    }
-
-    // Ota vahinkoa
-    takeDamage(damage) {
-        this.health -= damage;
-        if (this.health < 0) this.health = 0;
-
-        // Aktivoi välähdys jos alus ei tuhoudu
-        if (this.health > 0) {
-            this.damageFlashTimer = this.damageFlashDuration;
-        }
-
-        return this.health <= 0; // Palauta true jos alus tuhoutui
-    }
-
-    destroy() {
-        this.element.remove();
     }
 }

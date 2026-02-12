@@ -34,38 +34,32 @@ const playerConfig = {
 };
 
 // Pelaajan alus -luokka
-class Player {
+class Player extends SpaceShip {
     constructor() {
-        this.x = playerConfig.startX;
-        this.y = playerConfig.startY;
-        this.vx = 0;                // Nopeus X-akselilla
-        this.vy = 0;                // Nopeus Y-akselilla
-        this.angle = 0;             // Kääntymiskulma (asteet)
+        super({
+            x: playerConfig.startX,
+            y: playerConfig.startY,
+            health: playerConfig.maxHealth,
+            maxSpeed: playerConfig.maxSpeed
+        });
         this.score = 0;
         this.gameOver = false;
-        this.health = playerConfig.maxHealth;
-        this.maxHealth = playerConfig.maxHealth;
         this.isInvulnerable = false;
         this.invulnerabilityTimer = 0;
         this.shootCooldownTimer = 0; // Ampumisen cooldown-ajastin
         this.shootSpeedMultiplier = 1.0; // Ampumisnopeuden kerroin (alkaa 1.0, pienenee boostien myötä)
-        this.isShrinking = false;    // Kutistumistila (mustan aukon tapahtumahorisontti)
-        this.shrinkProgress = 0;     // Kutistumisen edistyminen (0-1)
-        this.shrinkDuration = 0.5;   // Kutistumisen kesto sekunteina
-        this.damageFlashTimer = 0;   // Välähdysajastin vahingon jälkeen
-        this.damageFlashDuration = 0.15; // Välähdyksen kesto sekunteina
         this.weapon = playerConfig.startWeapon; // Nykyinen ase
     }
 
-    // Ota vahinkoa
+    // Ota vahinkoa (override: lisää immuniteetti törmäyksille)
     takeDamage(damage, isCollisionDamage = false) {
         // Jos immuuni ja kyseessä törmäysvahinko, älä ota vahinkoa
         if (isCollisionDamage && this.isInvulnerable) {
             return false;
         }
 
-        this.health -= damage;
-        if (this.health < 0) this.health = 0;
+        // Kutsu kantaluokan vahinkologiikka
+        const isDead = super.takeDamage(damage);
 
         // Aktivoi immuniteetti vain törmäysvahingosta JA jos ei ole jo aktiivinen
         // Tämä estää ajastimen nollautumisen jatkuvissa törmäyksissä
@@ -74,12 +68,7 @@ class Player {
             this.invulnerabilityTimer = playerConfig.invulnerabilityDuration;
         }
 
-        // Aktivoi välähdys jos alus ei tuhoudu
-        if (this.health > 0) {
-            this.damageFlashTimer = this.damageFlashDuration;
-        }
-
-        return this.health <= 0; // Palauta true jos alus tuhoutui
+        return isDead;
     }
 
     // Palauta kesto täyteen (esim. uuden pelin alkaessa)
@@ -125,12 +114,7 @@ class Player {
         }
 
         // Päivitä vahinkoválähdys-ajastin
-        if (this.damageFlashTimer > 0) {
-            this.damageFlashTimer -= dt;
-            if (this.damageFlashTimer < 0) {
-                this.damageFlashTimer = 0;
-            }
-        }
+        this.updateDamageFlash(dt);
 
         // Kierrä alusta
         if (keys.ArrowLeft) {
@@ -154,12 +138,7 @@ class Player {
         }
 
         // Rajoita maksimi nopeus
-        const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-        if (speed > playerConfig.maxSpeed) {
-            const scale = playerConfig.maxSpeed / speed;
-            this.vx *= scale;
-            this.vy *= scale;
-        }
+        this.capSpeed();
 
         // Päivitä sijainti
         this.x += this.vx * dt;
@@ -174,14 +153,14 @@ class Player {
 
     // Palauta pelaajan nopeus
     getVelocity() {
-        return Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+        return this.getSpeed();
     }
 
     // Tarkista ovatko koordinaatit pelaajan sisällä (törmäys)
     isPointInside(px, py) {
-        return px > this.x && 
-               px < this.x + playerConfig.width && 
-               py > this.y && 
+        return px > this.x &&
+               px < this.x + playerConfig.width &&
+               py > this.y &&
                py < this.y + playerConfig.height;
     }
 }
