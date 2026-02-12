@@ -8,9 +8,14 @@ const aggressiveEnemyConfig = {
     accelerationForward: 250,   // Kiihtyvyys eteenpäin (pikselit/sekunti²) - nopea ja ketterä
     accelerationReverse: 250,   // Kiihtyvyys taaksepäin (pikselit/sekunti²)
 
+    // Energia
+    maxEnergy: 50,              // Maksimi energia
+    energyRegenRate: 10,        // Energian latausnopeus (yksikköä/sekunti)
+
     // Ampumisen konfiguraatio
     shootCooldownMin: 1.0,      // Pienin ampumisaikaväli (sekunti)
     shootCooldownMax: 2.67,     // Suurin ampumisaikaväli (sekunti)
+    shootConeAngle: 40,
 
     // Ulkoasu
     enemyClassName: 'aggressive-enemy',  // CSS-luokan nimi

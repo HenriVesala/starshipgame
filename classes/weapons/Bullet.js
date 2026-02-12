@@ -4,13 +4,15 @@ const bulletConfig = {
         initialSpeed: 250,    // Lähtönopeus laukaistaessa (pikselit/sekunti)
         maxSpeed: 2000,        // Maksiminopeus (pikselit/sekunti)
         nebulaCoefficient: 1.0, // Nebulan vastuskerroin (0 = ei vaikutusta, 1 = normaali)
-        damage: 100           // Vahinko joka ammus aiheuttaa
+        damage: 100,          // Vahinko joka ammus aiheuttaa
+        energyCost: 25         // Energiakustannus per laukaus
     },
     enemyBullet: {
         initialSpeed: 240,    // Lähtönopeus laukaistaessa (pikselit/sekunti)
         maxSpeed: 2000,        // Maksiminopeus (pikselit/sekunti)
         nebulaCoefficient: 1.0, // Nebulan vastuskerroin (0 = ei vaikutusta, 1 = normaali)
-        damage: 100           // Vahinko joka ammus aiheuttaa
+        damage: 100,          // Vahinko joka ammus aiheuttaa
+        energyCost: 30         // Energiakustannus per laukaus
     }
 };
 

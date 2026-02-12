@@ -30,6 +30,10 @@ const playerConfig = {
     shootCooldown: 0.7,             // Ampumisen cooldown (sekuntia) - 3 ampumista/sekunti
     rateOfFireBoostMultiplier: 0.95, // Ampumisnopeuden lisäys per boosti (5% nopeampi = 0.95x cooldown)
 
+    // Energia
+    maxEnergy: 100,                 // Maksimi energia
+    energyRegenRate: 15,            // Energiaa/sekunti (puolitettu kiihdyttäessä)
+
     // Aloitusase
     startWeapon: 'bullet'          // Aloitusase: 'missile' | 'bullet'
 };
@@ -42,7 +46,9 @@ class Player extends SpaceShip {
             y: playerConfig.startY,
             health: playerConfig.maxHealth,
             maxSpeed: playerConfig.maxSpeed,
-            nebulaCoefficient: playerConfig.nebulaCoefficient
+            nebulaCoefficient: playerConfig.nebulaCoefficient,
+            maxEnergy: playerConfig.maxEnergy,
+            energyRegenRate: playerConfig.energyRegenRate
         });
         this.score = 0;
         this.gameOver = false;
@@ -73,12 +79,24 @@ class Player extends SpaceShip {
         return isDead;
     }
 
-    // Palauta kesto täyteen (esim. uuden pelin alkaessa)
+    // Palauta kesto ja energia täyteen (esim. uuden pelin alkaessa)
     resetHealth() {
         this.health = this.maxHealth;
+        this.energy = this.maxEnergy;
         this.isInvulnerable = false;
         this.invulnerabilityTimer = 0;
         this.shootCooldownTimer = 0;
+    }
+
+    // Tarkista onko tarpeeksi energiaa
+    hasEnergy(cost) {
+        return this.energy >= cost;
+    }
+
+    // Kuluta energiaa
+    consumeEnergy(cost) {
+        this.energy -= cost;
+        if (this.energy < 0) this.energy = 0;
     }
 
     // Tarkista voiko ampua

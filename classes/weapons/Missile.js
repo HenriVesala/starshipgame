@@ -14,7 +14,8 @@ const missileConfig = {
     height: 16,                  // Korkeus pikseleissä
     collisionRadius: 10,         // Törmäyssäde pikseleissä
     armingTime: 1,               // Aktivointiaika sekunteina (ei osu omistajaan ennen tätä)
-    nebulaCoefficient: 1.0       // Nebulan vastuskerroin (0 = ei vaikutusta, 1 = normaali)
+    nebulaCoefficient: 1.0,      // Nebulan vastuskerroin (0 = ei vaikutusta, 1 = normaali)
+    energyCost: 5               // Energiakustannus per laukaus
 };
 
 // Hakeutuva ohjus -luokka

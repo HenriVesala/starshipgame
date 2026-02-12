@@ -27,10 +27,13 @@ class BaseEnemy extends SpaceShip {
             shootMaxDistance: Infinity,  // Maksimi ampumisetäisyys (Infinity = ei rajaa)
             shootCooldownMin: 1.0,      // Pienin ampumisaikaväli (sekunti)
             shootCooldownMax: 2.67,     // Suurin ampumisaikaväli (sekunti)
+            shootConeAngle: 30,         // Ampumisen etusektorin puolikulma (±30° = 60° kartio)
             enemyClassName: 'enemy',
             health: enemyConfig.baseHealth,
             maxSpeed: enemyConfig.maxSpeed,
-            nebulaCoefficient: enemyConfig.nebulaCoefficient
+            nebulaCoefficient: enemyConfig.nebulaCoefficient,
+            maxEnergy: 80,              // Maksimi energia
+            energyRegenRate: 12         // Energian latausnopeus (yksikköä/sekunti)
         };
 
         const config = { ...defaultConfig, ...spawnConfig };
@@ -38,7 +41,9 @@ class BaseEnemy extends SpaceShip {
         super({
             health: config.health,
             maxSpeed: config.maxSpeed,
-            nebulaCoefficient: config.nebulaCoefficient
+            nebulaCoefficient: config.nebulaCoefficient,
+            maxEnergy: config.maxEnergy,
+            energyRegenRate: config.energyRegenRate
         });
 
         this.gameContainer = gameContainer;
@@ -153,16 +158,27 @@ class BaseEnemy extends SpaceShip {
         this.updateAngle(playerX, playerY, dt);
         this.handleWalls();
 
+        // Lataa energiaa (puolitettu kiihdyttäessä/jarrutettaessa)
+        const energyRegenMult = this.thrustState !== 'none' ? 0.5 : 1.0;
+        this.energy = Math.min(this.maxEnergy, this.energy + this.config.energyRegenRate * energyRegenMult * dt);
+
         this.shootCooldown -= dt;
 
-        // Shoot (tarkista ampumisetäisyys jos konfiguroitu)
+        // Shoot (tarkista etäisyys, etusektori ja energia)
         if (this.shootCooldown <= 0 && playerX !== null && playerY !== null) {
             const halfShipSize = gameConfig.playerWidth / 2;
             const sdx = playerX + halfShipSize - (this.x + halfShipSize);
             const sdy = playerY + halfShipSize - (this.y + halfShipSize);
             const shootDist = Math.sqrt(sdx * sdx + sdy * sdy);
 
-            if (shootDist >= this.config.shootMinDistance && shootDist <= this.config.shootMaxDistance) {
+            // Tarkista onko pelaaja etusektorilla
+            const angleToPlayer = Math.atan2(sdy, sdx) * (180 / Math.PI) + 90;
+            const angleDiff = Math.abs(this.angleDifference(angleToPlayer, this.angle));
+            const inCone = angleDiff <= this.config.shootConeAngle;
+
+            const shootEnergyCost = this.config.weapon === 'missile' ? missileConfig.energyCost : bulletConfig.enemyBullet.energyCost;
+            if (inCone && shootDist >= this.config.shootMinDistance && shootDist <= this.config.shootMaxDistance && this.energy >= shootEnergyCost) {
+                this.energy -= shootEnergyCost;
                 this.shoot(enemyBullets, enemyMissiles);
                 this.shootCooldown = Math.random() * (this.config.shootCooldownMax - this.config.shootCooldownMin) + this.config.shootCooldownMin;
             }

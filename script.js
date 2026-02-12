@@ -21,6 +21,8 @@ const positionDisplay = document.getElementById('position');
 const gameContainer = document.querySelector('.game-container');
 const healthBar = document.getElementById('healthBar');
 const healthText = document.getElementById('healthText');
+const energyBar = document.getElementById('energyBar');
+const energyText = document.getElementById('energyText');
 
 // Pelaajan liekki-elementit
 const playerFlameMain = spaceship.querySelector('.ship-flame-main');
@@ -173,7 +175,11 @@ function updatePosition(dt) {
     } else {
         player.thrustState = 'none';
     }
-    
+
+    // Lataa energiaa (puolitettu kiihdyttäessä/jarrutettaessa)
+    const energyRegenMult = (keys.ArrowUp || keys.ArrowDown) ? 0.5 : 1.0;
+    player.energy = Math.min(player.maxEnergy, player.energy + playerConfig.energyRegenRate * energyRegenMult * dt);
+
     // Rajoita maksiminopeus
     player.capSpeed();
     
@@ -187,7 +193,8 @@ function updatePosition(dt) {
     if (player.y < -playerConfig.height) player.y = gameConfig.screenHeight;
     if (player.y > gameConfig.screenHeight) player.y = -playerConfig.height;
 
-    if (keys.Space && player.canShoot()) {
+    const shootEnergyCost = player.weapon === 'missile' ? missileConfig.energyCost : bulletConfig.playerBullet.energyCost;
+    if (keys.Space && player.canShoot() && player.hasEnergy(shootEnergyCost)) {
         // Laske ammuksen/ohjuksen aloituspaikka aluksen keskipisteestä
         const halfShipSize = playerConfig.width / 2;
 
@@ -204,6 +211,7 @@ function updatePosition(dt) {
             // 'bullet' tai muu oletusase
             playerBullets.push(new Bullet(gameContainer, spawnX, spawnY, player.angle, 'player', player.vx, player.vy));
         }
+        player.consumeEnergy(shootEnergyCost);
         player.setShootCooldown();
         keys.Space = false;
     }
@@ -266,6 +274,20 @@ function updateHealthBar() {
     }
 }
 
+// Update energy bar display
+function updateEnergyBar() {
+    const energyPercent = (player.energy / player.maxEnergy) * 100;
+    energyBar.style.width = energyPercent + '%';
+    energyText.textContent = `${Math.ceil(player.energy)}/${player.maxEnergy}`;
+
+    energyBar.classList.remove('low', 'critical');
+    if (energyPercent <= 15) {
+        energyBar.classList.add('critical');
+    } else if (energyPercent <= 33) {
+        energyBar.classList.add('low');
+    }
+}
+
 // Render spaceship and UI
 function render() {
     // Don't render if player doesn't exist
@@ -316,6 +338,7 @@ function render() {
     }
 
     updateHealthBar();
+    updateEnergyBar();
 }
 
 function endGame() {

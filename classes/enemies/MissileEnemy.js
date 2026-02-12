@@ -12,12 +12,17 @@ const missileEnemyConfig = {
     accelerationForward: 80,      // Kiihtyvyys eteenpäin (pikselit/sekunti²) - hidas, suosii etäisyyttä
     accelerationReverse: 80,      // Kiihtyvyys taaksepäin (pikselit/sekunti²)
 
+    // Energia
+    maxEnergy: 120,               // Maksimi energia - enemmän ohjuksia varten
+    energyRegenRate: 8,           // Energian latausnopeus (yksikköä/sekunti) - hidas
+
     // Ampumisen konfiguraatio
     weapon: 'missile',            // Asetyyppi: ohjus
     shootCooldownMin: 5.0,        // Pienin ampumisaikaväli (sekunti)
     shootCooldownMax: 10.0,       // Suurin ampumisaikaväli (sekunti)
     shootMinDistance: 400,         // Ampuu vain 400px+ etäisyydeltä
     shootMaxDistance: 800,         // Ampuu vain alle 800px etäisyydeltä
+    shootConeAngle: 60,
 
     // Ulkoasu
     enemyClassName: 'missile-enemy',  // CSS-luokan nimi

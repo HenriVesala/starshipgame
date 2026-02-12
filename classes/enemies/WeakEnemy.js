@@ -9,10 +9,14 @@ const weakEnemyConfig = {
     accelerationForward: 100,   // Kiihtyvyys eteenpäin (pikselit/sekunti²) - hidas ja kömpelö
     accelerationReverse: 100,   // Kiihtyvyys taaksepäin (pikselit/sekunti²)
 
+    // Energia
+    maxEnergy: 60,              // Maksimi energia
+    energyRegenRate: 10,        // Energian latausnopeus (yksikköä/sekunti)
+
     // Ampumisen konfiguraatio
-    weapon: 'bullet',          // Asetyyppi: 'bullet' | 'missile'
-    shootCooldownMin: 1.0,      // Pienin ampumisaikaväli (sekunti)
-    shootCooldownMax: 2.67,     // Suurin ampumisaikaväli (sekunti)
+    weapon: 'bullet',           // Asetyyppi: 'bullet' | 'missile'
+    shootCooldownMin: 0.7,      // Pienin ampumisaikaväli (sekunti)
+    shootCooldownMax: 2,        // Suurin ampumisaikaväli (sekunti)
 
     // Ulkoasu
     enemyClassName: 'weak-enemy',    // CSS-luokan nimi

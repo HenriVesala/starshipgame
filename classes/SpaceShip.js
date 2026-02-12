@@ -16,6 +16,9 @@ class SpaceShip {
         this.damageFlashDuration = 0.15;
         this.nebulaCoefficient = config.nebulaCoefficient ?? 1.0;
         this.thrustState = 'none'; // 'none', 'forward', 'reverse'
+        this.energy = config.maxEnergy || 100;
+        this.maxEnergy = config.maxEnergy || 100;
+        this.energyRegenRate = config.energyRegenRate || 15;
         this.element = null;
     }
 

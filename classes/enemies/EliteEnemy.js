@@ -11,6 +11,10 @@ const eliteEnemyConfig = {
     accelerationForward: 150,   // Kiihtyvyys eteenpäin (pikselit/sekunti²) - taktinen
     accelerationReverse: 150,   // Kiihtyvyys taaksepäin (pikselit/sekunti²)
 
+    // Energia
+    maxEnergy: 150,             // Maksimi energia
+    energyRegenRate: 18,        // Energian latausnopeus (yksikköä/sekunti)
+
     // Ampumisen konfiguraatio
     shootCooldownMin: 0.5,      // Pienin ampumisaikaväli (sekunti) - ampuu nopeammin!
     shootCooldownMax: 1.33,     // Suurin ampumisaikaväli (sekunti)
