@@ -1,7 +1,7 @@
 // Ammuksien konfiguraatio
 const bulletConfig = {
     playerBullet: {
-        speed: 420,           // Pikselit/sekunti
+        speed: 250,           // Pikselit/sekunti
         minVelocityInNebula: 150,  // Minimi nopeus tähtisumassa (px/s)
         damage: 100           // Vahinko joka ammus aiheuttaa
     },
@@ -14,7 +14,7 @@ const bulletConfig = {
 
 // Base Bullet class - used for both player and enemy bullets
 class Bullet {
-    constructor(gameContainer, x, y, angle, type = 'player') {
+    constructor(gameContainer, x, y, angle, type = 'player', ownerVx = 0, ownerVy = 0) {
         this.gameContainer = gameContainer;
         this.x = x;
         this.y = y;
@@ -23,11 +23,11 @@ class Bullet {
         this.angle = angle;
         this.type = type; // 'player' or 'enemy'
 
-        // Calculate velocity based on angle and speed
+        // Calculate velocity based on angle and speed + owner's velocity
         const adjustedAngle = angle - 90;
         const radians = (adjustedAngle * Math.PI) / 180;
-        this.vx = Math.cos(radians) * this.speed;
-        this.vy = Math.sin(radians) * this.speed;
+        this.vx = Math.cos(radians) * this.speed + ownerVx;
+        this.vy = Math.sin(radians) * this.speed + ownerVy;
 
         this.element = document.createElement('div');
         this.element.className = `bullet ${type}-bullet`;

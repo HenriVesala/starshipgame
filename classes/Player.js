@@ -6,7 +6,7 @@ const playerConfig = {
 
     // Liikkeen konfiguraatio
     rotationSpeed: 200,             // Astetta/sekunti
-    acceleration: 300,              // Pikselit/sekunnin²
+    acceleration: 200,              // Pikselit/sekunnin²
     maxSpeed: 500,                  // Pikselit/sekunti
 
     // Sijainti konfiguraatio

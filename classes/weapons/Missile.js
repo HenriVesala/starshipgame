@@ -1,9 +1,11 @@
 // Ohjuksen konfiguraatio
 const missileConfig = {
-    speed: 200,                  // Nopeus (pikselit/sekunti)
+    speed: 2000,                 // Maksiminopeus (pikselit/sekunti)
+    initialSpeed: 100,           // Lähtönopeus laukaistaessa (pikselit/sekunti)
+    acceleration: 160,           // Kiihtyvyys (pikselit/sekunti²)
     damage: 250,                 // Vahinko osumassa
     health: 1,                   // Osumapisteet (1 = mikä tahansa vahinko tuhoaa)
-    turnSpeed: 180,              // Kääntymiskyky (astetta/sekunti)
+    turnSpeed: 160,              // Kääntymiskyky (astetta/sekunti)
     frontConeAngle: 60,          // Etusektorin puolikulma (±60° = 120° kartio)
     maxTargetAngle: 90,          // Maksimi hakeutumiskulma (±90°) - ei takasektoria
     frontMaxRange: 400,          // Etusektorin hakeutumisetäisyys (~1/3 ruudusta)
@@ -13,21 +15,19 @@ const missileConfig = {
     collisionRadius: 10,         // Törmäyssäde pikseleissä
     armingTime: 1,               // Aktivointiaika sekunteina (ei osu omistajaan ennen tätä)
     nebulaSlowdown: 0.3,         // Hidastuskerroin nebulassa (30% normaalista)
-    minSpeedInNebula: 10,        // Minimi nopeus nebulassa (pikselit/sekunti)
-    driftSpeed: 30,              // Ajelehtimis nopeus ilman kohdetta (pikselit/sekunti)
-    driftDeceleration: 80        // Hidastuvuus ajelehtimiseen (pikselit/sekunti²)
+    minSpeedInNebula: 10         // Minimi nopeus nebulassa (pikselit/sekunti)
 };
 
 // Hakeutuva ohjus -luokka
 class Missile {
-    constructor(gameContainer, x, y, angle, owner) {
+    constructor(gameContainer, x, y, angle, owner, ownerVx = 0, ownerVy = 0) {
         this.gameContainer = gameContainer;
         this.x = x;
         this.y = y;
         this.angle = angle;
         this.owner = owner; // 'player' tai 'enemy'
         this.speed = missileConfig.speed;
-        this.currentSpeed = missileConfig.speed; // Nykyinen nopeus (hidastuu ilman kohdetta)
+        this.currentSpeed = missileConfig.initialSpeed; // Lähtönopeus, kiihtyy ajan myötä
         this.damage = missileConfig.damage;
         this.health = missileConfig.health;
         this.turnSpeed = missileConfig.turnSpeed;
@@ -35,13 +35,13 @@ class Missile {
         this.age = 0; // Aika laukaisusta (sekunteina)
         this.speedMultiplier = 1.0;
 
-        // Laske alkunopeus kulman perusteella
+        // Laske alkunopeus kulman perusteella (lähtönopeudella) + ampujan nopeus
         const adjustedAngle = (angle - 90) * Math.PI / 180;
-        this.vx = Math.cos(adjustedAngle) * this.speed;
-        this.vy = Math.sin(adjustedAngle) * this.speed;
-        // Tallenna "puhdas" työntövoiman nopeus painovoiman erottelua varten
-        this.thrustVx = this.vx;
-        this.thrustVy = this.vy;
+        this.thrustVx = Math.cos(adjustedAngle) * this.currentSpeed;
+        this.thrustVy = Math.sin(adjustedAngle) * this.currentSpeed;
+        // Kokonaisnopeus = oma työntövoima + ampujan liikemäärä
+        this.vx = this.thrustVx + ownerVx;
+        this.vy = this.thrustVy + ownerVy;
 
         // Luo DOM-elementit
         this.element = document.createElement('div');
@@ -120,17 +120,21 @@ class Missile {
 
         // ArmingTime: lentää vain suoraan eteenpäin, ei hakeudu
         if (this.age < missileConfig.armingTime) {
-            this.currentSpeed = this.speed;
             this.target = null;
         } else {
             // Etsi paras kohde joka ruudussa
             this.target = this.findBestTarget(targets);
         }
 
-        if (this.target) {
-            // Kohde löydetty - täysi nopeus ja hakeutuminen
-            this.currentSpeed = this.speed;
+        // Kiihdy kohti maksiminopeutta (sekä armingTimen aikana että hakeutuessa)
+        if (this.target || this.age < missileConfig.armingTime) {
+            this.currentSpeed += missileConfig.acceleration * dt;
+            if (this.currentSpeed > this.speed) {
+                this.currentSpeed = this.speed;
+            }
+        }
 
+        if (this.target) {
             const targetX = this.target.x + 20;
             const targetY = this.target.y + 20;
             const dx = targetX - this.x;
@@ -148,14 +152,6 @@ class Missile {
                 this.angle = targetAngle;
             } else {
                 this.angle += Math.sign(angleDiff) * maxTurn;
-            }
-        } else {
-            // Ei kohdetta - hidasta ajelehtimiseen, ei kääntymistä
-            if (this.currentSpeed > missileConfig.driftSpeed) {
-                this.currentSpeed -= missileConfig.driftDeceleration * dt;
-                if (this.currentSpeed < missileConfig.driftSpeed) {
-                    this.currentSpeed = missileConfig.driftSpeed;
-                }
             }
         }
 

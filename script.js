@@ -193,10 +193,10 @@ function updatePosition(dt) {
         const spawnY = player.y + halfShipSize + Math.sin(radians) * forwardOffset;
 
         if (player.weapon === 'missile') {
-            playerMissiles.push(new Missile(gameContainer, spawnX, spawnY, player.angle, 'player'));
+            playerMissiles.push(new Missile(gameContainer, spawnX, spawnY, player.angle, 'player', player.vx, player.vy));
         } else {
             // 'bullet' tai muu oletusase
-            playerBullets.push(new Bullet(gameContainer, spawnX, spawnY, player.angle, 'player'));
+            playerBullets.push(new Bullet(gameContainer, spawnX, spawnY, player.angle, 'player', player.vx, player.vy));
         }
         player.setShootCooldown();
         keys.Space = false;
