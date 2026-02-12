@@ -1,12 +1,14 @@
 // Ammuksien konfiguraatio
 const bulletConfig = {
     playerBullet: {
-        speed: 250,           // Pikselit/sekunti
+        initialSpeed: 250,    // Lähtönopeus laukaistaessa (pikselit/sekunti)
+        maxSpeed: 500,        // Maksiminopeus (pikselit/sekunti)
         minVelocityInNebula: 150,  // Minimi nopeus tähtisumassa (px/s)
         damage: 100           // Vahinko joka ammus aiheuttaa
     },
     enemyBullet: {
-        speed: 240,           // Pikselit/sekunti
+        initialSpeed: 240,    // Lähtönopeus laukaistaessa (pikselit/sekunti)
+        maxSpeed: 480,        // Maksiminopeus (pikselit/sekunti)
         minVelocityInNebula: 120,   // Minimi nopeus tähtisumassa (px/s)
         damage: 100           // Vahinko joka ammus aiheuttaa
     }
@@ -18,16 +20,17 @@ class Bullet {
         this.gameContainer = gameContainer;
         this.x = x;
         this.y = y;
-        this.speed = type === 'player' ? bulletConfig.playerBullet.speed : bulletConfig.enemyBullet.speed;
-        this.damage = type === 'player' ? bulletConfig.playerBullet.damage : bulletConfig.enemyBullet.damage;
+        const config = type === 'player' ? bulletConfig.playerBullet : bulletConfig.enemyBullet;
+        this.maxSpeed = config.maxSpeed;
+        this.damage = config.damage;
         this.angle = angle;
         this.type = type; // 'player' or 'enemy'
 
-        // Calculate velocity based on angle and speed + owner's velocity
+        // Laske alkunopeus kulman perusteella (lähtönopeudella) + ampujan nopeus
         const adjustedAngle = angle - 90;
         const radians = (adjustedAngle * Math.PI) / 180;
-        this.vx = Math.cos(radians) * this.speed + ownerVx;
-        this.vy = Math.sin(radians) * this.speed + ownerVy;
+        this.vx = Math.cos(radians) * config.initialSpeed + ownerVx;
+        this.vy = Math.sin(radians) * config.initialSpeed + ownerVy;
 
         this.element = document.createElement('div');
         this.element.className = `bullet ${type}-bullet`;
@@ -35,6 +38,14 @@ class Bullet {
     }
 
     update(dt = 0.016) {
+        // Rajoita maksiminopeus (ulkoiset voimat voivat kiihdyttää)
+        const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+        if (currentSpeed > this.maxSpeed) {
+            const scale = this.maxSpeed / currentSpeed;
+            this.vx *= scale;
+            this.vy *= scale;
+        }
+
         this.x += this.vx * dt;
         this.y += this.vy * dt;
         this.render();

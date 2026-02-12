@@ -1,7 +1,7 @@
 // Ohjuksen konfiguraatio
 const missileConfig = {
-    speed: 2000,                 // Maksiminopeus (pikselit/sekunti)
-    initialSpeed: 100,           // Lähtönopeus laukaistaessa (pikselit/sekunti)
+    maxSpeed: 2000,              // Maksiminopeus (pikselit/sekunti)
+    initialSpeed: 20,           // Lähtönopeus laukaistaessa (pikselit/sekunti)
     acceleration: 160,           // Kiihtyvyys (pikselit/sekunti²)
     damage: 250,                 // Vahinko osumassa
     health: 1,                   // Osumapisteet (1 = mikä tahansa vahinko tuhoaa)
@@ -26,7 +26,7 @@ class Missile {
         this.y = y;
         this.angle = angle;
         this.owner = owner; // 'player' tai 'enemy'
-        this.speed = missileConfig.speed;
+        this.maxSpeed = missileConfig.maxSpeed;
         this.currentSpeed = missileConfig.initialSpeed; // Lähtönopeus, kiihtyy ajan myötä
         this.damage = missileConfig.damage;
         this.health = missileConfig.health;
@@ -129,8 +129,8 @@ class Missile {
         // Kiihdy kohti maksiminopeutta (sekä armingTimen aikana että hakeutuessa)
         if (this.target || this.age < missileConfig.armingTime) {
             this.currentSpeed += missileConfig.acceleration * dt;
-            if (this.currentSpeed > this.speed) {
-                this.currentSpeed = this.speed;
+            if (this.currentSpeed > this.maxSpeed) {
+                this.currentSpeed = this.maxSpeed;
             }
         }
 
