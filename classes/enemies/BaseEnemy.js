@@ -50,7 +50,7 @@ class BaseEnemy extends SpaceShip {
         // Resolve asekonfiguraatiot: globaalit oletukset + aluskohtaiset ylikirjoitukset
         const wo = this.config.weapons || {};
         this.weaponConfigs = {
-            bullet: { ...bulletConfig.enemyBullet, muzzleFlash: bulletConfig.muzzleFlash, fireFlash: bulletConfig.fireFlash, ...(wo.bullet || {}) },
+            bullet: { ...bulletConfig, ...(wo.bullet || {}) },
             missile: { ...missileConfig, ...(wo.missile || {}) },
             laser: { ...laserConfig, ...(wo.laser || {}) },
             railgun: { ...railgunConfig, ...(wo.railgun || {}) }

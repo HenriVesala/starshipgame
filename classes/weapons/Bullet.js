@@ -1,24 +1,23 @@
-// Ammuksien konfiguraatio
+// Ammuksien konfiguraatio (oletukset = vihollisen arvot)
 const bulletConfig = {
-    playerBullet: {
-        shootCooldown: 0.7,   // Ampumisen cooldown (sekuntia)
-        initialSpeed: 250,    // Lähtönopeus laukaistaessa (pikselit/sekunti)
-        maxSpeed: 2000,        // Maksiminopeus (pikselit/sekunti)
-        nebulaCoefficient: 1.0, // Nebulan vastuskerroin (0 = ei vaikutusta, 1 = normaali)
-        damage: 100,          // Vahinko joka ammus aiheuttaa
-        energyCost: 25,        // Energiakustannus per laukaus
-        recoil: 5              // Rekyylivoima (pikselit/sekunti)
-    },
-    enemyBullet: {
-        shootCooldownMin: 1.0,  // Pienin ampumisaikaväli (sekunti)
-        shootCooldownMax: 2.67, // Suurin ampumisaikaväli (sekunti)
-        initialSpeed: 240,    // Lähtönopeus laukaistaessa (pikselit/sekunti)
-        maxSpeed: 2000,        // Maksiminopeus (pikselit/sekunti)
-        nebulaCoefficient: 1.0, // Nebulan vastuskerroin (0 = ei vaikutusta, 1 = normaali)
-        damage: 100,          // Vahinko joka ammus aiheuttaa
-        energyCost: 30,        // Energiakustannus per laukaus
-        recoil: 5              // Rekyylivoima (pikselit/sekunti)
-    },
+    // Tulinopeus
+    shootCooldown: 0.7,        // Pelaajan cooldown (sekunti)
+    shootCooldownMin: 1.0,     // Vihollisen min cooldown (sekunti)
+    shootCooldownMax: 2.67,    // Vihollisen max cooldown (sekunti)
+
+    // Ammuksen ominaisuudet
+    initialSpeed: 240,         // Lähtönopeus laukaistaessa (pikselit/sekunti)
+    maxSpeed: 2000,            // Maksiminopeus (pikselit/sekunti)
+    nebulaCoefficient: 1.0,    // Nebulan vastuskerroin (0 = ei vaikutusta, 1 = normaali)
+    damage: 100,               // Vahinko joka ammus aiheuttaa
+    energyCost: 30,            // Energiakustannus per laukaus
+    recoil: 5,                 // Rekyylivoima (pikselit/sekunti)
+
+    // Väri (oletukset = vihollisen punainen)
+    color: '#ff0000',
+    colorLight: '#ff8888',
+    glowColor: '255, 0, 0',   // RGB ilman rgba()-wrapperia
+
     // Suuliekki
     muzzleFlash: {
         color: 'rgba(255, 200, 50, 0.9)',  // Liekin väri
@@ -37,7 +36,7 @@ const bulletConfig = {
 // Ammus-luokka - pelaajan ja vihollisten ammuksille
 class Bullet extends Weapon {
     constructor(gameContainer, x, y, angle, type = 'player', ownerVx = 0, ownerVy = 0, overrideCfg = null) {
-        const config = overrideCfg || (type === 'player' ? bulletConfig.playerBullet : bulletConfig.enemyBullet);
+        const config = overrideCfg || bulletConfig;
 
         super({
             gameContainer,
@@ -48,14 +47,16 @@ class Bullet extends Weapon {
             nebulaCoefficient: config.nebulaCoefficient,
             owner: type,
             ownerVx, ownerVy,
-            muzzleFlash: bulletConfig.muzzleFlash
+            muzzleFlash: config.muzzleFlash
         });
 
         // Bulletilla type-kenttä painovoiman tunnistusta varten (Planet.js, BlackHole.js)
         this.type = type;
 
         this.element = document.createElement('div');
-        this.element.className = `bullet ${type}-bullet`;
+        this.element.className = 'bullet';
+        this.element.style.background = `radial-gradient(ellipse at 50% 40%, ${config.colorLight}, ${config.color})`;
+        this.element.style.boxShadow = `0 0 8px rgba(${config.glowColor}, 0.9), 0 0 15px rgba(${config.glowColor}, 0.6), 0 0 20px rgba(${config.glowColor}, 0.3), inset 0 -2px 4px rgba(0,0,0,0.2), inset 0 2px 4px rgba(255,255,255,0.4)`;
         gameContainer.appendChild(this.element);
     }
 

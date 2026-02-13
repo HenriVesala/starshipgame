@@ -38,7 +38,13 @@ const playerConfig = {
 
     // Aseylikirjoitukset (tyhjä = käytä globaaleja oletuksia)
     weapons: {
-        // bullet: { damage: 120, energyCost: 20 },
+        bullet: {
+            initialSpeed: 250,      // 250 vs oletus 240
+            energyCost: 25,          // 25 vs oletus 30
+            color: '#00ff00',        // Vihreä (pelaajan väri)
+            colorLight: '#88ff88',
+            glowColor: '0, 255, 0'
+        }
         // laser: { damagePerSecond: 500 },
         // missile: { damage: 300 },
         // railgun: { maxCharge: 60 }
@@ -60,7 +66,7 @@ class Player extends SpaceShip {
         // Resolve asekonfiguraatiot: globaalit oletukset + aluskohtaiset ylikirjoitukset
         const wo = playerConfig.weapons || {};
         this.weaponConfigs = {
-            bullet: { ...bulletConfig.playerBullet, muzzleFlash: bulletConfig.muzzleFlash, fireFlash: bulletConfig.fireFlash, ...(wo.bullet || {}) },
+            bullet: { ...bulletConfig, ...(wo.bullet || {}) },
             missile: { ...missileConfig, ...(wo.missile || {}) },
             laser: { ...laserConfig, ...(wo.laser || {}) },
             railgun: { ...railgunConfig, ...(wo.railgun || {}) }
