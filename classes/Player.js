@@ -35,7 +35,7 @@ const playerConfig = {
     energyRegenRate: 15,            // Energiaa/sekunti (puolitettu kiihdyttäessä)
 
     // Aloitusase
-    startWeapon: 'railgun'          // Aloitusase: 'bullet' | 'missile' | 'laser' | 'railgun'
+    startWeapon: 'missile'          // Aloitusase: 'bullet' | 'missile' | 'laser' | 'railgun'
 };
 
 // Pelaajan alus -luokka

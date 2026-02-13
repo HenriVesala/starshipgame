@@ -247,7 +247,8 @@ class BaseEnemy extends SpaceShip {
                     this.laser.active = true;
 
                     if (hit.target) {
-                        handleLaserHit(hit.target, laserConfig.damagePerSecond * dt, 'enemy');
+                        const intensity = this.laser.getIntensity(hit.distance) * (hit.mul || 1);
+                        handleLaserHit(hit.target, laserConfig.damagePerSecond * dt * intensity, 'enemy');
                     }
 
                     // Laserin rekyyli (jatkuva)

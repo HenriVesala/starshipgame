@@ -50,7 +50,8 @@ function splitMeteor(meteor, bulletVx, bulletVy) {
         y: meteor.y + sinPerp * offset,
         radius: newRadius,
         vx: meteor.vx + cosPerp * splitSpeed,
-        vy: meteor.vy + sinPerp * splitSpeed
+        vy: meteor.vy + sinPerp * splitSpeed,
+        brightness: meteor.brightness
     });
     child1.immunityTimer = meteorConfig.splitImmunityTime;
     meteors.push(child1);
@@ -61,7 +62,8 @@ function splitMeteor(meteor, bulletVx, bulletVy) {
         y: meteor.y - sinPerp * offset,
         radius: newRadius,
         vx: meteor.vx - cosPerp * splitSpeed,
-        vy: meteor.vy - sinPerp * splitSpeed
+        vy: meteor.vy - sinPerp * splitSpeed,
+        brightness: meteor.brightness
     });
     child2.immunityTimer = meteorConfig.splitImmunityTime;
     meteors.push(child2);

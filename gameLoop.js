@@ -356,6 +356,15 @@ function gameLoop(currentTime) {
         }
     }
 
+    // Päivitä suuliekit
+    for (let i = muzzleFlashes.length - 1; i >= 0; i--) {
+        const completed = muzzleFlashes[i].update(dt);
+        if (completed) {
+            muzzleFlashes[i].destroy();
+            muzzleFlashes.splice(i, 1);
+        }
+    }
+
     // Päivitä vahinkoluvut
     for (let i = damageNumbers.length - 1; i >= 0; i--) {
         const completed = damageNumbers[i].update(dt);

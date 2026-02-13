@@ -31,43 +31,50 @@ const planetTypes = [
         base: [180, 100, 60],
         accent: [200, 130, 80],
         dark: [120, 60, 30],
-        atmosphere: 'rgba(200, 120, 60, 0.3)'
+        atmosphere: 'rgba(200, 120, 60, 0.3)',
+        reflectivity: 0.4
     },
     { // Jääplaneetta
         base: [140, 180, 220],
         accent: [200, 230, 255],
         dark: [60, 90, 140],
-        atmosphere: 'rgba(150, 200, 255, 0.3)'
+        atmosphere: 'rgba(150, 200, 255, 0.3)',
+        reflectivity: 0.8
     },
     { // Vulkaaninen planeetta
         base: [80, 40, 30],
         accent: [220, 80, 20],
         dark: [40, 20, 15],
-        atmosphere: 'rgba(255, 100, 20, 0.3)'
+        atmosphere: 'rgba(255, 100, 20, 0.3)',
+        reflectivity: 0.15
     },
     { // Metsäplaneetta
         base: [60, 130, 70],
         accent: [80, 170, 90],
         dark: [30, 70, 40],
-        atmosphere: 'rgba(80, 180, 80, 0.3)'
+        atmosphere: 'rgba(80, 180, 80, 0.3)',
+        reflectivity: 0.35
     },
     { // Aavikkoplaneetta
         base: [190, 170, 120],
         accent: [220, 200, 150],
         dark: [140, 110, 70],
-        atmosphere: 'rgba(210, 190, 140, 0.3)'
+        atmosphere: 'rgba(210, 190, 140, 0.3)',
+        reflectivity: 0.7
     },
     { // Kaasujättiläinen
         base: [180, 140, 80],
         accent: [220, 180, 120],
         dark: [120, 80, 40],
-        atmosphere: 'rgba(200, 160, 80, 0.4)'
+        atmosphere: 'rgba(200, 160, 80, 0.4)',
+        reflectivity: 0.5
     },
     { // Sininen kaasujättiläinen
         base: [40, 80, 160],
         accent: [80, 130, 220],
         dark: [20, 40, 100],
-        atmosphere: 'rgba(60, 120, 220, 0.4)'
+        atmosphere: 'rgba(60, 120, 220, 0.4)',
+        reflectivity: 0.3
     }
 ];
 

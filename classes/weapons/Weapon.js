@@ -21,6 +21,11 @@ class Weapon {
         const adjustedAngle = (config.angle - 90) * Math.PI / 180;
         this.vx = Math.cos(adjustedAngle) * (config.initialSpeed || 0) + (config.ownerVx || 0);
         this.vy = Math.sin(adjustedAngle) * (config.initialSpeed || 0) + (config.ownerVy || 0);
+
+        // Suuliekki (optionaalinen) — luodaan automaattisesti jos konfiguraatio annettu
+        if (config.muzzleFlash && typeof MuzzleFlash !== 'undefined') {
+            muzzleFlashes.push(new MuzzleFlash(this.x, this.y, this.angle, config.muzzleFlash, this.gameContainer));
+        }
     }
 
     // Palauta nykyinen nopeus

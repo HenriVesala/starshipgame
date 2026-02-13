@@ -16,7 +16,14 @@ const missileConfig = {
     armingTime: 1,               // Aktivointiaika sekunteina (ei osu omistajaan ennen tätä)
     nebulaCoefficient: 1.0,      // Nebulan vastuskerroin (0 = ei vaikutusta, 1 = normaali)
     energyCost: 5,              // Energiakustannus per laukaus
-    recoil: 10                  // Rekyylivoima (pikselit/sekunti)
+    recoil: 10,                  // Rekyylivoima (pikselit/sekunti)
+
+    // Suuliekki
+    muzzleFlash: {
+        color: 'rgba(255, 150, 50, 0.9)',   // Liekin väri
+        size: 18,                            // Koko pikseleinä
+        duration: 0.12                       // Kesto sekunteina
+    }
 };
 
 // Hakeutuva ohjus -luokka
@@ -30,7 +37,8 @@ class Missile extends Weapon {
             initialSpeed: missileConfig.initialSpeed,
             nebulaCoefficient: missileConfig.nebulaCoefficient,
             owner,
-            ownerVx, ownerVy
+            ownerVx, ownerVy,
+            muzzleFlash: missileConfig.muzzleFlash
         });
 
         this.currentSpeed = missileConfig.initialSpeed; // Lähtönopeus, kiihtyy ajan myötä

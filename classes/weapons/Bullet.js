@@ -15,6 +15,12 @@ const bulletConfig = {
         damage: 100,          // Vahinko joka ammus aiheuttaa
         energyCost: 30,        // Energiakustannus per laukaus
         recoil: 5              // Rekyylivoima (pikselit/sekunti)
+    },
+    // Suuliekki
+    muzzleFlash: {
+        color: 'rgba(255, 200, 50, 0.9)',  // Liekin väri
+        size: 12,                           // Koko pikseleinä
+        duration: 0.2                       // Kesto sekunteina
     }
 };
 
@@ -31,7 +37,8 @@ class Bullet extends Weapon {
             initialSpeed: config.initialSpeed,
             nebulaCoefficient: config.nebulaCoefficient,
             owner: type,
-            ownerVx, ownerVy
+            ownerVx, ownerVy,
+            muzzleFlash: bulletConfig.muzzleFlash
         });
 
         // Bulletilla type-kenttä painovoiman tunnistusta varten (Planet.js, BlackHole.js)

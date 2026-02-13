@@ -46,7 +46,14 @@ const railgunConfig = {
     // Vana (trail)
     trailCoefficient: 0.1,      // Vanan pituus pikseleissä per nopeusyksikkö
     trailMinLength: 15,          // Vanan minimipituus pikselissä
-    trailMaxLength: 200          // Vanan maksimipituus pikselissä
+    trailMaxLength: 200,          // Vanan maksimipituus pikselissä
+
+    // Suuliekki
+    muzzleFlash: {
+        color: 'rgba(100, 180, 255, 0.9)',  // Liekin väri
+        size: 25,                            // Koko pikseleinä
+        duration: 0.15                       // Kesto sekunteina
+    }
 };
 
 // Railgun-ammus — nopea projektiili jonka vahinko perustuu liike-energiaan (KE ∝ v²)
@@ -65,7 +72,8 @@ class RailgunProjectile extends Weapon {
             owner: type,
             ownerVx, ownerVy,
             minSpeedThreshold: railgunConfig.minSpeedThreshold,
-            minSpeedTimeout: railgunConfig.minSpeedTimeout
+            minSpeedTimeout: railgunConfig.minSpeedTimeout,
+            muzzleFlash: railgunConfig.muzzleFlash
         });
 
         // 'player' | 'enemy' — painovoiman tunnistusta varten (Planet.js, BlackHole.js)

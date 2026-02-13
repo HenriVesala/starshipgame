@@ -47,6 +47,7 @@ let blackHoles = [];
 let healthOrbs = [];
 let rateOfFireBoosts = [];
 let explosions = [];
+let muzzleFlashes = [];
 let playerMissiles = [];
 let enemyMissiles = [];
 let damageNumbers = [];
@@ -226,7 +227,8 @@ function updatePosition(dt) {
             playerLaser.active = true;
 
             if (hit.target) {
-                handleLaserHit(hit.target, laserConfig.damagePerSecond * dt, 'player');
+                const intensity = playerLaser.getIntensity(hit.distance) * (hit.mul || 1);
+                handleLaserHit(hit.target, laserConfig.damagePerSecond * dt * intensity, 'player');
             }
 
             // Laserin rekyyli (jatkuva)
@@ -506,6 +508,7 @@ function restartGame() {
     rateOfFireBoosts.forEach(boost => boost.destroy());
     nebulaClouds.forEach(cloud => cloud.destroy());
     explosions.forEach(explosion => explosion.destroy());
+    muzzleFlashes.forEach(mf => mf.destroy());
     playerMissiles.forEach(m => m.destroy());
     enemyMissiles.forEach(m => m.destroy());
     damageNumbers.forEach(dn => dn.destroy());
@@ -557,6 +560,7 @@ function startGame() {
     healthOrbs = [];
     rateOfFireBoosts = [];
     explosions = [];
+    muzzleFlashes = [];
     playerMissiles = [];
     enemyMissiles = [];
     damageNumbers = [];

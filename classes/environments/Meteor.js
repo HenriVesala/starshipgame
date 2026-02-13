@@ -101,10 +101,20 @@ class Meteor {
         this.shrinkProgress = 0;     // Kutistumisen edistyminen (0-1)
         this.shrinkDuration = 0.5;   // Kutistumisen kesto sekunteina
 
+        // Kirkkaus ja heijastuskerroin (tumma = heikko heijastus, vaalea = vahva)
+        this.brightness = options.brightness ?? (0.3 + Math.random() * 0.7);
+        this.reflectivity = 0.1 + this.brightness * 0.5;
+
         this.element = document.createElement('div');
         this.element.className = 'meteor';
         this.element.style.width = (this.radius * 2) + 'px';
         this.element.style.height = (this.radius * 2) + 'px';
+
+        // Per-meteori harmaan sävy kirkkauden perusteella
+        const hi = Math.round(this.brightness * 136 + 51);
+        const lo = Math.round(this.brightness * 51);
+        this.element.style.background = `radial-gradient(circle at 30% 30%, rgb(${hi},${hi},${hi}), rgb(${lo},${lo},${lo}))`;
+
         gameContainer.appendChild(this.element);
         this.render();
     }
