@@ -22,7 +22,7 @@ class BaseEnemy extends SpaceShip {
             keepDistance: false,         // Perääntyy jos liian lähellä - vain 'distance-based'
             accelerationForward: 120,   // Kiihtyvyys eteenpäin (pikselit/sekunti²)
             accelerationReverse: 120,   // Kiihtyvyys taaksepäin (pikselit/sekunti²)
-            weapon: 'bullet',           // Asetyyppi: 'bullet' | 'missile'
+            weapon: 'bullet',           // Asetyyppi: 'bullet' | 'missile' | 'laser' | 'railgun'
             shootMinDistance: 0,         // Minimi ampumisetäisyys (0 = ei rajaa)
             shootMaxDistance: Infinity,  // Maksimi ampumisetäisyys (Infinity = ei rajaa)
             shootCooldownMin: 1.0,      // Pienin ampumisaikaväli (sekunti)
@@ -118,6 +118,12 @@ class BaseEnemy extends SpaceShip {
         if (this.config.weapon === 'laser') {
             this.laser = new Laser(document.getElementById('laserCanvas'));
         }
+
+        // Railgun-latauksen tilamuuttujat
+        this.isChargingRailgun = false;
+        this.railgunCharge = 0;
+        this.railgunChargeTarget = 0;
+        this.railgunChargeTimer = 0;
     }
 
     // Apufunktio: laske lyhin kulmaero
@@ -130,9 +136,11 @@ class BaseEnemy extends SpaceShip {
     }
 
     update(enemyBullets, enemyMissiles, playerX = null, playerY = null, dt = 0.016) {
-        // Jos kutistuu, sammuta laser ja renderöi
+        // Jos kutistuu, sammuta laser, nollaa railgun ja renderöi
         if (this.isShrinking) {
             if (this.laser) this.laser.active = false;
+            this.isChargingRailgun = false;
+            this.railgunCharge = 0;
             this.render();
             return;
         }
@@ -181,7 +189,42 @@ class BaseEnemy extends SpaceShip {
             const angleDiff = Math.abs(this.angleDifference(angleToPlayer, this.angle));
             const inCone = angleDiff <= this.config.shootConeAngle;
 
-            if (this.config.weapon === 'laser') {
+            if (this.config.weapon === 'railgun') {
+                // Railgun: lataa kun pelaaja etusektorilla, laukaise kun latausaika saavutettu
+                if (inCone && this.energy > 0) {
+                    if (!this.isChargingRailgun) {
+                        // Aloita lataus, aseta satunnainen lataustavoite
+                        this.isChargingRailgun = true;
+                        this.railgunCharge = 0;
+                        this.railgunChargeTarget = railgunConfig.enemyChargeTimeMin +
+                            Math.random() * (railgunConfig.enemyChargeTimeMax - railgunConfig.enemyChargeTimeMin);
+                        this.railgunChargeTimer = 0;
+                    }
+
+                    // Lataa tai ylläpidä varausta
+                    if (this.railgunCharge >= railgunConfig.maxCharge) {
+                        // Ylläpitotila
+                        const maintenanceCost = railgunConfig.maintenanceEnergyPerSecond * dt;
+                        this.energy -= Math.min(maintenanceCost, this.energy);
+                    } else {
+                        const energyCost = railgunConfig.chargeEnergyPerSecond * dt;
+                        const actualCost = Math.min(energyCost, this.energy);
+                        this.energy -= actualCost;
+                        this.railgunCharge += actualCost;
+                    }
+                    this.railgunChargeTimer += dt;
+
+                    // Laukaise kun latausaika saavutettu tai maksimivaraus täynnä
+                    if (this.railgunChargeTimer >= this.railgunChargeTarget ||
+                        this.railgunCharge >= railgunConfig.maxCharge) {
+                        this.fireRailgun(enemyBullets);
+                    }
+                } else if (this.isChargingRailgun) {
+                    // Pelaaja poistui sektorilta tai energia loppui — laukaise heti
+                    this.fireRailgun(enemyBullets);
+                }
+
+            } else if (this.config.weapon === 'laser') {
                 // Laser: jatkuva säde kun etusektorilla ja energiaa riittää
                 const laserEnergyCost = laserConfig.energyCostPerSecond * dt;
                 if (inCone && this.energy >= laserEnergyCost) {
@@ -206,6 +249,10 @@ class BaseEnemy extends SpaceShip {
                     if (hit.target) {
                         handleLaserHit(hit.target, laserConfig.damagePerSecond * dt, 'enemy');
                     }
+
+                    // Laserin rekyyli (jatkuva)
+                    this.vx -= Math.cos(rad) * laserConfig.recoilPerSecond * dt;
+                    this.vy -= Math.sin(rad) * laserConfig.recoilPerSecond * dt;
                 } else {
                     if (this.laser) this.laser.active = false;
                 }
@@ -223,8 +270,9 @@ class BaseEnemy extends SpaceShip {
                 }
             }
         } else {
-            // Ei pelaajan sijaintia — sammuta laser
+            // Ei pelaajan sijaintia — sammuta laser ja nollaa railgun-lataus
             if (this.laser) this.laser.active = false;
+            if (this.isChargingRailgun) this.fireRailgun(enemyBullets);
             this.shootCooldown -= dt;
         }
 
@@ -399,11 +447,45 @@ class BaseEnemy extends SpaceShip {
 
         if (this.config.weapon === 'missile') {
             enemyMissiles.push(new Missile(this.gameContainer, spawnX, spawnY, this.angle, 'enemy', this.vx, this.vy));
+            // Ohjuksen rekyyli
+            this.vx -= Math.cos(radians) * missileConfig.recoil;
+            this.vy -= Math.sin(radians) * missileConfig.recoil;
         } else {
             const bullet = new Bullet(this.gameContainer, spawnX, spawnY, this.angle, 'enemy', this.vx, this.vy);
             bullet.firedBy = this;
             enemyBullets.push(bullet);
+            // Ammuksen rekyyli
+            this.vx -= Math.cos(radians) * bulletConfig.enemyBullet.recoil;
+            this.vy -= Math.sin(radians) * bulletConfig.enemyBullet.recoil;
         }
+    }
+
+    // Railgun-laukaisu: luo ammus kertyneen latauksen perusteella
+    fireRailgun(enemyBullets) {
+        if (this.railgunCharge >= railgunConfig.minCharge) {
+            const chargePercent = this.railgunCharge / railgunConfig.maxCharge;
+            const speed = railgunConfig.minSpeed + chargePercent * (railgunConfig.maxSpeed - railgunConfig.minSpeed);
+
+            const halfShip = gameConfig.playerWidth / 2;
+            const rad = (this.angle - 90) * Math.PI / 180;
+            const spawnX = this.x + halfShip + Math.cos(rad) * 20;
+            const spawnY = this.y + halfShip + Math.sin(rad) * 20;
+
+            const projectile = new RailgunProjectile(
+                this.gameContainer, spawnX, spawnY, this.angle,
+                'enemy', speed, this.vx, this.vy
+            );
+            projectile.firedBy = this;
+            enemyBullets.push(projectile);
+
+            // Rekyyli
+            const recoilAmount = railgunConfig.recoilPerCharge * this.railgunCharge;
+            this.vx -= Math.cos(rad) * recoilAmount;
+            this.vy -= Math.sin(rad) * recoilAmount;
+        }
+
+        this.isChargingRailgun = false;
+        this.railgunCharge = 0;
     }
 
     destroy() {

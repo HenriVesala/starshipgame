@@ -44,6 +44,7 @@ let rateOfFireBoosts = [];
 let explosions = [];
 let playerMissiles = [];
 let enemyMissiles = [];
+let damageNumbers = [];
 
 // Enemy spawning configuration
 const enemySpawnConfigs = [
@@ -222,9 +223,66 @@ function updatePosition(dt) {
             if (hit.target) {
                 handleLaserHit(hit.target, laserConfig.damagePerSecond * dt, 'player');
             }
+
+            // Laserin rekyyli (jatkuva)
+            player.vx -= Math.cos(rad) * laserConfig.recoilPerSecond * dt;
+            player.vy -= Math.sin(rad) * laserConfig.recoilPerSecond * dt;
         } else {
             playerLaser.active = false;
         }
+
+    } else if (player.weapon === 'railgun') {
+        // Railgun: lataa energiaa Space pohjassa, laukaise kun vapautetaan
+        playerLaser.active = false;
+
+        if (keys.Space && player.energy > 0) {
+            if (player.railgunCharge >= railgunConfig.maxCharge) {
+                // Ylläpitotila: maksimivaraus saavutettu, kuluta vähemmän energiaa
+                const maintenanceCost = railgunConfig.maintenanceEnergyPerSecond * dt;
+                player.consumeEnergy(Math.min(maintenanceCost, player.energy));
+            } else {
+                // Lataa: kuluta energiaa, kasvata latausta
+                const energyCost = railgunConfig.chargeEnergyPerSecond * dt;
+                const actualCost = Math.min(energyCost, player.energy);
+                player.consumeEnergy(actualCost);
+                player.railgunCharge += actualCost;
+                if (player.railgunCharge > railgunConfig.maxCharge) {
+                    player.railgunCharge = railgunConfig.maxCharge;
+                }
+            }
+            player.isChargingRailgun = true;
+            spaceship.classList.add('charging-railgun');
+
+        } else if (player.isChargingRailgun) {
+            // Laukaise! Space vapautettiin tai energia loppui
+            spaceship.classList.remove('charging-railgun');
+
+            if (player.railgunCharge >= railgunConfig.minCharge) {
+                const chargePercent = player.railgunCharge / railgunConfig.maxCharge;
+                const speed = railgunConfig.minSpeed + chargePercent * (railgunConfig.maxSpeed - railgunConfig.minSpeed);
+
+                const halfShip = playerConfig.width / 2;
+                const rad = (player.angle - 90) * Math.PI / 180;
+                const spawnX = player.x + halfShip + Math.cos(rad) * 20;
+                const spawnY = player.y + halfShip + Math.sin(rad) * 20;
+
+                playerBullets.push(new RailgunProjectile(
+                    gameContainer, spawnX, spawnY, player.angle,
+                    'player', speed, player.vx, player.vy
+                ));
+
+                // Rekyyli — suurenee ladatun energian mukaan
+                const recoilAmount = railgunConfig.recoilPerCharge * player.railgunCharge;
+                player.vx -= Math.cos(rad) * recoilAmount;
+                player.vy -= Math.sin(rad) * recoilAmount;
+            }
+
+            player.isChargingRailgun = false;
+            player.railgunCharge = 0;
+        } else {
+            spaceship.classList.remove('charging-railgun');
+        }
+
     } else {
         playerLaser.active = false;
 
@@ -240,8 +298,14 @@ function updatePosition(dt) {
 
             if (player.weapon === 'missile') {
                 playerMissiles.push(new Missile(gameContainer, spawnX, spawnY, player.angle, 'player', player.vx, player.vy));
+                // Ohjuksen rekyyli
+                player.vx -= Math.cos(radians) * missileConfig.recoil;
+                player.vy -= Math.sin(radians) * missileConfig.recoil;
             } else {
                 playerBullets.push(new Bullet(gameContainer, spawnX, spawnY, player.angle, 'player', player.vx, player.vy));
+                // Ammuksen rekyyli
+                player.vx -= Math.cos(radians) * bulletConfig.playerBullet.recoil;
+                player.vy -= Math.sin(radians) * bulletConfig.playerBullet.recoil;
             }
             player.consumeEnergy(shootEnergyCost);
             player.setShootCooldown();
@@ -430,7 +494,9 @@ function restartGame() {
     explosions.forEach(explosion => explosion.destroy());
     playerMissiles.forEach(m => m.destroy());
     enemyMissiles.forEach(m => m.destroy());
+    damageNumbers.forEach(dn => dn.destroy());
     playerLaser.clear();
+    spaceship.classList.remove('charging-railgun');
 
     // Start the game from the beginning
     startGame();
@@ -477,6 +543,7 @@ function startGame() {
     explosions = [];
     playerMissiles = [];
     enemyMissiles = [];
+    damageNumbers = [];
 
     // Reset spawn timers
     for (const spawner of enemySpawners) {

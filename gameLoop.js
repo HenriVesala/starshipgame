@@ -356,6 +356,15 @@ function gameLoop(currentTime) {
         }
     }
 
+    // Päivitä vahinkoluvut
+    for (let i = damageNumbers.length - 1; i >= 0; i--) {
+        const completed = damageNumbers[i].update(dt);
+        if (completed) {
+            damageNumbers[i].destroy();
+            damageNumbers.splice(i, 1);
+        }
+    }
+
     checkCollisions();
     render();
 }

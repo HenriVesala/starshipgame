@@ -6,5 +6,8 @@ const gameConfig = {
 
     // Pelaajan mitat
     playerWidth: 40,        // Pelaajan aluksen leveys pikseleissä
-    playerHeight: 40        // Pelaajan aluksen korkeus pikseleissä
+    playerHeight: 40,       // Pelaajan aluksen korkeus pikseleissä
+
+    // Vahinkoluvut
+    showDamageNumbers: true  // Näytä vahinkoluvut alusten päällä
 };

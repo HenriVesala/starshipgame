@@ -10,7 +10,8 @@ const laserConfig = {
     glowColor: 'rgba(204, 50, 255, 0.6)', // Hehkun väri (punainen)
     hitRadius: 15,              // Osumansäde aluksille (pikseliä)
     nebulaDeflectionPerStep: 5,  // Nebula-taittuman max (astetta/askel)
-    blackHoleBendStrength: 20   // Mustan aukon taittuman voimakkuus
+    blackHoleBendStrength: 20,  // Mustan aukon taittuman voimakkuus
+    recoilPerSecond: 2          // Jatkuva rekyylivoima per sekunti
 };
 
 // Laser-luokka — raycast-ase joka piirretään canvasille

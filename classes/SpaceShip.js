@@ -32,6 +32,11 @@ class SpaceShip {
             this.damageFlashTimer = this.damageFlashDuration;
         }
 
+        // Näytä vahinkoluku jos asetus päällä
+        if (gameConfig.showDamageNumbers && typeof damageNumbers !== 'undefined') {
+            damageNumbers.push(new DamageNumber(this.x + 20, this.y, damage, gameContainer));
+        }
+
         return this.health <= 0;
     }
 

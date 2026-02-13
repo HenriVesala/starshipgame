@@ -35,7 +35,7 @@ const playerConfig = {
     energyRegenRate: 15,            // Energiaa/sekunti (puolitettu kiihdyttäessä)
 
     // Aloitusase
-    startWeapon: 'laser'          // Aloitusase: 'missile' | 'bullet'
+    startWeapon: 'railgun'          // Aloitusase: 'bullet' | 'missile' | 'laser' | 'railgun'
 };
 
 // Pelaajan alus -luokka
@@ -57,6 +57,8 @@ class Player extends SpaceShip {
         this.shootCooldownTimer = 0; // Ampumisen cooldown-ajastin
         this.shootSpeedMultiplier = 1.0; // Ampumisnopeuden kerroin (alkaa 1.0, pienenee boostien myötä)
         this.weapon = playerConfig.startWeapon; // Nykyinen ase
+        this.isChargingRailgun = false; // Railgunin lataustila
+        this.railgunCharge = 0; // Railgunin kertynyt lataus (energiayksikköä)
     }
 
     // Ota vahinkoa (override: lisää immuniteetti törmäyksille)
@@ -86,6 +88,8 @@ class Player extends SpaceShip {
         this.isInvulnerable = false;
         this.invulnerabilityTimer = 0;
         this.shootCooldownTimer = 0;
+        this.isChargingRailgun = false;
+        this.railgunCharge = 0;
     }
 
     // Tarkista onko tarpeeksi energiaa

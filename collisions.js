@@ -1,5 +1,31 @@
 // Törmäystunnistuslogiikka
 
+// Apufunktio: railgun-ammuksen läpäisy — hidasta ja taita lentorataa
+function handleRailgunPenetration(bullet, targetHealth, impactDamage) {
+    // Laske jäljellä oleva energiaosuus (KE ∝ v²)
+    const remainingFraction = (impactDamage - targetHealth) / impactDamage;
+
+    // Uusi nopeus: v_new = v * sqrt(jäljellä oleva osuus)
+    const speed = Math.sqrt(bullet.vx * bullet.vx + bullet.vy * bullet.vy);
+    const newSpeed = speed * Math.sqrt(remainingFraction);
+
+    // Suunnanmuutos: vähemmän liike-energiaa = enemmän taittumaa
+    const maxDeflectionDeg = railgunConfig.penetrationMaxDeflection;
+    const deflectionScale = 1 / (1 + newSpeed / railgunConfig.penetrationDeflectionFalloff);
+    const deflectionRad = (Math.random() - 0.5) * 2 * maxDeflectionDeg * deflectionScale * Math.PI / 180;
+
+    // Laske nykyinen suunta ja lisää taittuma
+    const currentAngle = Math.atan2(bullet.vy, bullet.vx);
+    const newAngle = currentAngle + deflectionRad;
+
+    bullet.vx = Math.cos(newAngle) * newSpeed;
+    bullet.vy = Math.sin(newAngle) * newSpeed;
+
+    // Päivitä visuaalinen kulma
+    bullet.angle = newAngle * 180 / Math.PI + 90;
+    // Vahinko päivittyy automaattisesti seuraavassa update()-kutsussa nopeuden perusteella
+}
+
 // Apufunktio: laske etäisyys kahden pisteen välillä
 function distance(x1, y1, x2, y2) {
     return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
@@ -11,14 +37,32 @@ function checkCollisions() {
     for (let i = enemyBullets.length - 1; i >= 0; i--) {
         const bullet = enemyBullets[i];
         if (distance(player.x + 20, player.y + 20, bullet.x, bullet.y) < 30) {
-            const destroyed = player.takeDamage(bullet.damage);
-            bullet.destroy();
-            enemyBullets.splice(i, 1);
-            if (destroyed) {
-                // Luo iso räjähdys pelaajan sijainnissa
-                explosions.push(new Explosion(player.x + 20, player.y + 20, 'large', gameContainer));
-                endGame();
-                return;
+            // Railgunille vahinko törmäysnopeuden perusteella
+            const impactDamage = bullet.getImpactDamage
+                ? bullet.getImpactDamage(player.vx, player.vy)
+                : bullet.damage;
+            const targetHealth = player.health;
+            const destroyed = player.takeDamage(impactDamage);
+
+            if (bullet.penetrating && impactDamage > targetHealth) {
+                // Läpäisy: ammus jatkaa matkaa hidastuneena
+                handleRailgunPenetration(bullet, targetHealth, impactDamage);
+
+                if (destroyed) {
+                    explosions.push(new Explosion(player.x + 20, player.y + 20, 'large', gameContainer));
+                    endGame();
+                    return;
+                }
+            } else {
+                // Normaali osuma: tuhoa ammus
+                bullet.destroy();
+                enemyBullets.splice(i, 1);
+
+                if (destroyed) {
+                    explosions.push(new Explosion(player.x + 20, player.y + 20, 'large', gameContainer));
+                    endGame();
+                    return;
+                }
             }
         }
     }
@@ -31,27 +75,57 @@ function checkCollisions() {
             // Ohita vihollinen joka ampui tämän ammuksen
             if (bullet.firedBy === enemy) continue;
             if (distance(enemy.x + 20, enemy.y + 20, bullet.x, bullet.y) < 40) {
-                const destroyed = enemy.takeDamage(bullet.damage);
-                bullet.destroy();
-                enemyBullets.splice(i, 1);
+                // Railgunille vahinko törmäysnopeuden perusteella
+                const impactDamage = bullet.getImpactDamage
+                    ? bullet.getImpactDamage(enemy.vx, enemy.vy)
+                    : bullet.damage;
+                const targetHealth = enemy.health;
+                const destroyed = enemy.takeDamage(impactDamage);
 
-                if (destroyed) {
-                    const explosionSizeMap = {
-                        'WeakEnemy': 'small',
-                        'EliteEnemy': 'medium',
-                        'AggressiveEnemy': 'medium',
-                        'MissileEnemy': 'medium'
-                    };
-                    const explosionSize = explosionSizeMap[enemy.constructor.name] || 'small';
-                    explosions.push(new Explosion(enemy.x + 20, enemy.y + 20, explosionSize, gameContainer));
+                if (bullet.penetrating && impactDamage > targetHealth) {
+                    // Läpäisy: ammus jatkaa matkaa hidastuneena
+                    handleRailgunPenetration(bullet, targetHealth, impactDamage);
 
-                    spawnHealthOrb(enemy);
-                    spawnRateOfFireBoost(enemy);
+                    if (destroyed) {
+                        const explosionSizeMap = {
+                            'WeakEnemy': 'small',
+                            'EliteEnemy': 'medium',
+                            'AggressiveEnemy': 'medium',
+                            'MissileEnemy': 'medium'
+                        };
+                        const explosionSize = explosionSizeMap[enemy.constructor.name] || 'small';
+                        explosions.push(new Explosion(enemy.x + 20, enemy.y + 20, explosionSize, gameContainer));
 
-                    enemy.destroy();
-                    enemies.splice(j, 1);
+                        spawnHealthOrb(enemy);
+                        spawnRateOfFireBoost(enemy);
+
+                        enemy.destroy();
+                        enemies.splice(j, 1);
+                    }
+                    break;
+                } else {
+                    // Normaali osuma: tuhoa ammus
+                    bullet.destroy();
+                    enemyBullets.splice(i, 1);
+
+                    if (destroyed) {
+                        const explosionSizeMap = {
+                            'WeakEnemy': 'small',
+                            'EliteEnemy': 'medium',
+                            'AggressiveEnemy': 'medium',
+                            'MissileEnemy': 'medium'
+                        };
+                        const explosionSize = explosionSizeMap[enemy.constructor.name] || 'small';
+                        explosions.push(new Explosion(enemy.x + 20, enemy.y + 20, explosionSize, gameContainer));
+
+                        spawnHealthOrb(enemy);
+                        spawnRateOfFireBoost(enemy);
+
+                        enemy.destroy();
+                        enemies.splice(j, 1);
+                    }
+                    break;
                 }
-                break;
             }
         }
     }
@@ -696,38 +770,69 @@ function checkCollisions() {
         for (let j = enemies.length - 1; j >= 0; j--) {
             const enemy = enemies[j];
             if (distance(enemy.x + 20, enemy.y + 20, bullet.x, bullet.y) < 40) {
-                const destroyed = enemy.takeDamage(bullet.damage);
-                bullet.destroy();
-                playerBullets.splice(i, 1);
+                // Railgunille vahinko törmäysnopeuden perusteella
+                const impactDamage = bullet.getImpactDamage
+                    ? bullet.getImpactDamage(enemy.vx, enemy.vy)
+                    : bullet.damage;
+                const targetHealth = enemy.health;
+                const destroyed = enemy.takeDamage(impactDamage);
 
-                if (destroyed) {
-                    // Määrittele pisteet vihollisen tyypin perusteella
-                    const scoreMap = {
-                        'WeakEnemy': 10,
-                        'EliteEnemy': 25,
-                        'AggressiveEnemy': 30
-                    };
-                    player.score += scoreMap[enemy.constructor.name] || 10;
+                if (bullet.penetrating && impactDamage > targetHealth) {
+                    // Läpäisy: ammus jatkaa matkaa hidastuneena
+                    handleRailgunPenetration(bullet, targetHealth, impactDamage);
 
-                    // Luo räjähdys vihollisen sijainnissa
-                    const explosionSizeMap = {
-                        'WeakEnemy': 'small',
-                        'EliteEnemy': 'medium',
-                        'AggressiveEnemy': 'medium'
-                    };
-                    const explosionSize = explosionSizeMap[enemy.constructor.name] || 'small';
-                    explosions.push(new Explosion(enemy.x + 20, enemy.y + 20, explosionSize, gameContainer));
+                    if (destroyed) {
+                        const scoreMap = {
+                            'WeakEnemy': 10,
+                            'EliteEnemy': 25,
+                            'AggressiveEnemy': 30
+                        };
+                        player.score += scoreMap[enemy.constructor.name] || 10;
 
-                    // Spawna terveyspallo
-                    spawnHealthOrb(enemy);
+                        const explosionSizeMap = {
+                            'WeakEnemy': 'small',
+                            'EliteEnemy': 'medium',
+                            'AggressiveEnemy': 'medium'
+                        };
+                        const explosionSize = explosionSizeMap[enemy.constructor.name] || 'small';
+                        explosions.push(new Explosion(enemy.x + 20, enemy.y + 20, explosionSize, gameContainer));
 
-                    // Spawna ampumisnopeusboosti (todennäköisyyspohjainen)
-                    spawnRateOfFireBoost(enemy);
+                        spawnHealthOrb(enemy);
+                        spawnRateOfFireBoost(enemy);
 
-                    enemy.destroy();
-                    enemies.splice(j, 1);
+                        enemy.destroy();
+                        enemies.splice(j, 1);
+                    }
+                    break; // Ei osuta tuplasti samalla framella
+                } else {
+                    // Normaali osuma: tuhoa ammus
+                    bullet.destroy();
+                    playerBullets.splice(i, 1);
+
+                    if (destroyed) {
+                        const scoreMap = {
+                            'WeakEnemy': 10,
+                            'EliteEnemy': 25,
+                            'AggressiveEnemy': 30
+                        };
+                        player.score += scoreMap[enemy.constructor.name] || 10;
+
+                        const explosionSizeMap = {
+                            'WeakEnemy': 'small',
+                            'EliteEnemy': 'medium',
+                            'AggressiveEnemy': 'medium'
+                        };
+                        const explosionSize = explosionSizeMap[enemy.constructor.name] || 'small';
+                        explosions.push(new Explosion(enemy.x + 20, enemy.y + 20, explosionSize, gameContainer));
+
+                        spawnHealthOrb(enemy);
+                        spawnRateOfFireBoost(enemy);
+
+                        enemy.destroy();
+                        enemies.splice(j, 1);
+                    }
+                    break;
                 }
-                break;
             }
         }
     }
