@@ -35,7 +35,15 @@ const playerConfig = {
     energyRegenRate: 15,            // Energiaa/sekunti (puolitettu kiihdyttäessä)
 
     // Aloitusase
-    startWeapon: 'missile'          // Aloitusase: 'bullet' | 'missile' | 'laser' | 'railgun'
+    startWeapon: 'laser',          // Aloitusase: 'bullet' | 'missile' | 'laser' | 'railgun'
+
+    // Aseylikirjoitukset (tyhjä = käytä globaaleja oletuksia)
+    weapons: {
+        // bullet: { damage: 120, energyCost: 20 },
+        // laser: { damagePerSecond: 500 },
+        // missile: { damage: 300 },
+        // railgun: { maxCharge: 60 }
+    }
 };
 
 // Pelaajan alus -luokka
@@ -50,6 +58,15 @@ class Player extends SpaceShip {
             maxEnergy: playerConfig.maxEnergy,
             energyRegenRate: playerConfig.energyRegenRate
         });
+        // Resolve asekonfiguraatiot: globaalit oletukset + aluskohtaiset ylikirjoitukset
+        const wo = playerConfig.weapons || {};
+        this.weaponConfigs = {
+            bullet: { ...bulletConfig.playerBullet, ...(wo.bullet || {}) },
+            missile: { ...missileConfig, ...(wo.missile || {}) },
+            laser: { ...laserConfig, ...(wo.laser || {}) },
+            railgun: { ...railgunConfig, ...(wo.railgun || {}) }
+        };
+
         this.score = 0;
         this.gameOver = false;
         this.isInvulnerable = false;

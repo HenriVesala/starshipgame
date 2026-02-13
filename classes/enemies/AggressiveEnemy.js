@@ -30,7 +30,15 @@ const aggressiveEnemyConfig = {
     maxCount: 2,                // Maksimimäärä samanaikaisia vihollisia
 
     // Pudotukset
-    rateOfFireBoostDropChance: 0.05  // 5% todennäköisyys pudottaa ampumisnopeusboosti
+    rateOfFireBoostDropChance: 0.05,  // 5% todennäköisyys pudottaa ampumisnopeusboosti
+
+    // Aseylikirjoitukset (tyhjä = käytä globaaleja oletuksia)
+    weapons: {
+        // bullet: { damage: 50, energyCost: 15 },
+        // laser: { damagePerSecond: 300 },
+        // missile: { damage: 150 },
+        // railgun: { maxCharge: 30 }
+    }
 };
 
 // Aggressive Enemy class - moves 1.5x faster and chases the player

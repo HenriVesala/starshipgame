@@ -26,8 +26,8 @@ const bulletConfig = {
 
 // Ammus-luokka - pelaajan ja vihollisten ammuksille
 class Bullet extends Weapon {
-    constructor(gameContainer, x, y, angle, type = 'player', ownerVx = 0, ownerVy = 0) {
-        const config = type === 'player' ? bulletConfig.playerBullet : bulletConfig.enemyBullet;
+    constructor(gameContainer, x, y, angle, type = 'player', ownerVx = 0, ownerVy = 0, overrideCfg = null) {
+        const config = overrideCfg || (type === 'player' ? bulletConfig.playerBullet : bulletConfig.enemyBullet);
 
         super({
             gameContainer,

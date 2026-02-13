@@ -1,7 +1,8 @@
 // Laserin konfiguraatio
 const laserConfig = {
-    damagePerSecond: 500,       // Vahinko per sekunti osumassa (lähietäisyydellä)
+    damagePerSecond: 700,       // Vahinko per sekunti osumassa (lähietäisyydellä)
     energyCostPerSecond: 50,    // Energiankulutus per sekunti
+    decayPer100px: 0.08,        // Tehon heikkenemiskerroin per 100px (0.10 = 10% tehosta menetetään per 100px)
     stepSize: 5,                // Raymarching askelkoko (pikseliä)
     beamWidth: 3,               // Ytimen leveys (pikseliä) lähellä
     glowWidth: 8,               // Hehkun leveys (pikseliä) lähellä
@@ -11,7 +12,6 @@ const laserConfig = {
     nebulaDeflectionPerStep: 5,  // Nebula-taittuman max (astetta/askel)
     blackHoleBendStrength: 20,  // Mustan aukon taittuman voimakkuus
     recoilPerSecond: 0,         // Jatkuva rekyylivoima per sekunti
-    decayPer100px: 0.10,        // Tehon heikkenemiskerroin per 100px (0.12 = 12% tehosta menetetään per 100px)
     minVisibleIntensity: 0.03,  // Säde lakkaa kun intensiteetti putoaa tämän alle
     maxBounces: 5,              // Heijastusten enimmäismäärä
     bounceOffset: 2             // Pikselimäärä jolla säde siirretään pinnan ulkopuolelle heijastuksessa

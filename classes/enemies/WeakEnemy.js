@@ -17,7 +17,8 @@ const weakEnemyConfig = {
     weapon: 'bullet',           // Asetyyppi: 'bullet' | 'missile'
     shootCooldownMin: 0.7,      // Pienin ampumisaikaväli (sekunti)
     shootCooldownMax: 2,        // Suurin ampumisaikaväli (sekunti)
-
+    shootConeAngle: 30,
+    
     // Ulkoasu
     enemyClassName: 'weak-enemy',    // CSS-luokan nimi
 
@@ -31,7 +32,15 @@ const weakEnemyConfig = {
     maxCount: 3,                // Maksimimäärä samanaikaisia vihollisia
 
     // Pudotukset
-    rateOfFireBoostDropChance: 0.05  // 5% todennäköisyys pudottaa ampumisnopeusboosti
+    rateOfFireBoostDropChance: 0.05,  // 5% todennäköisyys pudottaa ampumisnopeusboosti
+
+    // Aseylikirjoitukset (tyhjä = käytä globaaleja oletuksia)
+    weapons: {
+        // bullet: { damage: 50, energyCost: 15 },
+        // laser: { damagePerSecond: 300 },
+        // missile: { damage: 150 },
+        // railgun: { maxCharge: 30 }
+    }
 };
 
 // WeakEnemy class - basic enemy that turns towards player periodically

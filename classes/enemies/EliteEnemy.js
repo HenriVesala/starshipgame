@@ -18,7 +18,8 @@ const eliteEnemyConfig = {
     // Ampumisen konfiguraatio
     shootCooldownMin: 0.5,      // Pienin ampumisaikaväli (sekunti) - ampuu nopeammin!
     shootCooldownMax: 1.33,     // Suurin ampumisaikaväli (sekunti)
-
+    shootConeAngle: 30,
+    
     // Ulkoasu
     enemyClassName: 'elite-enemy',  // CSS-luokan nimi
 
@@ -32,7 +33,15 @@ const eliteEnemyConfig = {
     maxCount: 2,                // Maksimimäärä samanaikaisia vihollisia
 
     // Pudotukset
-    rateOfFireBoostDropChance: 0.20  // 20% todennäköisyys pudottaa ampumisnopeusboosti
+    rateOfFireBoostDropChance: 0.20,  // 20% todennäköisyys pudottaa ampumisnopeusboosti
+
+    // Aseylikirjoitukset (tyhjä = käytä globaaleja oletuksia)
+    weapons: {
+        // bullet: { damage: 50, energyCost: 15 },
+        // laser: { damagePerSecond: 300 },
+        // missile: { damage: 150 },
+        // railgun: { maxCharge: 30 }
+    }
 };
 
 // Elite Enemy class - intelligent enemy that maintains shooting angle and distance

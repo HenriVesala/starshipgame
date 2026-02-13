@@ -205,9 +205,9 @@ function updatePosition(dt) {
     // Ampumislogiikka aseen mukaan
     if (player.weapon === 'laser') {
         // Laser: jatkuva säde niin kauan kuin Space pohjassa ja energiaa riittää
-        if (keys.Space && player.energy > 0) {
-            const energyCost = laserConfig.energyCostPerSecond * dt;
-            player.consumeEnergy(energyCost);
+        const laserEnergyCost = player.weaponConfigs.laser.energyCostPerSecond * dt;
+        if (keys.Space && player.energy >= laserEnergyCost) {
+            player.consumeEnergy(laserEnergyCost);
 
             const halfShip = playerConfig.width / 2;
             const rad = (player.angle - 90) * Math.PI / 180;
@@ -228,12 +228,12 @@ function updatePosition(dt) {
 
             if (hit.target) {
                 const intensity = playerLaser.getIntensity(hit.distance) * (hit.mul || 1);
-                handleLaserHit(hit.target, laserConfig.damagePerSecond * dt * intensity, 'player');
+                handleLaserHit(hit.target, player.weaponConfigs.laser.damagePerSecond * dt * intensity, 'player');
             }
 
             // Laserin rekyyli (jatkuva)
-            player.vx -= Math.cos(rad) * laserConfig.recoilPerSecond * dt;
-            player.vy -= Math.sin(rad) * laserConfig.recoilPerSecond * dt;
+            player.vx -= Math.cos(rad) * player.weaponConfigs.laser.recoilPerSecond * dt;
+            player.vy -= Math.sin(rad) * player.weaponConfigs.laser.recoilPerSecond * dt;
         } else {
             playerLaser.active = false;
         }
@@ -243,26 +243,26 @@ function updatePosition(dt) {
         playerLaser.active = false;
 
         if (keys.Space && player.energy > 0) {
-            if (player.railgunCharge >= railgunConfig.maxCharge) {
+            if (player.railgunCharge >= player.weaponConfigs.railgun.maxCharge) {
                 // Ylläpitotila: maksimivaraus saavutettu, kuluta vähemmän energiaa
-                const maintenanceCost = railgunConfig.maintenanceEnergyPerSecond * dt;
+                const maintenanceCost = player.weaponConfigs.railgun.maintenanceEnergyPerSecond * dt;
                 player.consumeEnergy(Math.min(maintenanceCost, player.energy));
             } else {
                 // Lataa: kuluta energiaa, kasvata latausta
-                const energyCost = railgunConfig.chargeEnergyPerSecond * dt;
+                const energyCost = player.weaponConfigs.railgun.chargeEnergyPerSecond * dt;
                 const actualCost = Math.min(energyCost, player.energy);
                 player.consumeEnergy(actualCost);
                 player.railgunCharge += actualCost;
-                if (player.railgunCharge > railgunConfig.maxCharge) {
-                    player.railgunCharge = railgunConfig.maxCharge;
+                if (player.railgunCharge > player.weaponConfigs.railgun.maxCharge) {
+                    player.railgunCharge = player.weaponConfigs.railgun.maxCharge;
                 }
             }
             player.isChargingRailgun = true;
             spaceship.classList.add('charging-railgun');
             // Vilkkuminen: feidaa overlay siniaallon mukaan
             const t = performance.now() / 1000;
-            const phase = (t % railgunConfig.chargePulseInterval) / railgunConfig.chargePulseInterval;
-            shipPulseOverlay.style.background = `linear-gradient(to bottom, ${railgunConfig.chargePulseTipColor}, ${railgunConfig.chargePulseMidColor} 50%, ${railgunConfig.chargePulseColor})`;
+            const phase = (t % player.weaponConfigs.railgun.chargePulseInterval) / player.weaponConfigs.railgun.chargePulseInterval;
+            shipPulseOverlay.style.background = `linear-gradient(to bottom, ${player.weaponConfigs.railgun.chargePulseTipColor}, ${player.weaponConfigs.railgun.chargePulseMidColor} 50%, ${player.weaponConfigs.railgun.chargePulseColor})`;
             shipPulseOverlay.style.opacity = (0.5 + 0.5 * Math.cos(phase * 2 * Math.PI)).toFixed(2);
 
         } else if (player.isChargingRailgun) {
@@ -271,9 +271,9 @@ function updatePosition(dt) {
             shipPulseOverlay.style.background = '';
             shipPulseOverlay.style.opacity = '';
 
-            if (player.railgunCharge >= railgunConfig.minCharge) {
-                const chargePercent = player.railgunCharge / railgunConfig.maxCharge;
-                const speed = railgunConfig.minSpeed + chargePercent * (railgunConfig.maxSpeed - railgunConfig.minSpeed);
+            if (player.railgunCharge >= player.weaponConfigs.railgun.minCharge) {
+                const chargePercent = player.railgunCharge / player.weaponConfigs.railgun.maxCharge;
+                const speed = player.weaponConfigs.railgun.minSpeed + chargePercent * (player.weaponConfigs.railgun.maxSpeed - player.weaponConfigs.railgun.minSpeed);
 
                 const halfShip = playerConfig.width / 2;
                 const rad = (player.angle - 90) * Math.PI / 180;
@@ -282,11 +282,11 @@ function updatePosition(dt) {
 
                 playerBullets.push(new RailgunProjectile(
                     gameContainer, spawnX, spawnY, player.angle,
-                    'player', speed, player.vx, player.vy
+                    'player', speed, player.vx, player.vy, player.weaponConfigs.railgun
                 ));
 
                 // Rekyyli — suurenee ladatun energian mukaan
-                const recoilAmount = railgunConfig.recoilPerCharge * player.railgunCharge;
+                const recoilAmount = player.weaponConfigs.railgun.recoilPerCharge * player.railgunCharge;
                 player.vx -= Math.cos(rad) * recoilAmount;
                 player.vy -= Math.sin(rad) * recoilAmount;
             }
@@ -303,7 +303,7 @@ function updatePosition(dt) {
         playerLaser.active = false;
 
         // Bullet/Missile: yksittäiset laukaukset cooldownilla
-        const shootEnergyCost = player.weapon === 'missile' ? missileConfig.energyCost : bulletConfig.playerBullet.energyCost;
+        const shootEnergyCost = player.weapon === 'missile' ? player.weaponConfigs.missile.energyCost : player.weaponConfigs.bullet.energyCost;
         if (keys.Space && player.canShoot() && player.hasEnergy(shootEnergyCost)) {
             const halfShipSize = playerConfig.width / 2;
             const adjustedAngle = player.angle - 90;
@@ -313,15 +313,15 @@ function updatePosition(dt) {
             const spawnY = player.y + halfShipSize + Math.sin(radians) * forwardOffset;
 
             if (player.weapon === 'missile') {
-                playerMissiles.push(new Missile(gameContainer, spawnX, spawnY, player.angle, 'player', player.vx, player.vy));
+                playerMissiles.push(new Missile(gameContainer, spawnX, spawnY, player.angle, 'player', player.vx, player.vy, player.weaponConfigs.missile));
                 // Ohjuksen rekyyli
-                player.vx -= Math.cos(radians) * missileConfig.recoil;
-                player.vy -= Math.sin(radians) * missileConfig.recoil;
+                player.vx -= Math.cos(radians) * player.weaponConfigs.missile.recoil;
+                player.vy -= Math.sin(radians) * player.weaponConfigs.missile.recoil;
             } else {
-                playerBullets.push(new Bullet(gameContainer, spawnX, spawnY, player.angle, 'player', player.vx, player.vy));
+                playerBullets.push(new Bullet(gameContainer, spawnX, spawnY, player.angle, 'player', player.vx, player.vy, player.weaponConfigs.bullet));
                 // Ammuksen rekyyli
-                player.vx -= Math.cos(radians) * bulletConfig.playerBullet.recoil;
-                player.vy -= Math.sin(radians) * bulletConfig.playerBullet.recoil;
+                player.vx -= Math.cos(radians) * player.weaponConfigs.bullet.recoil;
+                player.vy -= Math.sin(radians) * player.weaponConfigs.bullet.recoil;
             }
             player.consumeEnergy(shootEnergyCost);
             player.setShootCooldown();

@@ -37,7 +37,15 @@ const missileEnemyConfig = {
     maxCount: 1,                  // Maksimimäärä samanaikaisia vihollisia
 
     // Pudotukset
-    rateOfFireBoostDropChance: 0.15  // 15% todennäköisyys pudottaa ampumisnopeusboosti
+    rateOfFireBoostDropChance: 0.15,  // 15% todennäköisyys pudottaa ampumisnopeusboosti
+
+    // Aseylikirjoitukset (tyhjä = käytä globaaleja oletuksia)
+    weapons: {
+        // bullet: { damage: 50, energyCost: 15 },
+        // laser: { damagePerSecond: 300 },
+        // missile: { damage: 150 },
+        // railgun: { maxCharge: 30 }
+    }
 };
 
 // MissileEnemy class - ranged enemy that keeps distance and fires missiles

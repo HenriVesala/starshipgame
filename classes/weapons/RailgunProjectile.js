@@ -58,23 +58,26 @@ const railgunConfig = {
 
 // Railgun-ammus — nopea projektiili jonka vahinko perustuu liike-energiaan (KE ∝ v²)
 class RailgunProjectile extends Weapon {
-    constructor(gameContainer, x, y, angle, type, speed, ownerVx, ownerVy) {
+    constructor(gameContainer, x, y, angle, type, speed, ownerVx, ownerVy, overrideCfg = null) {
+        const cfg = overrideCfg || railgunConfig;
         const initialDamage = Math.min(
-            railgunConfig.damageCoefficient * speed * speed,
-            railgunConfig.maxDamage
+            cfg.damageCoefficient * speed * speed,
+            cfg.maxDamage
         );
         super({
             gameContainer, x, y, angle,
             damage: initialDamage,
-            maxSpeed: railgunConfig.projectileMaxSpeed,
+            maxSpeed: cfg.projectileMaxSpeed,
             initialSpeed: speed,
-            nebulaCoefficient: railgunConfig.nebulaCoefficient,
+            nebulaCoefficient: cfg.nebulaCoefficient,
             owner: type,
             ownerVx, ownerVy,
-            minSpeedThreshold: railgunConfig.minSpeedThreshold,
-            minSpeedTimeout: railgunConfig.minSpeedTimeout,
-            muzzleFlash: railgunConfig.muzzleFlash
+            minSpeedThreshold: cfg.minSpeedThreshold,
+            minSpeedTimeout: cfg.minSpeedTimeout,
+            muzzleFlash: cfg.muzzleFlash
         });
+
+        this.cfg = cfg;
 
         // 'player' | 'enemy' — painovoiman tunnistusta varten (Planet.js, BlackHole.js)
         this.type = type;
@@ -85,12 +88,12 @@ class RailgunProjectile extends Weapon {
         this.element = document.createElement('div');
         this.element.className = 'railgun-projectile';
         const isPlayer = type === 'player';
-        const color = isPlayer ? railgunConfig.playerColor : railgunConfig.enemyColor;
-        const fade = isPlayer ? railgunConfig.playerColorFade : railgunConfig.enemyColorFade;
-        const glowIn = isPlayer ? railgunConfig.playerGlowInner : railgunConfig.enemyGlowInner;
-        const glowMid = isPlayer ? railgunConfig.playerGlowMid : railgunConfig.enemyGlowMid;
-        const glowOut = isPlayer ? railgunConfig.playerGlowOuter : railgunConfig.enemyGlowOuter;
-        this.element.style.background = `linear-gradient(to right, transparent, ${fade} 30%, ${color} 70%, ${railgunConfig.tipColor} 100%)`;
+        const color = isPlayer ? cfg.playerColor : cfg.enemyColor;
+        const fade = isPlayer ? cfg.playerColorFade : cfg.enemyColorFade;
+        const glowIn = isPlayer ? cfg.playerGlowInner : cfg.enemyGlowInner;
+        const glowMid = isPlayer ? cfg.playerGlowMid : cfg.enemyGlowMid;
+        const glowOut = isPlayer ? cfg.playerGlowOuter : cfg.enemyGlowOuter;
+        this.element.style.background = `linear-gradient(to right, transparent, ${fade} 30%, ${color} 70%, ${cfg.tipColor} 100%)`;
         this.element.style.boxShadow = `0 0 8px ${glowIn}, 0 0 15px ${glowMid}, 0 0 25px ${glowOut}`;
         gameContainer.appendChild(this.element);
         this.render();
@@ -102,8 +105,8 @@ class RailgunProjectile extends Weapon {
         const relVy = this.vy - targetVy;
         const collisionSpeed = Math.sqrt(relVx * relVx + relVy * relVy);
         return Math.min(
-            railgunConfig.damageCoefficient * collisionSpeed * collisionSpeed,
-            railgunConfig.maxDamage
+            this.cfg.damageCoefficient * collisionSpeed * collisionSpeed,
+            this.cfg.maxDamage
         );
     }
 
@@ -117,8 +120,8 @@ class RailgunProjectile extends Weapon {
         const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
         this.currentSpeed = currentSpeed;
         this.damage = Math.min(
-            railgunConfig.damageCoefficient * currentSpeed * currentSpeed,
-            railgunConfig.maxDamage
+            this.cfg.damageCoefficient * currentSpeed * currentSpeed,
+            this.cfg.maxDamage
         );
 
         this.checkMinSpeed(dt);
@@ -128,8 +131,8 @@ class RailgunProjectile extends Weapon {
     render() {
         const speed = this.currentSpeed || 0;
         const trailLength = Math.max(
-            railgunConfig.trailMinLength,
-            Math.min(speed * railgunConfig.trailCoefficient, railgunConfig.trailMaxLength)
+            this.cfg.trailMinLength,
+            Math.min(speed * this.cfg.trailCoefficient, this.cfg.trailMaxLength)
         );
 
         this.element.style.width = trailLength + 'px';

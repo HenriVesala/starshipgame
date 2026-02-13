@@ -28,22 +28,24 @@ const missileConfig = {
 
 // Hakeutuva ohjus -luokka
 class Missile extends Weapon {
-    constructor(gameContainer, x, y, angle, owner, ownerVx = 0, ownerVy = 0) {
+    constructor(gameContainer, x, y, angle, owner, ownerVx = 0, ownerVy = 0, overrideCfg = null) {
+        const cfg = overrideCfg || missileConfig;
         super({
             gameContainer,
             x, y, angle,
-            damage: missileConfig.damage,
-            maxSpeed: missileConfig.maxSpeed,
-            initialSpeed: missileConfig.initialSpeed,
-            nebulaCoefficient: missileConfig.nebulaCoefficient,
+            damage: cfg.damage,
+            maxSpeed: cfg.maxSpeed,
+            initialSpeed: cfg.initialSpeed,
+            nebulaCoefficient: cfg.nebulaCoefficient,
             owner,
             ownerVx, ownerVy,
-            muzzleFlash: missileConfig.muzzleFlash
+            muzzleFlash: cfg.muzzleFlash
         });
 
-        this.currentSpeed = missileConfig.initialSpeed; // Lähtönopeus, kiihtyy ajan myötä
-        this.health = missileConfig.health;
-        this.turnSpeed = missileConfig.turnSpeed;
+        this.cfg = cfg;
+        this.currentSpeed = cfg.initialSpeed; // Lähtönopeus, kiihtyy ajan myötä
+        this.health = cfg.health;
+        this.turnSpeed = cfg.turnSpeed;
         this.target = null;
         this.age = 0; // Aika laukaisusta (sekunteina)
 
@@ -74,13 +76,13 @@ class Missile extends Weapon {
     // Laske maksimi hakeutumisetäisyys kulman perusteella
     getMaxRangeAtAngle(angleDiffDeg) {
         const abs = Math.abs(angleDiffDeg);
-        if (abs >= missileConfig.maxTargetAngle) return 0;
-        if (abs <= missileConfig.frontConeAngle) return missileConfig.frontMaxRange;
+        if (abs >= this.cfg.maxTargetAngle) return 0;
+        if (abs <= this.cfg.frontConeAngle) return this.cfg.frontMaxRange;
 
         // Sujuva siirtymä (tangentti) etusektorin ja sivusektorin etäisyyksien välillä
-        const t = (abs - missileConfig.frontConeAngle) / (missileConfig.maxTargetAngle - missileConfig.frontConeAngle);
+        const t = (abs - this.cfg.frontConeAngle) / (this.cfg.maxTargetAngle - this.cfg.frontConeAngle);
         const smooth = (1 - Math.cos(t * Math.PI)) / 2;
-        return missileConfig.frontMaxRange + (missileConfig.sideMaxRange - missileConfig.frontMaxRange) * smooth;
+        return this.cfg.frontMaxRange + (this.cfg.sideMaxRange - this.cfg.frontMaxRange) * smooth;
     }
 
     // Etsi paras kohde pisteytyksen perusteella (lähempi + keskemmällä = parempi)
@@ -127,7 +129,7 @@ class Missile extends Weapon {
         this.age += dt;
 
         // ArmingTime: lentää vain suoraan eteenpäin, ei hakeudu
-        if (this.age < missileConfig.armingTime) {
+        if (this.age < this.cfg.armingTime) {
             this.target = null;
         } else {
             // Etsi paras kohde joka ruudussa
@@ -135,9 +137,9 @@ class Missile extends Weapon {
         }
 
         // Kiihdy kohti maksiminopeutta (sekä armingTimen aikana että hakeutuessa)
-        if (this.target || this.age < missileConfig.armingTime) {
+        if (this.target || this.age < this.cfg.armingTime) {
             const nebulaAccelMult = this.inNebula ? 0.5 : 1.0;
-            this.currentSpeed += missileConfig.acceleration * nebulaAccelMult * dt;
+            this.currentSpeed += this.cfg.acceleration * nebulaAccelMult * dt;
             if (this.currentSpeed > this.maxSpeed) {
                 this.currentSpeed = this.maxSpeed;
             }
@@ -183,7 +185,7 @@ class Missile extends Weapon {
         this.y += this.vy * dt;
 
         // Päivitä liekin näkyvyys (näkyy laukaistaessa, armingTimen aikana ja hakeutuessa)
-        if (this.target || this.age < missileConfig.armingTime) {
+        if (this.target || this.age < this.cfg.armingTime) {
             this.flameElement.classList.add('active');
         } else {
             this.flameElement.classList.remove('active');
@@ -203,8 +205,8 @@ class Missile extends Weapon {
     }
 
     render() {
-        this.element.style.left = (this.x - missileConfig.width / 2) + 'px';
-        this.element.style.top = (this.y - missileConfig.height / 2) + 'px';
+        this.element.style.left = (this.x - this.cfg.width / 2) + 'px';
+        this.element.style.top = (this.y - this.cfg.height / 2) + 'px';
         this.element.style.transform = `rotate(${this.angle}deg)`;
     }
 }
