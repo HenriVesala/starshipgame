@@ -23,6 +23,8 @@ const healthBar = document.getElementById('healthBar');
 const healthText = document.getElementById('healthText');
 const energyBar = document.getElementById('energyBar');
 const energyText = document.getElementById('energyText');
+const laserCanvas = document.getElementById('laserCanvas');
+const playerLaser = new Laser(laserCanvas);
 
 // Pelaajan liekki-elementit
 const playerFlameMain = spaceship.querySelector('.ship-flame-main');
@@ -193,27 +195,58 @@ function updatePosition(dt) {
     if (player.y < -playerConfig.height) player.y = gameConfig.screenHeight;
     if (player.y > gameConfig.screenHeight) player.y = -playerConfig.height;
 
-    const shootEnergyCost = player.weapon === 'missile' ? missileConfig.energyCost : bulletConfig.playerBullet.energyCost;
-    if (keys.Space && player.canShoot() && player.hasEnergy(shootEnergyCost)) {
-        // Laske ammuksen/ohjuksen aloituspaikka aluksen keskipisteestä
-        const halfShipSize = playerConfig.width / 2;
+    // Ampumislogiikka aseen mukaan
+    if (player.weapon === 'laser') {
+        // Laser: jatkuva säde niin kauan kuin Space pohjassa ja energiaa riittää
+        if (keys.Space && player.energy > 0) {
+            const energyCost = laserConfig.energyCostPerSecond * dt;
+            player.consumeEnergy(energyCost);
 
-        // Laske offset eteenpäin aluksen suunnan mukaan
-        const adjustedAngle = player.angle - 90;
-        const radians = (adjustedAngle * Math.PI) / 180;
-        const forwardOffset = 20; // Kuinka kaukana keskipisteestä eteen
-        const spawnX = player.x + halfShipSize + Math.cos(radians) * forwardOffset;
-        const spawnY = player.y + halfShipSize + Math.sin(radians) * forwardOffset;
+            const halfShip = playerConfig.width / 2;
+            const rad = (player.angle - 90) * Math.PI / 180;
+            const startX = player.x + halfShip + Math.cos(rad) * 20;
+            const startY = player.y + halfShip + Math.sin(rad) * 20;
 
-        if (player.weapon === 'missile') {
-            playerMissiles.push(new Missile(gameContainer, spawnX, spawnY, player.angle, 'player', player.vx, player.vy));
+            const laserTargets = {
+                enemies: enemies,
+                planets: planets,
+                meteors: meteors,
+                blackHoles: blackHoles,
+                nebulaClouds: nebulaClouds,
+                player: null
+            };
+
+            const hit = playerLaser.trace(startX, startY, player.angle, 'player', laserTargets);
+            playerLaser.active = true;
+
+            if (hit.target) {
+                handleLaserHit(hit.target, laserConfig.damagePerSecond * dt, 'player');
+            }
         } else {
-            // 'bullet' tai muu oletusase
-            playerBullets.push(new Bullet(gameContainer, spawnX, spawnY, player.angle, 'player', player.vx, player.vy));
+            playerLaser.active = false;
         }
-        player.consumeEnergy(shootEnergyCost);
-        player.setShootCooldown();
-        keys.Space = false;
+    } else {
+        playerLaser.active = false;
+
+        // Bullet/Missile: yksittäiset laukaukset cooldownilla
+        const shootEnergyCost = player.weapon === 'missile' ? missileConfig.energyCost : bulletConfig.playerBullet.energyCost;
+        if (keys.Space && player.canShoot() && player.hasEnergy(shootEnergyCost)) {
+            const halfShipSize = playerConfig.width / 2;
+            const adjustedAngle = player.angle - 90;
+            const radians = (adjustedAngle * Math.PI) / 180;
+            const forwardOffset = 20;
+            const spawnX = player.x + halfShipSize + Math.cos(radians) * forwardOffset;
+            const spawnY = player.y + halfShipSize + Math.sin(radians) * forwardOffset;
+
+            if (player.weapon === 'missile') {
+                playerMissiles.push(new Missile(gameContainer, spawnX, spawnY, player.angle, 'player', player.vx, player.vy));
+            } else {
+                playerBullets.push(new Bullet(gameContainer, spawnX, spawnY, player.angle, 'player', player.vx, player.vy));
+            }
+            player.consumeEnergy(shootEnergyCost);
+            player.setShootCooldown();
+            keys.Space = false;
+        }
     }
 }
 
@@ -339,6 +372,32 @@ function render() {
 
     updateHealthBar();
     updateEnergyBar();
+    playerLaser.render();
+}
+
+// Laserin osumankäsittely
+function handleLaserHit(target, damage, owner) {
+    if (target === player) {
+        const destroyed = player.takeDamage(damage);
+        if (destroyed) {
+            explosions.push(new Explosion(player.x + 20, player.y + 20, 'large', gameContainer));
+            endGame();
+        }
+    } else if (enemies.includes(target)) {
+        const destroyed = target.takeDamage(damage);
+        if (destroyed) {
+            const scoreMap = { 'WeakEnemy': 10, 'EliteEnemy': 25, 'AggressiveEnemy': 30, 'MissileEnemy': 20 };
+            if (owner === 'player') player.score += scoreMap[target.constructor.name] || 10;
+
+            const sizeMap = { 'WeakEnemy': 'small', 'EliteEnemy': 'medium', 'AggressiveEnemy': 'medium', 'MissileEnemy': 'medium' };
+            explosions.push(new Explosion(target.x + 20, target.y + 20, sizeMap[target.constructor.name] || 'small', gameContainer));
+            spawnHealthOrb(target);
+            spawnRateOfFireBoost(target);
+            target.destroy();
+            const idx = enemies.indexOf(target);
+            if (idx !== -1) enemies.splice(idx, 1);
+        }
+    }
 }
 
 function endGame() {
@@ -371,6 +430,7 @@ function restartGame() {
     explosions.forEach(explosion => explosion.destroy());
     playerMissiles.forEach(m => m.destroy());
     enemyMissiles.forEach(m => m.destroy());
+    playerLaser.clear();
 
     // Start the game from the beginning
     startGame();

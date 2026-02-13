@@ -112,6 +112,12 @@ class BaseEnemy extends SpaceShip {
         this.element.appendChild(this.flameRight);
 
         gameContainer.appendChild(this.element);
+
+        // Laser-instanssi jos asetyyppi on laser
+        this.laser = null;
+        if (this.config.weapon === 'laser') {
+            this.laser = new Laser(document.getElementById('laserCanvas'));
+        }
     }
 
     // Apufunktio: laske lyhin kulmaero
@@ -124,8 +130,9 @@ class BaseEnemy extends SpaceShip {
     }
 
     update(enemyBullets, enemyMissiles, playerX = null, playerY = null, dt = 0.016) {
-        // Jos kutistuu, älä tee mitään muuta kuin renderöi
+        // Jos kutistuu, sammuta laser ja renderöi
         if (this.isShrinking) {
+            if (this.laser) this.laser.active = false;
             this.render();
             return;
         }
@@ -162,10 +169,8 @@ class BaseEnemy extends SpaceShip {
         const energyRegenMult = this.thrustState !== 'none' ? 0.5 : 1.0;
         this.energy = Math.min(this.maxEnergy, this.energy + this.config.energyRegenRate * energyRegenMult * dt);
 
-        this.shootCooldown -= dt;
-
-        // Shoot (tarkista etäisyys, etusektori ja energia)
-        if (this.shootCooldown <= 0 && playerX !== null && playerY !== null) {
+        // Ampumislogiikka
+        if (playerX !== null && playerY !== null) {
             const halfShipSize = gameConfig.playerWidth / 2;
             const sdx = playerX + halfShipSize - (this.x + halfShipSize);
             const sdy = playerY + halfShipSize - (this.y + halfShipSize);
@@ -176,12 +181,51 @@ class BaseEnemy extends SpaceShip {
             const angleDiff = Math.abs(this.angleDifference(angleToPlayer, this.angle));
             const inCone = angleDiff <= this.config.shootConeAngle;
 
-            const shootEnergyCost = this.config.weapon === 'missile' ? missileConfig.energyCost : bulletConfig.enemyBullet.energyCost;
-            if (inCone && shootDist >= this.config.shootMinDistance && shootDist <= this.config.shootMaxDistance && this.energy >= shootEnergyCost) {
-                this.energy -= shootEnergyCost;
-                this.shoot(enemyBullets, enemyMissiles);
-                this.shootCooldown = Math.random() * (this.config.shootCooldownMax - this.config.shootCooldownMin) + this.config.shootCooldownMin;
+            if (this.config.weapon === 'laser') {
+                // Laser: jatkuva säde kun etusektorilla ja energiaa riittää
+                const laserEnergyCost = laserConfig.energyCostPerSecond * dt;
+                if (inCone && this.energy >= laserEnergyCost) {
+                    this.energy -= laserEnergyCost;
+
+                    const rad = (this.angle - 90) * Math.PI / 180;
+                    const startX = this.x + halfShipSize + Math.cos(rad) * 20;
+                    const startY = this.y + halfShipSize + Math.sin(rad) * 20;
+
+                    const laserTargets = {
+                        enemies: null,
+                        planets: planets,
+                        meteors: meteors,
+                        blackHoles: blackHoles,
+                        nebulaClouds: nebulaClouds,
+                        player: player
+                    };
+
+                    const hit = this.laser.trace(startX, startY, this.angle, 'enemy', laserTargets);
+                    this.laser.active = true;
+
+                    if (hit.target) {
+                        handleLaserHit(hit.target, laserConfig.damagePerSecond * dt, 'enemy');
+                    }
+                } else {
+                    if (this.laser) this.laser.active = false;
+                }
+            } else {
+                // Bullet/Missile: cooldown-pohjainen ampuminen
+                this.shootCooldown -= dt;
+
+                if (this.shootCooldown <= 0) {
+                    const shootEnergyCost = this.config.weapon === 'missile' ? missileConfig.energyCost : bulletConfig.enemyBullet.energyCost;
+                    if (inCone && shootDist >= this.config.shootMinDistance && shootDist <= this.config.shootMaxDistance && this.energy >= shootEnergyCost) {
+                        this.energy -= shootEnergyCost;
+                        this.shoot(enemyBullets, enemyMissiles);
+                        this.shootCooldown = Math.random() * (this.config.shootCooldownMax - this.config.shootCooldownMin) + this.config.shootCooldownMin;
+                    }
+                }
             }
+        } else {
+            // Ei pelaajan sijaintia — sammuta laser
+            if (this.laser) this.laser.active = false;
+            this.shootCooldown -= dt;
         }
 
         this.render();
@@ -360,6 +404,11 @@ class BaseEnemy extends SpaceShip {
             bullet.firedBy = this;
             enemyBullets.push(bullet);
         }
+    }
+
+    destroy() {
+        if (this.laser) this.laser.clear();
+        super.destroy();
     }
 
     render() {

@@ -776,6 +776,17 @@ body {
     text-shadow: 0 0 5px rgba(0, 170, 255, 0.8);
 }
 
+/* Laser-canvas overlay */
+.laser-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1200px;
+    height: 900px;
+    pointer-events: none;
+    z-index: 100;
+}
+
 .game-over {
     position: absolute;
     top: 50%;
