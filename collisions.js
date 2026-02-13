@@ -3,7 +3,7 @@
 // Apufunktio: railgun-ammuksen läpäisy — hidasta ja taita lentorataa
 function handleRailgunPenetration(bullet, targetHealth, impactDamage) {
     // Laske jäljellä oleva energiaosuus (KE ∝ v²)
-    const remainingFraction = (impactDamage - targetHealth) / impactDamage;
+    const remainingFraction = Math.max(0, (impactDamage - targetHealth) / impactDamage);
 
     // Uusi nopeus: v_new = v * sqrt(jäljellä oleva osuus)
     const speed = Math.sqrt(bullet.vx * bullet.vx + bullet.vy * bullet.vy);
@@ -29,6 +29,42 @@ function handleRailgunPenetration(bullet, targetHealth, impactDamage) {
 // Apufunktio: laske etäisyys kahden pisteen välillä
 function distance(x1, y1, x2, y2) {
     return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
+}
+
+// Apufunktio: halkaise meteori kahdeksi puolikkaaksi
+function splitMeteor(meteor, bulletVx, bulletVy) {
+    const newRadius = meteor.radius / 2;
+
+    // Suunta kohtisuoraan ammuksen lentorataan nähden
+    const bulletAngle = Math.atan2(bulletVy, bulletVx);
+    const perpAngle = bulletAngle + Math.PI / 2;
+    const cosPerp = Math.cos(perpAngle);
+    const sinPerp = Math.sin(perpAngle);
+    const offset = newRadius + 5;
+    const meteorSpeed = Math.sqrt(meteor.vx * meteor.vx + meteor.vy * meteor.vy);
+    const splitSpeed = Math.max(meteorSpeed, 50) * 0.5;
+
+    // Luo ensimmäinen lapsi (kohtisuoraan + suuntaan)
+    const child1 = new Meteor(meteor.gameContainer, {
+        x: meteor.x + cosPerp * offset,
+        y: meteor.y + sinPerp * offset,
+        radius: newRadius,
+        vx: meteor.vx + cosPerp * splitSpeed,
+        vy: meteor.vy + sinPerp * splitSpeed
+    });
+    child1.immunityTimer = meteorConfig.splitImmunityTime;
+    meteors.push(child1);
+
+    // Luo toinen lapsi (kohtisuoraan - suuntaan)
+    const child2 = new Meteor(meteor.gameContainer, {
+        x: meteor.x - cosPerp * offset,
+        y: meteor.y - sinPerp * offset,
+        radius: newRadius,
+        vx: meteor.vx - cosPerp * splitSpeed,
+        vy: meteor.vy - sinPerp * splitSpeed
+    });
+    child2.immunityTimer = meteorConfig.splitImmunityTime;
+    meteors.push(child2);
 }
 
 // Tarkista kaikki törmäykset pelissä
@@ -672,18 +708,40 @@ function checkCollisions() {
         // Tarkista törmäys meteoriitteihin
         for (let j = meteors.length - 1; j >= 0; j--) {
             const meteor = meteors[j];
+            if (meteor.immunityTimer > 0) continue; // Ohita immuunit meteorit (juuri haljenneita)
             if (distance(bullet.x, bullet.y, meteor.x, meteor.y) < meteor.radius + 3) {
-                // Laske kimmokkulma törmäysnormaalin perusteella
-                const dx = bullet.x - meteor.x;
-                const dy = bullet.y - meteor.y;
-                const normalLength = Math.sqrt(dx * dx + dy * dy);
-                const nx = dx / normalLength;
-                const ny = dy / normalLength;
+                if (bullet.penetrating) {
+                    // Railgun: vahingoita meteoria
+                    const impactDamage = bullet.getImpactDamage(meteor.vx, meteor.vy);
+                    const meteorHealth = meteor.health;
+                    const destroyed = meteor.takeDamage(impactDamage);
 
-                // Laske heijastunut nopeus: v - 2(v·n)n
-                const dotProduct = bullet.vx * nx + bullet.vy * ny;
-                bullet.vx = (bullet.vx - 2 * dotProduct * nx);
-                bullet.vy = (bullet.vy - 2 * dotProduct * ny);
+                    if (destroyed) {
+                        if (meteor.radius >= meteorConfig.minSplitRadius) {
+                            // Halkaise kahdeksi puolikkaaksi
+                            splitMeteor(meteor, bullet.vx, bullet.vy);
+                        } else {
+                            // Liian pieni halkaistuksi — räjähdys
+                            explosions.push(new Explosion(meteor.x, meteor.y, 'small', gameContainer));
+                        }
+                        meteor.destroy();
+                        meteors.splice(j, 1);
+                    }
+
+                    // Railgun jatkaa matkaa (penetration)
+                    handleRailgunPenetration(bullet, meteorHealth, impactDamage);
+                } else {
+                    // Normaali ammus: kimmoke
+                    const dx = bullet.x - meteor.x;
+                    const dy = bullet.y - meteor.y;
+                    const normalLength = Math.sqrt(dx * dx + dy * dy);
+                    const nx = dx / normalLength;
+                    const ny = dy / normalLength;
+
+                    const dotProduct = bullet.vx * nx + bullet.vy * ny;
+                    bullet.vx = (bullet.vx - 2 * dotProduct * nx);
+                    bullet.vy = (bullet.vy - 2 * dotProduct * ny);
+                }
                 hitMeteor = true;
                 break;
             }
@@ -722,18 +780,38 @@ function checkCollisions() {
         // Tarkista törmäys meteoriitteihin
         for (let j = meteors.length - 1; j >= 0; j--) {
             const meteor = meteors[j];
+            if (meteor.immunityTimer > 0) continue; // Ohita immuunit meteorit (juuri haljenneita)
             if (distance(bullet.x, bullet.y, meteor.x, meteor.y) < meteor.radius + 3) {
-                // Laske kimmokkulma törmäysnormaalin perusteella
-                const dx = bullet.x - meteor.x;
-                const dy = bullet.y - meteor.y;
-                const normalLength = Math.sqrt(dx * dx + dy * dy);
-                const nx = dx / normalLength;
-                const ny = dy / normalLength;
+                if (bullet.penetrating) {
+                    // Railgun: vahingoita meteoria
+                    const impactDamage = bullet.getImpactDamage(meteor.vx, meteor.vy);
+                    const meteorHealth = meteor.health;
+                    const destroyed = meteor.takeDamage(impactDamage);
 
-                // Laske heijastunut nopeus: v - 2(v·n)n
-                const dotProduct = bullet.vx * nx + bullet.vy * ny;
-                bullet.vx = (bullet.vx - 2 * dotProduct * nx);
-                bullet.vy = (bullet.vy - 2 * dotProduct * ny);
+                    if (destroyed) {
+                        if (meteor.radius >= meteorConfig.minSplitRadius) {
+                            splitMeteor(meteor, bullet.vx, bullet.vy);
+                        } else {
+                            explosions.push(new Explosion(meteor.x, meteor.y, 'small', gameContainer));
+                        }
+                        meteor.destroy();
+                        meteors.splice(j, 1);
+                    }
+
+                    // Railgun jatkaa matkaa (penetration)
+                    handleRailgunPenetration(bullet, meteorHealth, impactDamage);
+                } else {
+                    // Normaali ammus: kimmoke
+                    const dx = bullet.x - meteor.x;
+                    const dy = bullet.y - meteor.y;
+                    const normalLength = Math.sqrt(dx * dx + dy * dy);
+                    const nx = dx / normalLength;
+                    const ny = dy / normalLength;
+
+                    const dotProduct = bullet.vx * nx + bullet.vy * ny;
+                    bullet.vx = (bullet.vx - 2 * dotProduct * nx);
+                    bullet.vy = (bullet.vy - 2 * dotProduct * ny);
+                }
                 hitMeteor = true;
                 break;
             }

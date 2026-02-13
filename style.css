@@ -378,42 +378,13 @@ body {
 /* Railgun-ammus */
 .railgun-projectile {
     position: absolute;
-    width: 12px;
     height: 4px;
     border-radius: 2px;
-    transform-origin: center center;
+    transform-origin: right center;
 }
 
-.player-railgun-projectile {
-    background: linear-gradient(to right, rgba(0, 150, 255, 0.3), #00ccff, #ffffff);
-    box-shadow:
-        0 0 8px rgba(0, 200, 255, 0.9),
-        0 0 15px rgba(0, 150, 255, 0.6),
-        0 0 25px rgba(0, 100, 255, 0.3);
-}
 
-.enemy-railgun-projectile {
-    background: linear-gradient(to right, rgba(255, 100, 0, 0.3), #ff6600, #ffffff);
-    box-shadow:
-        0 0 8px rgba(255, 100, 0, 0.9),
-        0 0 15px rgba(255, 80, 0, 0.6),
-        0 0 25px rgba(255, 60, 0, 0.3);
-}
-
-/* Railgun-latausvaikutus — alus hehkuu sinisellä */
-@keyframes railgun-charge-pulse {
-    0%, 100% { filter: brightness(1.3); }
-    50% { filter: brightness(1.8); }
-}
-
-.spaceship.charging-railgun {
-    animation: railgun-charge-pulse 0.3s ease-in-out infinite;
-}
-
-.spaceship.charging-railgun .ship-body {
-    filter: brightness(1.5);
-    box-shadow: 0 0 15px rgba(0, 150, 255, 0.8), 0 0 30px rgba(0, 100, 255, 0.4);
-}
+/* Railgun-latausvaikutus — vilkkuminen asetetaan JS:stä (railgunConfig.chargePulse*) */
 
 .missile {
     position: absolute;

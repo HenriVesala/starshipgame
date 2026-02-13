@@ -15,8 +15,18 @@ const meteorConfig = {
     // Vahinko
     collisionDamage: 200,       // Vahinko joka meteoriitti aiheuttaa törmätessään
 
+    // Kestävyys
+    healthPerRadius: 5,         // HP per sädepikseli (radius 30 → HP 150)
+    minSplitRadius: 15,         // Pienin säde joka voi halkaista (alle → tuhoutuu kokonaan)
+
     // Tähtisumun vaikutus
     nebulaCoefficient: 0.3,     // Nebulan vastuskerroin (0 = ei vaikutusta, 1 = normaali)
+
+    // Immuniteetti halkeamisen jälkeen
+    splitImmunityTime: 0.5,    // Immuniteettiaika sekunteina halkeamisen jälkeen
+
+    // Poistuminen näytön reunalta
+    offscreenRemovalChance: 0.05, // Todennäköisyys poistua pelialueelta reunalle ajautuessa (0 = aina kierrä, 1 = aina poistu)
 
     // Spawnaus
     spawnIntervalMin: 5000,     // Pienin spawnausväli (millisekuntia)
@@ -25,38 +35,53 @@ const meteorConfig = {
 
 // Meteor class
 class Meteor {
-    constructor(gameContainer) {
+    constructor(gameContainer, options = {}) {
         this.gameContainer = gameContainer;
-        // Satunnainen koko konfiguraation rajoissa
-        this.radius = Math.random() * (meteorConfig.radiusMax - meteorConfig.radiusMin) + meteorConfig.radiusMin;
-        this.damage = meteorConfig.collisionDamage;
 
-        // Satunnainen spawnipaikka ruudun reunoilta
-        const side = Math.floor(Math.random() * 4);
-        switch(side) {
-            case 0: // Ylhäältä
-                this.x = Math.random() * gameConfig.screenWidth;
-                this.y = -this.radius;
-                break;
-            case 1: // Alhaalta
-                this.x = Math.random() * gameConfig.screenWidth;
-                this.y = gameConfig.screenHeight + this.radius;
-                break;
-            case 2: // Vasemmalta
-                this.x = -this.radius;
-                this.y = Math.random() * gameConfig.screenHeight;
-                break;
-            case 3: // Oikealta
-                this.x = gameConfig.screenWidth + this.radius;
-                this.y = Math.random() * gameConfig.screenHeight;
-                break;
+        // Koko: options tai satunnainen
+        this.radius = options.radius != null
+            ? options.radius
+            : Math.random() * (meteorConfig.radiusMax - meteorConfig.radiusMin) + meteorConfig.radiusMin;
+
+        this.damage = meteorConfig.collisionDamage;
+        this.health = this.radius * meteorConfig.healthPerRadius;
+
+        // Positio: options tai satunnainen reunalta
+        if (options.x != null && options.y != null) {
+            this.x = options.x;
+            this.y = options.y;
+        } else {
+            const side = Math.floor(Math.random() * 4);
+            switch(side) {
+                case 0: // Ylhäältä
+                    this.x = Math.random() * gameConfig.screenWidth;
+                    this.y = -this.radius;
+                    break;
+                case 1: // Alhaalta
+                    this.x = Math.random() * gameConfig.screenWidth;
+                    this.y = gameConfig.screenHeight + this.radius;
+                    break;
+                case 2: // Vasemmalta
+                    this.x = -this.radius;
+                    this.y = Math.random() * gameConfig.screenHeight;
+                    break;
+                case 3: // Oikealta
+                    this.x = gameConfig.screenWidth + this.radius;
+                    this.y = Math.random() * gameConfig.screenHeight;
+                    break;
+            }
         }
 
-        // Satunnainen nopeus konfiguraation rajoissa
-        const speed = Math.random() * (meteorConfig.speedMax - meteorConfig.speedMin) + meteorConfig.speedMin;
-        const angle = Math.random() * Math.PI * 2;
-        this.vx = Math.cos(angle) * speed;
-        this.vy = Math.sin(angle) * speed;
+        // Nopeus: options tai satunnainen
+        if (options.vx != null && options.vy != null) {
+            this.vx = options.vx;
+            this.vy = options.vy;
+        } else {
+            const speed = Math.random() * (meteorConfig.speedMax - meteorConfig.speedMin) + meteorConfig.speedMin;
+            const angle = Math.random() * Math.PI * 2;
+            this.vx = Math.cos(angle) * speed;
+            this.vy = Math.sin(angle) * speed;
+        }
 
         // Satunnainen kiertokulma
         this.rotation = 0;
@@ -64,6 +89,12 @@ class Meteor {
 
         // Nebulan vastuskerroin
         this.nebulaCoefficient = meteorConfig.nebulaCoefficient;
+
+        // Immuniteetti (halkeamisen jälkeen lapsimeteori ei ota vahinkoa hetkeen)
+        this.immunityTimer = 0;
+
+        // Poistumislippu (reunalle ajautuessa todennäköisyyspohjainen poisto)
+        this.shouldRemove = false;
 
         // Kutistumisanimaatio
         this.isShrinking = false;    // Kutistumistila (mustan aukon tapahtumahorisontti)
@@ -75,18 +106,42 @@ class Meteor {
         this.element.style.width = (this.radius * 2) + 'px';
         this.element.style.height = (this.radius * 2) + 'px';
         gameContainer.appendChild(this.element);
+        this.render();
+    }
+
+    // Ota vahinkoa - palauttaa true jos meteori tuhoutui, false jos immuuni tai elossa
+    takeDamage(damage) {
+        if (this.immunityTimer > 0) return false;
+
+        this.health -= damage;
+
+        // Näytä vahinkoluku
+        if (gameConfig.showDamageNumbers && typeof damageNumbers !== 'undefined') {
+            damageNumbers.push(new DamageNumber(this.x, this.y - this.radius, damage, this.gameContainer));
+        }
+
+        return this.health <= 0;
     }
 
     update(dt = 0.016) {
+        if (this.immunityTimer > 0) this.immunityTimer -= dt;
+
         this.x += this.vx * dt;
         this.y += this.vy * dt;
         this.rotation += this.rotationSpeed * dt;
 
-        // Kierrä näytön reunoilla
-        if (this.x < -this.radius * 2) this.x = gameConfig.screenWidth + this.radius;
-        if (this.x > gameConfig.screenWidth + this.radius * 2) this.x = -this.radius;
-        if (this.y < -this.radius * 2) this.y = gameConfig.screenHeight + this.radius;
-        if (this.y > gameConfig.screenHeight + this.radius * 2) this.y = -this.radius;
+        // Reunalogiikka: todennäköisyyspohjainen poistuminen tai kierrä toiselle puolelle
+        if (this.x < -this.radius * 2 || this.x > gameConfig.screenWidth + this.radius * 2 ||
+            this.y < -this.radius * 2 || this.y > gameConfig.screenHeight + this.radius * 2) {
+            if (Math.random() < meteorConfig.offscreenRemovalChance) {
+                this.shouldRemove = true;
+            } else {
+                if (this.x < -this.radius * 2) this.x = gameConfig.screenWidth + this.radius;
+                if (this.x > gameConfig.screenWidth + this.radius * 2) this.x = -this.radius;
+                if (this.y < -this.radius * 2) this.y = gameConfig.screenHeight + this.radius;
+                if (this.y > gameConfig.screenHeight + this.radius * 2) this.y = -this.radius;
+            }
+        }
 
         this.render();
     }

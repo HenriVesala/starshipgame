@@ -48,6 +48,7 @@ class Bullet extends Weapon {
 
         this.x += this.vx * dt;
         this.y += this.vy * dt;
+        this.angle = Math.atan2(this.vy, this.vx) * 180 / Math.PI + 90;
         this.render();
     }
 

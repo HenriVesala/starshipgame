@@ -180,15 +180,8 @@ function updateEnemySpawnerLimits(currentScore) {
  * @param {number} currentScore - Current game score
  */
 function updateMeteorSpawnerLimit(currentScore) {
-    const tier = getCurrentGameplayTier(currentScore);
-    
-    // If we exceed max meteor count, remove extra meteors
-    if (meteors.length > tier.maxMeteors) {
-        while (meteors.length > tier.maxMeteors) {
-            const meteor = meteors.pop();
-            meteor.destroy();
-        }
-    }
+    // Maksimimäärä rajoittaa vain uusien meteorien spawnaamista (spawnMeteor),
+    // ei koskaan poista pelialueella olevia meteoreja
 }
 
 /**

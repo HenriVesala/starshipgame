@@ -11,7 +11,7 @@ const laserConfig = {
     hitRadius: 15,              // Osumansäde aluksille (pikseliä)
     nebulaDeflectionPerStep: 5,  // Nebula-taittuman max (astetta/askel)
     blackHoleBendStrength: 20,  // Mustan aukon taittuman voimakkuus
-    recoilPerSecond: 2          // Jatkuva rekyylivoima per sekunti
+    recoilPerSecond: 0          // Jatkuva rekyylivoima per sekunti
 };
 
 // Laser-luokka — raycast-ase joka piirretään canvasille

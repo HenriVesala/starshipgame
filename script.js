@@ -17,6 +17,11 @@ let player = null;
 
 // DOM elements
 const spaceship = document.getElementById('spaceship');
+const shipBody = spaceship.querySelector('.ship-body');
+// Vilkkumis-overlay rungon päällä (clip-path leikkaa automaattisesti)
+const shipPulseOverlay = document.createElement('div');
+shipPulseOverlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;';
+shipBody.appendChild(shipPulseOverlay);
 const positionDisplay = document.getElementById('position');
 const gameContainer = document.querySelector('.game-container');
 const healthBar = document.getElementById('healthBar');
@@ -252,10 +257,17 @@ function updatePosition(dt) {
             }
             player.isChargingRailgun = true;
             spaceship.classList.add('charging-railgun');
+            // Vilkkuminen: feidaa overlay siniaallon mukaan
+            const t = performance.now() / 1000;
+            const phase = (t % railgunConfig.chargePulseInterval) / railgunConfig.chargePulseInterval;
+            shipPulseOverlay.style.background = `linear-gradient(to bottom, ${railgunConfig.chargePulseTipColor}, ${railgunConfig.chargePulseMidColor} 50%, ${railgunConfig.chargePulseColor})`;
+            shipPulseOverlay.style.opacity = (0.5 + 0.5 * Math.cos(phase * 2 * Math.PI)).toFixed(2);
 
         } else if (player.isChargingRailgun) {
             // Laukaise! Space vapautettiin tai energia loppui
             spaceship.classList.remove('charging-railgun');
+            shipPulseOverlay.style.background = '';
+            shipPulseOverlay.style.opacity = '';
 
             if (player.railgunCharge >= railgunConfig.minCharge) {
                 const chargePercent = player.railgunCharge / railgunConfig.maxCharge;
@@ -281,6 +293,8 @@ function updatePosition(dt) {
             player.railgunCharge = 0;
         } else {
             spaceship.classList.remove('charging-railgun');
+            shipPulseOverlay.style.background = '';
+            shipPulseOverlay.style.opacity = '';
         }
 
     } else {
@@ -497,6 +511,8 @@ function restartGame() {
     damageNumbers.forEach(dn => dn.destroy());
     playerLaser.clear();
     spaceship.classList.remove('charging-railgun');
+    shipPulseOverlay.style.background = '';
+    shipPulseOverlay.style.opacity = '';
 
     // Start the game from the beginning
     startGame();

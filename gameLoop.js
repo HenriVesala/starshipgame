@@ -287,7 +287,7 @@ function gameLoop(currentTime) {
         }
 
         meteor.update(dt);
-        if (meteor.isOffscreen()) {
+        if (meteor.shouldRemove) {
             meteor.destroy();
             meteors.splice(i, 1);
         }
@@ -296,7 +296,7 @@ function gameLoop(currentTime) {
     // Päivitä pelaajan ammukset
     for (let i = playerBullets.length - 1; i >= 0; i--) {
         playerBullets[i].update(dt);
-        if (playerBullets[i].isOffscreen()) {
+        if (playerBullets[i].isOffscreen() || playerBullets[i].shouldRemove) {
             playerBullets[i].destroy();
             playerBullets.splice(i, 1);
         }
@@ -305,7 +305,7 @@ function gameLoop(currentTime) {
     // Päivitä vihollisten ammukset
     for (let i = enemyBullets.length - 1; i >= 0; i--) {
         enemyBullets[i].update(dt);
-        if (enemyBullets[i].isOffscreen()) {
+        if (enemyBullets[i].isOffscreen() || enemyBullets[i].shouldRemove) {
             enemyBullets[i].destroy();
             enemyBullets.splice(i, 1);
         }
@@ -314,7 +314,7 @@ function gameLoop(currentTime) {
     // Päivitä pelaajan ohjukset
     for (let i = playerMissiles.length - 1; i >= 0; i--) {
         playerMissiles[i].update(dt, [...enemies, player]);
-        if (playerMissiles[i].isOffscreen()) {
+        if (playerMissiles[i].isOffscreen() || playerMissiles[i].shouldRemove) {
             playerMissiles[i].destroy();
             playerMissiles.splice(i, 1);
         }
@@ -323,7 +323,7 @@ function gameLoop(currentTime) {
     // Päivitä vihollisten ohjukset
     for (let i = enemyMissiles.length - 1; i >= 0; i--) {
         enemyMissiles[i].update(dt, [...enemies, player]);
-        if (enemyMissiles[i].isOffscreen()) {
+        if (enemyMissiles[i].isOffscreen() || enemyMissiles[i].shouldRemove) {
             enemyMissiles[i].destroy();
             enemyMissiles.splice(i, 1);
         }
