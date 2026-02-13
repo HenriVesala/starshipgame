@@ -13,8 +13,6 @@ const aggressiveEnemyConfig = {
     energyRegenRate: 10,        // Energian latausnopeus (yksikköä/sekunti)
 
     // Ampumisen konfiguraatio
-    shootCooldownMin: 1.0,      // Pienin ampumisaikaväli (sekunti)
-    shootCooldownMax: 2.67,     // Suurin ampumisaikaväli (sekunti)
     shootConeAngle: 40,
 
     // Ulkoasu

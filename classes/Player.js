@@ -27,7 +27,6 @@ const playerConfig = {
     invulnerabilityDuration: 0.3,   // Immuniteettiaika sekunteina vahingon jälkeen
 
     // Ampuminen
-    shootCooldown: 0.7,             // Ampumisen cooldown (sekuntia) - 3 ampumista/sekunti
     rateOfFireBoostMultiplier: 0.95, // Ampumisnopeuden lisäys per boosti (5% nopeampi = 0.95x cooldown)
 
     // Energia
@@ -127,7 +126,7 @@ class Player extends SpaceShip {
 
     // Aseta ampumisen cooldown
     setShootCooldown() {
-        this.shootCooldownTimer = playerConfig.shootCooldown * this.shootSpeedMultiplier;
+        this.shootCooldownTimer = this.weaponConfigs[this.weapon].shootCooldown * this.shootSpeedMultiplier;
     }
 
     // Lisää ampumisnopeusboosti

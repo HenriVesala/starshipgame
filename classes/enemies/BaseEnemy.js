@@ -25,8 +25,6 @@ class BaseEnemy extends SpaceShip {
             weapon: 'bullet',           // Asetyyppi: 'bullet' | 'missile' | 'laser' | 'railgun'
             shootMinDistance: 0,         // Minimi ampumisetäisyys (0 = ei rajaa)
             shootMaxDistance: Infinity,  // Maksimi ampumisetäisyys (Infinity = ei rajaa)
-            shootCooldownMin: 1.0,      // Pienin ampumisaikaväli (sekunti)
-            shootCooldownMax: 2.67,     // Suurin ampumisaikaväli (sekunti)
             shootConeAngle: 30,         // Ampumisen etusektorin puolikulma (±30° = 60° kartio)
             enemyClassName: 'enemy',
             health: enemyConfig.baseHealth,
@@ -100,7 +98,8 @@ class BaseEnemy extends SpaceShip {
         }
 
         this.angle = 180;
-        this.shootCooldown = Math.random() * (this.config.shootCooldownMax - this.config.shootCooldownMin) + this.config.shootCooldownMin;
+        const wc = this.weaponConfigs[this.config.weapon];
+        this.shootCooldown = Math.random() * (wc.shootCooldownMax - wc.shootCooldownMin) + wc.shootCooldownMin;
 
         this.element = document.createElement('div');
         this.element.className = this.config.enemyClassName;
@@ -276,7 +275,8 @@ class BaseEnemy extends SpaceShip {
                     if (inCone && shootDist >= this.config.shootMinDistance && shootDist <= this.config.shootMaxDistance && this.energy >= shootEnergyCost) {
                         this.energy -= shootEnergyCost;
                         this.shoot(enemyBullets, enemyMissiles);
-                        this.shootCooldown = Math.random() * (this.config.shootCooldownMax - this.config.shootCooldownMin) + this.config.shootCooldownMin;
+                        const wc = this.weaponConfigs[this.config.weapon];
+                        this.shootCooldown = Math.random() * (wc.shootCooldownMax - wc.shootCooldownMin) + wc.shootCooldownMin;
                     }
                 }
             }

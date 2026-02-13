@@ -15,8 +15,6 @@ const weakEnemyConfig = {
 
     // Ampumisen konfiguraatio
     weapon: 'bullet',           // Asetyyppi: 'bullet' | 'missile'
-    shootCooldownMin: 0.7,      // Pienin ampumisaikaväli (sekunti)
-    shootCooldownMax: 2,        // Suurin ampumisaikaväli (sekunti)
     shootConeAngle: 30,
     
     // Ulkoasu
@@ -34,12 +32,9 @@ const weakEnemyConfig = {
     // Pudotukset
     rateOfFireBoostDropChance: 0.05,  // 5% todennäköisyys pudottaa ampumisnopeusboosti
 
-    // Aseylikirjoitukset (tyhjä = käytä globaaleja oletuksia)
+    // Aseylikirjoitukset
     weapons: {
-        // bullet: { damage: 50, energyCost: 15 },
-        // laser: { damagePerSecond: 300 },
-        // missile: { damage: 150 },
-        // railgun: { maxCharge: 30 }
+        bullet: { shootCooldownMin: 0.7, shootCooldownMax: 2 }
     }
 };
 

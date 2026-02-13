@@ -1,5 +1,8 @@
 // Ohjuksen konfiguraatio
 const missileConfig = {
+    shootCooldown: 0.7,          // Pelaajan ampumisen cooldown (sekuntia)
+    shootCooldownMin: 5.0,       // Vihollisen pienin ampumisaikaväli (sekunti)
+    shootCooldownMax: 10.0,      // Vihollisen suurin ampumisaikaväli (sekunti)
     maxSpeed: 2000,              // Maksiminopeus (pikselit/sekunti)
     initialSpeed: 20,           // Lähtönopeus laukaistaessa (pikselit/sekunti)
     acceleration: 160,           // Kiihtyvyys (pikselit/sekunti²)

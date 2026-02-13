@@ -1,6 +1,7 @@
 // Ammuksien konfiguraatio
 const bulletConfig = {
     playerBullet: {
+        shootCooldown: 0.7,   // Ampumisen cooldown (sekuntia)
         initialSpeed: 250,    // Lähtönopeus laukaistaessa (pikselit/sekunti)
         maxSpeed: 2000,        // Maksiminopeus (pikselit/sekunti)
         nebulaCoefficient: 1.0, // Nebulan vastuskerroin (0 = ei vaikutusta, 1 = normaali)
@@ -9,6 +10,8 @@ const bulletConfig = {
         recoil: 5              // Rekyylivoima (pikselit/sekunti)
     },
     enemyBullet: {
+        shootCooldownMin: 1.0,  // Pienin ampumisaikaväli (sekunti)
+        shootCooldownMax: 2.67, // Suurin ampumisaikaväli (sekunti)
         initialSpeed: 240,    // Lähtönopeus laukaistaessa (pikselit/sekunti)
         maxSpeed: 2000,        // Maksiminopeus (pikselit/sekunti)
         nebulaCoefficient: 1.0, // Nebulan vastuskerroin (0 = ei vaikutusta, 1 = normaali)

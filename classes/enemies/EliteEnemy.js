@@ -16,8 +16,6 @@ const eliteEnemyConfig = {
     energyRegenRate: 18,        // Energian latausnopeus (yksikköä/sekunti)
 
     // Ampumisen konfiguraatio
-    shootCooldownMin: 0.5,      // Pienin ampumisaikaväli (sekunti) - ampuu nopeammin!
-    shootCooldownMax: 1.33,     // Suurin ampumisaikaväli (sekunti)
     shootConeAngle: 30,
     
     // Ulkoasu
@@ -35,12 +33,9 @@ const eliteEnemyConfig = {
     // Pudotukset
     rateOfFireBoostDropChance: 0.20,  // 20% todennäköisyys pudottaa ampumisnopeusboosti
 
-    // Aseylikirjoitukset (tyhjä = käytä globaaleja oletuksia)
+    // Aseylikirjoitukset
     weapons: {
-        // bullet: { damage: 50, energyCost: 15 },
-        // laser: { damagePerSecond: 300 },
-        // missile: { damage: 150 },
-        // railgun: { maxCharge: 30 }
+        bullet: { shootCooldownMin: 0.5, shootCooldownMax: 1.33 }
     }
 };
 

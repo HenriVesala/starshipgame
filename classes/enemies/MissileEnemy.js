@@ -18,8 +18,6 @@ const missileEnemyConfig = {
 
     // Ampumisen konfiguraatio
     weapon: 'missile',            // Asetyyppi: ohjus
-    shootCooldownMin: 5.0,        // Pienin ampumisaikaväli (sekunti)
-    shootCooldownMax: 10.0,       // Suurin ampumisaikaväli (sekunti)
     shootMinDistance: 400,         // Ampuu vain 400px+ etäisyydeltä
     shootMaxDistance: 800,         // Ampuu vain alle 800px etäisyydeltä
     shootConeAngle: 60,
