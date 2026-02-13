@@ -34,7 +34,7 @@ const playerConfig = {
     energyRegenRate: 15,            // Energiaa/sekunti (puolitettu kiihdyttäessä)
 
     // Aloitusase
-    startWeapon: 'laser',          // Aloitusase: 'bullet' | 'missile' | 'laser' | 'railgun'
+    startWeapon: 'bullet',          // Aloitusase: 'bullet' | 'missile' | 'laser' | 'railgun'
 
     // Aseylikirjoitukset (tyhjä = käytä globaaleja oletuksia)
     weapons: {
@@ -60,7 +60,7 @@ class Player extends SpaceShip {
         // Resolve asekonfiguraatiot: globaalit oletukset + aluskohtaiset ylikirjoitukset
         const wo = playerConfig.weapons || {};
         this.weaponConfigs = {
-            bullet: { ...bulletConfig.playerBullet, ...(wo.bullet || {}) },
+            bullet: { ...bulletConfig.playerBullet, muzzleFlash: bulletConfig.muzzleFlash, fireFlash: bulletConfig.fireFlash, ...(wo.bullet || {}) },
             missile: { ...missileConfig, ...(wo.missile || {}) },
             laser: { ...laserConfig, ...(wo.laser || {}) },
             railgun: { ...railgunConfig, ...(wo.railgun || {}) }

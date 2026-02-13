@@ -22,6 +22,10 @@ const shipBody = spaceship.querySelector('.ship-body');
 const shipPulseOverlay = document.createElement('div');
 shipPulseOverlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;';
 shipBody.appendChild(shipPulseOverlay);
+// Rungon välähdys-overlay aseen laukaisussa
+const shipFireFlashOverlay = document.createElement('div');
+shipFireFlashOverlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;opacity:0;';
+shipBody.appendChild(shipFireFlashOverlay);
 const positionDisplay = document.getElementById('position');
 const gameContainer = document.querySelector('.game-container');
 const healthBar = document.getElementById('healthBar');
@@ -147,8 +151,9 @@ function updatePosition(dt) {
         }
     }
 
-    // Päivitä vahinkoválähdys-ajastin
+    // Päivitä vahinkoválähdys- ja laukaisuvälähdys-ajastimet
     player.updateDamageFlash(dt);
+    player.updateFireFlash(dt);
 
     // Rotation (scaled by dt for frame-independent speed)
     if (keys.ArrowLeft) {
@@ -207,6 +212,8 @@ function updatePosition(dt) {
         // Laser: jatkuva säde niin kauan kuin Space pohjassa ja energiaa riittää
         const laserEnergyCost = player.weaponConfigs.laser.energyCostPerSecond * dt;
         if (keys.Space && player.energy >= laserEnergyCost) {
+            // Jatkuva välähdys niin kauan kun laser on päällä
+            player.triggerFireFlash(player.weaponConfigs.laser.fireFlash);
             player.consumeEnergy(laserEnergyCost);
 
             const halfShip = playerConfig.width / 2;
@@ -289,6 +296,8 @@ function updatePosition(dt) {
                 const recoilAmount = player.weaponConfigs.railgun.recoilPerCharge * player.railgunCharge;
                 player.vx -= Math.cos(rad) * recoilAmount;
                 player.vy -= Math.sin(rad) * recoilAmount;
+
+                player.triggerFireFlash(player.weaponConfigs.railgun.fireFlash);
             }
 
             player.isChargingRailgun = false;
@@ -317,11 +326,13 @@ function updatePosition(dt) {
                 // Ohjuksen rekyyli
                 player.vx -= Math.cos(radians) * player.weaponConfigs.missile.recoil;
                 player.vy -= Math.sin(radians) * player.weaponConfigs.missile.recoil;
+                player.triggerFireFlash(player.weaponConfigs.missile.fireFlash);
             } else {
                 playerBullets.push(new Bullet(gameContainer, spawnX, spawnY, player.angle, 'player', player.vx, player.vy, player.weaponConfigs.bullet));
                 // Ammuksen rekyyli
                 player.vx -= Math.cos(radians) * player.weaponConfigs.bullet.recoil;
                 player.vy -= Math.sin(radians) * player.weaponConfigs.bullet.recoil;
+                player.triggerFireFlash(player.weaponConfigs.bullet.fireFlash);
             }
             player.consumeEnergy(shootEnergyCost);
             player.setShootCooldown();
@@ -450,6 +461,15 @@ function render() {
         playerFlameRight.classList.remove('active');
     }
 
+    // Rungon välähdys aseen laukaisussa
+    if (player.fireFlashTimer > 0) {
+        const progress = player.fireFlashTimer / player.fireFlashDuration;
+        shipFireFlashOverlay.style.background = player.fireFlashColor;
+        shipFireFlashOverlay.style.opacity = progress.toFixed(2);
+    } else {
+        shipFireFlashOverlay.style.opacity = '0';
+    }
+
     updateHealthBar();
     updateEnergyBar();
     playerLaser.render();
@@ -516,6 +536,8 @@ function restartGame() {
     spaceship.classList.remove('charging-railgun');
     shipPulseOverlay.style.background = '';
     shipPulseOverlay.style.opacity = '';
+    shipFireFlashOverlay.style.background = '';
+    shipFireFlashOverlay.style.opacity = '0';
 
     // Start the game from the beginning
     startGame();

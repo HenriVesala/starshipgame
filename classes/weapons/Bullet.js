@@ -24,6 +24,13 @@ const bulletConfig = {
         color: 'rgba(255, 200, 50, 0.9)',  // Liekin väri
         size: 12,                           // Koko pikseleinä
         duration: 0.2                       // Kesto sekunteina
+    },
+    // Rungon välähdys laukaistaessa (3-osainen liukuväri keulasta perään)
+    fireFlash: {
+        tipColor: 'rgba(255, 255, 255, 1)',       // Keulan väri (vaalea)
+        midColor: 'rgba(255, 200, 50, 0.5)',      // Keskiosan väri
+        baseColor: 'rgba(255, 200, 50, 0.1)',     // Perän väri
+        duration: 0.15                             // Kesto sekunteina
     }
 };
 

@@ -53,6 +53,13 @@ const railgunConfig = {
         color: 'rgba(100, 180, 255, 0.9)',  // Liekin väri
         size: 25,                            // Koko pikseleinä
         duration: 0.15                       // Kesto sekunteina
+    },
+    // Rungon välähdys laukaistaessa (3-osainen liukuväri keulasta perään)
+    fireFlash: {
+        tipColor: 'rgba(255, 255, 255, 1)',        // Keulan väri (vaalea)
+        midColor: 'rgba(50, 180, 255, 0.8)',       // Keskiosan väri
+        baseColor: 'rgba(0, 149, 255, 0.2)',       // Perän väri
+        duration: 0.2                               // Kesto sekunteina
     }
 };
 

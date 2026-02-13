@@ -50,7 +50,7 @@ class BaseEnemy extends SpaceShip {
         // Resolve asekonfiguraatiot: globaalit oletukset + aluskohtaiset ylikirjoitukset
         const wo = this.config.weapons || {};
         this.weaponConfigs = {
-            bullet: { ...bulletConfig.enemyBullet, ...(wo.bullet || {}) },
+            bullet: { ...bulletConfig.enemyBullet, muzzleFlash: bulletConfig.muzzleFlash, fireFlash: bulletConfig.fireFlash, ...(wo.bullet || {}) },
             missile: { ...missileConfig, ...(wo.missile || {}) },
             laser: { ...laserConfig, ...(wo.laser || {}) },
             railgun: { ...railgunConfig, ...(wo.railgun || {}) }
@@ -108,6 +108,11 @@ class BaseEnemy extends SpaceShip {
         this.bodyElement.className = 'ship-body';
         this.element.appendChild(this.bodyElement);
 
+        // Rungon välähdys-overlay (clip-path leikkaa automaattisesti)
+        this.fireFlashOverlay = document.createElement('div');
+        this.fireFlashOverlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;opacity:0;';
+        this.bodyElement.appendChild(this.fireFlashOverlay);
+
         this.flameMain = document.createElement('div');
         this.flameMain.className = 'ship-flame-main';
         this.element.appendChild(this.flameMain);
@@ -156,6 +161,7 @@ class BaseEnemy extends SpaceShip {
 
         // Päivitä vahinkoválähdys-ajastin
         this.updateDamageFlash(dt);
+        this.updateFireFlash(dt);
 
         // Tarkista onko täysin tullut pelialueelle
         if (this.isEntering) {
@@ -237,6 +243,8 @@ class BaseEnemy extends SpaceShip {
                 // Laser: jatkuva säde kun etusektorilla ja energiaa riittää
                 const laserEnergyCost = this.weaponConfigs.laser.energyCostPerSecond * dt;
                 if (inCone && this.energy >= laserEnergyCost) {
+                    // Jatkuva välähdys niin kauan kun laser on päällä
+                    this.triggerFireFlash(this.weaponConfigs.laser.fireFlash);
                     this.energy -= laserEnergyCost;
 
                     const rad = (this.angle - 90) * Math.PI / 180;
@@ -445,6 +453,14 @@ class BaseEnemy extends SpaceShip {
         }
     }
 
+    // Ylikirjoitetaan kantaluokka: vihollisen elementti on käännetty +180°, joten gradientti käännetään
+    triggerFireFlash(config) {
+        if (!config) return;
+        this.fireFlashTimer = config.duration;
+        this.fireFlashDuration = config.duration;
+        this.fireFlashColor = `linear-gradient(to top, ${config.tipColor}, ${config.midColor} 50%, ${config.baseColor})`;
+    }
+
     shoot(enemyBullets, enemyMissiles) {
         const halfShipSize = gameConfig.playerWidth / 2;
         const centerX = this.x + halfShipSize;
@@ -461,6 +477,7 @@ class BaseEnemy extends SpaceShip {
             // Ohjuksen rekyyli
             this.vx -= Math.cos(radians) * this.weaponConfigs.missile.recoil;
             this.vy -= Math.sin(radians) * this.weaponConfigs.missile.recoil;
+            this.triggerFireFlash(this.weaponConfigs.missile.fireFlash);
         } else {
             const bullet = new Bullet(this.gameContainer, spawnX, spawnY, this.angle, 'enemy', this.vx, this.vy, this.weaponConfigs.bullet);
             bullet.firedBy = this;
@@ -468,6 +485,7 @@ class BaseEnemy extends SpaceShip {
             // Ammuksen rekyyli
             this.vx -= Math.cos(radians) * this.weaponConfigs.bullet.recoil;
             this.vy -= Math.sin(radians) * this.weaponConfigs.bullet.recoil;
+            this.triggerFireFlash(this.weaponConfigs.bullet.fireFlash);
         }
     }
 
@@ -493,6 +511,8 @@ class BaseEnemy extends SpaceShip {
             const recoilAmount = this.weaponConfigs.railgun.recoilPerCharge * this.railgunCharge;
             this.vx -= Math.cos(rad) * recoilAmount;
             this.vy -= Math.sin(rad) * recoilAmount;
+
+            this.triggerFireFlash(this.weaponConfigs.railgun.fireFlash);
         }
 
         this.isChargingRailgun = false;
@@ -539,6 +559,15 @@ class BaseEnemy extends SpaceShip {
             this.element.classList.add('damage-flash');
         } else {
             this.element.classList.remove('damage-flash');
+        }
+
+        // Rungon välähdys aseen laukaisussa
+        if (this.fireFlashTimer > 0) {
+            const progress = this.fireFlashTimer / this.fireFlashDuration;
+            this.fireFlashOverlay.style.background = this.fireFlashColor;
+            this.fireFlashOverlay.style.opacity = progress.toFixed(2);
+        } else {
+            this.fireFlashOverlay.style.opacity = '0';
         }
     }
 }

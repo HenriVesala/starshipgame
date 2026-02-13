@@ -14,7 +14,14 @@ const laserConfig = {
     recoilPerSecond: 0,         // Jatkuva rekyylivoima per sekunti
     minVisibleIntensity: 0.03,  // Säde lakkaa kun intensiteetti putoaa tämän alle
     maxBounces: 5,              // Heijastusten enimmäismäärä
-    bounceOffset: 2             // Pikselimäärä jolla säde siirretään pinnan ulkopuolelle heijastuksessa
+    bounceOffset: 2,            // Pikselimäärä jolla säde siirretään pinnan ulkopuolelle heijastuksessa
+    // Rungon välähdys laukaistaessa (3-osainen liukuväri keulasta perään)
+    fireFlash: {
+        tipColor: 'rgba(255, 255, 255, 1)',        // Keulan väri (vaalea)
+        midColor: 'rgba(255, 26, 171, 0.6)',       // Keskiosan väri
+        baseColor: 'rgba(204, 50, 255, 0.3)',      // Perän väri
+        duration: 0.2                               // Kesto sekunteina
+    }
 };
 
 // Laser-luokka — raycast-ase joka piirretään canvasille

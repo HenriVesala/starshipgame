@@ -14,6 +14,9 @@ class SpaceShip {
         this.shrinkDuration = 0.5;
         this.damageFlashTimer = 0;
         this.damageFlashDuration = 0.15;
+        this.fireFlashTimer = 0;
+        this.fireFlashDuration = 0;
+        this.fireFlashColor = '';
         this.nebulaCoefficient = config.nebulaCoefficient ?? 1.0;
         this.thrustState = 'none'; // 'none', 'forward', 'reverse'
         this.energy = config.maxEnergy || 100;
@@ -62,6 +65,22 @@ class SpaceShip {
             if (this.damageFlashTimer < 0) {
                 this.damageFlashTimer = 0;
             }
+        }
+    }
+
+    // Käynnistä rungon välähdys aseen laukaisussa
+    triggerFireFlash(config) {
+        if (!config) return;
+        this.fireFlashTimer = config.duration;
+        this.fireFlashDuration = config.duration;
+        this.fireFlashColor = `linear-gradient(to bottom, ${config.tipColor}, ${config.midColor} 50%, ${config.baseColor})`;
+    }
+
+    // Päivitä rungon välähdys-ajastin
+    updateFireFlash(dt) {
+        if (this.fireFlashTimer > 0) {
+            this.fireFlashTimer -= dt;
+            if (this.fireFlashTimer < 0) this.fireFlashTimer = 0;
         }
     }
 
