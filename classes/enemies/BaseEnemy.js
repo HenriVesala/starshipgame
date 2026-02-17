@@ -50,10 +50,10 @@ class BaseEnemy extends SpaceShip {
         // Resolve asekonfiguraatiot: globaalit oletukset + aluskohtaiset ylikirjoitukset
         const wo = this.config.weapons || {};
         this.weaponConfigs = {
-            bullet: { ...bulletConfig, ...(wo.bullet || {}) },
-            missile: { ...missileConfig, ...(wo.missile || {}) },
-            laser: { ...laserConfig, ...(wo.laser || {}) },
-            railgun: { ...railgunConfig, ...(wo.railgun || {}) }
+            bullet: mergeWeaponConfig(bulletConfig, wo.bullet),
+            missile: mergeWeaponConfig(missileConfig, wo.missile),
+            laser: mergeWeaponConfig(laserConfig, wo.laser),
+            railgun: mergeWeaponConfig(railgunConfig, wo.railgun)
         };
 
         this.isEntering = true;
@@ -257,9 +257,11 @@ class BaseEnemy extends SpaceShip {
                         meteors: meteors,
                         blackHoles: blackHoles,
                         nebulaClouds: nebulaClouds,
-                        player: player
+                        players: getAlivePlayerInstances(),
+                        missiles: [...playerMissiles, ...enemyMissiles]
                     };
 
+                    this.laser.setConfig(this.weaponConfigs.laser);
                     const hit = this.laser.trace(startX, startY, this.angle, 'enemy', laserTargets);
                     this.laser.active = true;
 

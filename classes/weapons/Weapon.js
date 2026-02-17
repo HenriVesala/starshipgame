@@ -1,3 +1,33 @@
+// Yhdistä asekonfiguraatio syvällisesti (sisäkkäiset objektit yhdistetään kenttätasolla)
+function mergeWeaponConfig(base, override) {
+    if (!override) return { ...base };
+    const merged = { ...base };
+    for (const key of Object.keys(override)) {
+        const baseVal = base[key];
+        const overVal = override[key];
+        // Yhdistä sisäkkäiset objektit (ei korvaa kokonaan)
+        if (baseVal && overVal && typeof baseVal === 'object' && typeof overVal === 'object'
+            && !Array.isArray(baseVal) && !Array.isArray(overVal)) {
+            if (key === 'interactions') {
+                // interactions: yhdistä per ympäristö (2 tasoa syvä)
+                merged.interactions = {};
+                for (const env of Object.keys(baseVal)) {
+                    merged.interactions[env] = { ...baseVal[env], ...(overVal[env] || {}) };
+                }
+                for (const env of Object.keys(overVal)) {
+                    if (!merged.interactions[env]) merged.interactions[env] = { ...overVal[env] };
+                }
+            } else {
+                // muzzleFlash, fireFlash ym.: 1 taso syvä yhdistäminen
+                merged[key] = { ...baseVal, ...overVal };
+            }
+        } else {
+            merged[key] = overVal;
+        }
+    }
+    return merged;
+}
+
 // Aseen kantaluokka - yhteinen pohja ammuksille ja ohjuksille
 class Weapon {
     constructor(config = {}) {
@@ -8,7 +38,8 @@ class Weapon {
         this.damage = config.damage || 0;
         this.maxSpeed = config.maxSpeed || 500;
         this.owner = config.owner || 'player'; // 'player' tai 'enemy'
-        this.nebulaCoefficient = config.nebulaCoefficient ?? 1.0;
+        this.interactions = config.interactions || null;
+        this.nebulaCoefficient = config.interactions?.nebula?.dragCoefficient ?? 1.0;
         this.element = null;
 
         // Miniminopeuspoisto (optionaalinen)

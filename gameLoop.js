@@ -8,8 +8,6 @@ function gameLoop(currentTime) {
         return;
     }
 
-    if (player && player.gameOver) return;
-
     // Laske delta-aika sekunteina
     deltaTime = (currentTime - lastFrameTime) / 1000;
     lastFrameTime = currentTime;
@@ -19,19 +17,22 @@ function gameLoop(currentTime) {
 
     updatePosition(dt);
 
-    // Päivitä pelaajan kutistuminen
-    if (player.updateShrinking(dt)) {
-        player.health = 0;
-        endGame();
-        return;
+    // Päivitä pelaajien kutistuminen
+    for (const pCtx of players) {
+        if (!pCtx.joined || !pCtx.alive) continue;
+        if (pCtx.player.updateShrinking(dt)) {
+            pCtx.player.health = 0;
+            playerDied(pCtx);
+        }
     }
+    if (currentGameState !== GameState.PLAYING) return;
 
     // Päivitä vaikeustaso pisteiden perusteella
-    updateEnemySpawnerLimits(player.score);
-    updateMeteorSpawnerLimit(player.score);
-    updatePlanetSpawnerLimit(player.score);
-    updateNebulaCloudSpawnerLimit(player.score);
-    updateBlackHoleSpawnerLimit(player.score);
+    updateEnemySpawnerLimits(gameScore);
+    updateMeteorSpawnerLimit(gameScore);
+    updatePlanetSpawnerLimit(gameScore);
+    updateNebulaCloudSpawnerLimit(gameScore);
+    updateBlackHoleSpawnerLimit(gameScore);
 
     // Päivitä vihollisten spawn-ajastimet kaikille vihollistyypeille
     for (const spawner of enemySpawners) {
@@ -82,7 +83,11 @@ function gameLoop(currentTime) {
             continue;
         }
 
-        enemy.update(enemyBullets, enemyMissiles, player.x, player.y, dt);
+        // Viholliset seuraavat lähintä elossa olevaa pelaajaa
+        const nearest = getNearestAlivePlayer(enemy.x + 20, enemy.y + 20);
+        const targetX = nearest ? nearest.player.x : gameConfig.screenWidth / 2;
+        const targetY = nearest ? nearest.player.y : gameConfig.screenHeight / 2;
+        enemy.update(enemyBullets, enemyMissiles, targetX, targetY, dt);
 
         // Poista viholliset jotka ovat kaukana ruudun ulkopuolella (eivät enää palaa)
         if (!enemy.isShrinking && !enemy.isEntering &&
@@ -109,8 +114,10 @@ function gameLoop(currentTime) {
 
         planet.update(dt);
 
-        // Käytä painovoimaa pelaajaan
-        planet.applyGravity(player, dt);
+        // Käytä painovoimaa pelaajiin
+        for (const pCtx of getAlivePlayers()) {
+            planet.applyGravity(pCtx.player, dt);
+        }
 
         // Käytä painovoimaa kaikkiin vihollisiin
         for (let j = 0; j < enemies.length; j++) {
@@ -153,8 +160,10 @@ function gameLoop(currentTime) {
         const blackHole = blackHoles[i];
         blackHole.update(dt);
 
-        // Käytä painovoimaa pelaajaan
-        blackHole.applyGravity(player, dt);
+        // Käytä painovoimaa pelaajiin
+        for (const pCtx of getAlivePlayers()) {
+            blackHole.applyGravity(pCtx.player, dt);
+        }
 
         // Käytä painovoimaa kaikkiin vihollisiin
         for (let j = 0; j < enemies.length; j++) {
@@ -193,7 +202,7 @@ function gameLoop(currentTime) {
     }
 
     // Nollaa nebula-liput (asetetaan true alla jos objekti on tähtisumun sisällä)
-    player.inNebula = false;
+    for (const pCtx of getAlivePlayers()) pCtx.player.inNebula = false;
     for (let j = 0; j < enemies.length; j++) enemies[j].inNebula = false;
     for (let j = 0; j < playerMissiles.length; j++) playerMissiles[j].inNebula = false;
     for (let j = 0; j < enemyMissiles.length; j++) enemyMissiles[j].inNebula = false;
@@ -215,10 +224,14 @@ function gameLoop(currentTime) {
             continue;
         }
 
-        // Käytä hidastusta pelaajaan jos tähtisumun sisällä
-        if (nebulaCloudConfig.affectsPlayer && nebulaCloud.isObjectInside(player)) {
-            player.inNebula = true;
-            nebulaCloud.applySlowdown(player, dt);
+        // Käytä hidastusta pelaajiin jos tähtisumun sisällä
+        if (nebulaCloudConfig.affectsPlayer) {
+            for (const pCtx of getAlivePlayers()) {
+                if (nebulaCloud.isObjectInside(pCtx.player)) {
+                    pCtx.player.inNebula = true;
+                    nebulaCloud.applySlowdown(pCtx.player, dt);
+                }
+            }
         }
 
         // Käytä hidastusta kaikkiin vihollisiin jos tähtisumun sisällä
@@ -313,7 +326,7 @@ function gameLoop(currentTime) {
 
     // Päivitä pelaajan ohjukset
     for (let i = playerMissiles.length - 1; i >= 0; i--) {
-        playerMissiles[i].update(dt, [...enemies, player]);
+        playerMissiles[i].update(dt, [...enemies, ...getAlivePlayerInstances()]);
         if (playerMissiles[i].isOffscreen() || playerMissiles[i].shouldRemove) {
             playerMissiles[i].destroy();
             playerMissiles.splice(i, 1);
@@ -322,7 +335,7 @@ function gameLoop(currentTime) {
 
     // Päivitä vihollisten ohjukset
     for (let i = enemyMissiles.length - 1; i >= 0; i--) {
-        enemyMissiles[i].update(dt, [...enemies, player]);
+        enemyMissiles[i].update(dt, [...enemies, ...getAlivePlayerInstances()]);
         if (enemyMissiles[i].isOffscreen() || enemyMissiles[i].shouldRemove) {
             enemyMissiles[i].destroy();
             enemyMissiles.splice(i, 1);

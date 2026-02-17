@@ -11,7 +11,7 @@ const playerConfig = {
     maxSpeed: 600,                  // Pikselit/sekunti
 
     // Sijainti konfiguraatio
-    startX: 580,                    // Aloituspaikka X
+    startX: 560,                    // Aloituspaikka X
     startY: 430,                    // Aloituspaikka Y
     maxX: 1200 - 40,                // Maksimi X (ruudun leveys - leveys)
     maxY: 900 - 40,                 // Maksimi Y (ruudun korkeus - korkeus)
@@ -33,54 +33,110 @@ const playerConfig = {
     maxEnergy: 100,                 // Maksimi energia
     energyRegenRate: 15,            // Energiaa/sekunti (puolitettu kiihdyttäessä)
 
-    // Aloitusase
-    startWeapon: 'bullet',          // Aloitusase: 'bullet' | 'missile' | 'laser' | 'railgun'
+    // Oletusaseet (voidaan ylikirjoittaa valikossa)
+    startWeapon1: 'bullet',         // Ase 1: 'bullet' | 'missile' | 'laser' | 'railgun'
+    startWeapon2: 'missile',        // Ase 2: 'bullet' | 'missile' | 'laser' | 'railgun'
 
     // Aseylikirjoitukset (tyhjä = käytä globaaleja oletuksia)
     weapons: {
         bullet: {
+             shootCooldown: 0.2,        // Pelaajan cooldown (sekunti)
             initialSpeed: 250,      // 250 vs oletus 240
-            energyCost: 25,          // 25 vs oletus 30
+            energyCost: 16,          // 25 vs oletus 30
             color: '#00ff00',        // Vihreä (pelaajan väri)
             colorLight: '#88ff88',
             glowColor: '0, 255, 0'
-        }
-        // laser: { damagePerSecond: 500 },
-        // missile: { damage: 300 },
-        // railgun: { maxCharge: 60 }
+        },
+        missile: {
+            colors: {
+                bodyGradient: 'linear-gradient(to bottom, #a9f868, #aaf725, #f7cc32)',
+                glowColor1: 'rgba(255, 136, 0, 0.9)',
+                glowColor2: 'rgba(255, 68, 0, 0.6)',
+                glowColor3: 'rgba(255, 68, 0, 0.3)'
+            }
+        },
+        laser: {
+            coreColor: '#ffffff',       // Ytimen väri
+            glowColor: 'rgba(255, 50, 50, 1)', // Hehkun väri (punainen)
+        },
+        railgun: {
+            playerColor: '#00ff00',                   // Pääväri
+            playerColorFade: 'rgba(0, 255, 242, 0.5)',      // Häivytys gradientissa
+            playerGlowInner: 'rgba(0, 150, 255, 0.9)',      // Sisempi hehku
+            playerGlowMid: 'rgba(0, 150, 255, 0.6)',        // Keskihehku
+            playerGlowOuter: 'rgba(0, 150, 255, 0.3)',      // Ulompi hehku
+    }
+    }
+}
+
+// Pelaaja 2:n konfiguraatio — sama kuin P1, mutta sininen väri ja eri aloituspaikka
+const player2Config = {
+    ...playerConfig,
+    startX: 620,
+    startY: 430,
+    weapons: {
+        bullet: {
+            shootCooldown: 0.2,        // Pelaajan cooldown (sekunti)
+            initialSpeed: 250,
+            energyCost: 16,
+            color: '#4488ff',
+            colorLight: '#88bbff',
+            glowColor: '68, 136, 255'
+        },
+        missile: {
+            colors: {
+                bodyGradient: 'linear-gradient(to bottom, #7eacfa, #7266f9, #d182fe)',
+                glowColor1: 'rgba(255, 136, 0, 0.9)',
+                glowColor2: 'rgba(255, 68, 0, 0.6)',
+                glowColor3: 'rgba(255, 68, 0, 0.3)'
+            }
+        },
+        laser: {
+            coreColor: '#ffffff',       // Ytimen väri
+            glowColor: 'rgba(204, 50, 255, 1)', // Hehkun väri (punainen)
+        },
+        railgun: {
+            playerColor: 'rgb(0, 150, 255)',                // Pääväri
+            playerColorFade: 'rgba(0, 150, 255, 0.5)',      // Häivytys gradientissa
+            playerGlowInner: 'rgba(0, 150, 255, 0.9)',      // Sisempi hehku
+            playerGlowMid: 'rgba(0, 150, 255, 0.6)',        // Keskihehku
+            playerGlowOuter: 'rgba(0, 150, 255, 0.3)',      // Ulompi hehku
+    }
     }
 };
 
 // Pelaajan alus -luokka
 class Player extends SpaceShip {
-    constructor() {
+    constructor(config = playerConfig) {
         super({
-            x: playerConfig.startX,
-            y: playerConfig.startY,
-            health: playerConfig.maxHealth,
-            maxSpeed: playerConfig.maxSpeed,
-            nebulaCoefficient: playerConfig.nebulaCoefficient,
-            maxEnergy: playerConfig.maxEnergy,
-            energyRegenRate: playerConfig.energyRegenRate
+            x: config.startX,
+            y: config.startY,
+            health: config.maxHealth,
+            maxSpeed: config.maxSpeed,
+            nebulaCoefficient: config.nebulaCoefficient,
+            maxEnergy: config.maxEnergy,
+            energyRegenRate: config.energyRegenRate
         });
+        this.config = config;
         // Resolve asekonfiguraatiot: globaalit oletukset + aluskohtaiset ylikirjoitukset
-        const wo = playerConfig.weapons || {};
+        const wo = config.weapons || {};
         this.weaponConfigs = {
-            bullet: { ...bulletConfig, ...(wo.bullet || {}) },
-            missile: { ...missileConfig, ...(wo.missile || {}) },
-            laser: { ...laserConfig, ...(wo.laser || {}) },
-            railgun: { ...railgunConfig, ...(wo.railgun || {}) }
+            bullet: mergeWeaponConfig(bulletConfig, wo.bullet),
+            missile: mergeWeaponConfig(missileConfig, wo.missile),
+            laser: mergeWeaponConfig(laserConfig, wo.laser),
+            railgun: mergeWeaponConfig(railgunConfig, wo.railgun)
         };
 
         this.score = 0;
         this.gameOver = false;
         this.isInvulnerable = false;
         this.invulnerabilityTimer = 0;
-        this.shootCooldownTimer = 0; // Ampumisen cooldown-ajastin
-        this.shootSpeedMultiplier = 1.0; // Ampumisnopeuden kerroin (alkaa 1.0, pienenee boostien myötä)
-        this.weapon = playerConfig.startWeapon; // Nykyinen ase
-        this.isChargingRailgun = false; // Railgunin lataustila
-        this.railgunCharge = 0; // Railgunin kertynyt lataus (energiayksikköä)
+
+        // Kaksi aseslottia
+        this.weaponSlots = [
+            { type: config.startWeapon1, shootCooldownTimer: 0, shootSpeedMultiplier: 1.0, isChargingRailgun: false, railgunCharge: 0 },
+            { type: config.startWeapon2, shootCooldownTimer: 0, shootSpeedMultiplier: 1.0, isChargingRailgun: false, railgunCharge: 0 }
+        ];
     }
 
     // Ota vahinkoa (override: lisää immuniteetti törmäyksille)
@@ -97,7 +153,7 @@ class Player extends SpaceShip {
         // Tämä estää ajastimen nollautumisen jatkuvissa törmäyksissä
         if (isCollisionDamage && this.health > 0 && !this.isInvulnerable) {
             this.isInvulnerable = true;
-            this.invulnerabilityTimer = playerConfig.invulnerabilityDuration;
+            this.invulnerabilityTimer = this.config.invulnerabilityDuration;
         }
 
         return isDead;
@@ -109,9 +165,12 @@ class Player extends SpaceShip {
         this.energy = this.maxEnergy;
         this.isInvulnerable = false;
         this.invulnerabilityTimer = 0;
-        this.shootCooldownTimer = 0;
-        this.isChargingRailgun = false;
-        this.railgunCharge = 0;
+        for (const slot of this.weaponSlots) {
+            slot.shootCooldownTimer = 0;
+            slot.shootSpeedMultiplier = 1.0;
+            slot.isChargingRailgun = false;
+            slot.railgunCharge = 0;
+        }
     }
 
     // Tarkista onko tarpeeksi energiaa
@@ -125,76 +184,34 @@ class Player extends SpaceShip {
         if (this.energy < 0) this.energy = 0;
     }
 
-    // Tarkista voiko ampua
-    canShoot() {
-        return this.shootCooldownTimer <= 0;
+    // Tarkista voiko slotti ampua
+    canShoot(slotIndex) {
+        return this.weaponSlots[slotIndex].shootCooldownTimer <= 0;
     }
 
-    // Aseta ampumisen cooldown
-    setShootCooldown() {
-        this.shootCooldownTimer = this.weaponConfigs[this.weapon].shootCooldown * this.shootSpeedMultiplier;
+    // Aseta slotin cooldown
+    setShootCooldown(slotIndex) {
+        const slot = this.weaponSlots[slotIndex];
+        slot.shootCooldownTimer = this.weaponConfigs[slot.type].shootCooldown * slot.shootSpeedMultiplier;
     }
 
-    // Lisää ampumisnopeusboosti
+    // Lisää ampumisnopeusboosti (vaikuttaa molempiin slotteihin)
     applyRateOfFireBoost() {
-        this.shootSpeedMultiplier *= playerConfig.rateOfFireBoostMultiplier;
+        for (const slot of this.weaponSlots) {
+            slot.shootSpeedMultiplier *= this.config.rateOfFireBoostMultiplier;
+        }
     }
 
-    // Päivitä pelaajan asento ja nopeus
-    update(dt, keys) {
-        // Päivitä immuniteetti-ajastin
-        if (this.isInvulnerable) {
-            this.invulnerabilityTimer -= dt;
-            if (this.invulnerabilityTimer <= 0) {
-                this.isInvulnerable = false;
-                this.invulnerabilityTimer = 0;
+    // Päivitä molempien aseslottien cooldown-ajastimet
+    updateCooldowns(dt) {
+        for (const slot of this.weaponSlots) {
+            if (slot.shootCooldownTimer > 0) {
+                slot.shootCooldownTimer -= dt;
+                if (slot.shootCooldownTimer < 0) {
+                    slot.shootCooldownTimer = 0;
+                }
             }
         }
-
-        // Päivitä ampumisen cooldown-ajastin
-        if (this.shootCooldownTimer > 0) {
-            this.shootCooldownTimer -= dt;
-            if (this.shootCooldownTimer < 0) {
-                this.shootCooldownTimer = 0;
-            }
-        }
-
-        // Päivitä vahinkoválähdys-ajastin
-        this.updateDamageFlash(dt);
-
-        // Kierrä alusta
-        if (keys.ArrowLeft) {
-            this.angle -= playerConfig.rotationSpeed * dt;
-        }
-        if (keys.ArrowRight) {
-            this.angle += playerConfig.rotationSpeed * dt;
-        }
-
-        // Kiihdytä alusta
-        const dirX = Math.cos((this.angle - 90) * Math.PI / 180);
-        const dirY = Math.sin((this.angle - 90) * Math.PI / 180);
-
-        if (keys.ArrowUp) {
-            this.vx += dirX * playerConfig.accelerationForward * dt;
-            this.vy += dirY * playerConfig.accelerationForward * dt;
-        }
-        if (keys.ArrowDown) {
-            this.vx -= dirX * playerConfig.accelerationReverse * dt;
-            this.vy -= dirY * playerConfig.accelerationReverse * dt;
-        }
-
-        // Rajoita maksimi nopeus
-        this.capSpeed();
-
-        // Päivitä sijainti
-        this.x += this.vx * dt;
-        this.y += this.vy * dt;
-
-        // Rajoita ruudun rajoihin
-        if (this.x < 0) this.x = 0;
-        if (this.x > playerConfig.maxX) this.x = playerConfig.maxX;
-        if (this.y < 0) this.y = 0;
-        if (this.y > playerConfig.maxY) this.y = playerConfig.maxY;
     }
 
     // Palauta pelaajan nopeus
@@ -205,8 +222,8 @@ class Player extends SpaceShip {
     // Tarkista ovatko koordinaatit pelaajan sisällä (törmäys)
     isPointInside(px, py) {
         return px > this.x &&
-               px < this.x + playerConfig.width &&
+               px < this.x + this.config.width &&
                py > this.y &&
-               py < this.y + playerConfig.height;
+               py < this.y + this.config.height;
     }
 }

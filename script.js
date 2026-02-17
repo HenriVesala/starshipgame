@@ -12,33 +12,69 @@ let currentGameState = GameState.MENU;
 let lastFrameTime = performance.now();
 let deltaTime = 0;
 
-// Pelaajan alus
-let player = null;
+// Yhteispisteet
+let gameScore = 0;
+
+// Friendly fire
+let friendlyFire = false;
+
+// ======== Pelaajat ========
+// players[]-taulukko: jokainen elementti on pelaajan konteksti (pCtx)
+let players = [];
 
 // DOM elements
-const spaceship = document.getElementById('spaceship');
-const shipBody = spaceship.querySelector('.ship-body');
-// Vilkkumis-overlay rungon päällä (clip-path leikkaa automaattisesti)
-const shipPulseOverlay = document.createElement('div');
-shipPulseOverlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;';
-shipBody.appendChild(shipPulseOverlay);
-// Rungon välähdys-overlay aseen laukaisussa
-const shipFireFlashOverlay = document.createElement('div');
-shipFireFlashOverlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;opacity:0;';
-shipBody.appendChild(shipFireFlashOverlay);
-const positionDisplay = document.getElementById('position');
 const gameContainer = document.querySelector('.game-container');
-const healthBar = document.getElementById('healthBar');
-const healthText = document.getElementById('healthText');
-const energyBar = document.getElementById('energyBar');
-const energyText = document.getElementById('energyText');
-const laserCanvas = document.getElementById('laserCanvas');
-const playerLaser = new Laser(laserCanvas);
+const positionDisplay = document.getElementById('position');
 
-// Pelaajan liekki-elementit
-const playerFlameMain = spaceship.querySelector('.ship-flame-main');
-const playerFlameLeft = spaceship.querySelector('.ship-flame-left');
-const playerFlameRight = spaceship.querySelector('.ship-flame-right');
+// Apufunktio: luo DOM-overlay-elementti
+function createOverlay(parent) {
+    const el = document.createElement('div');
+    el.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;';
+    parent.appendChild(el);
+    return el;
+}
+
+// Luo pelaajan konteksti DOM-elementeistä
+function createPlayerContext(id, config, spaceshipId, laserIds, barIds, hudId) {
+    const ship = document.getElementById(spaceshipId);
+    const body = ship.querySelector('.ship-body');
+    return {
+        id: id,
+        config: config,
+        player: null,
+        joined: false,
+        alive: false,
+        dom: {
+            spaceship: ship,
+            shipBody: body,
+            pulseOverlay: createOverlay(body),
+            fireFlashOverlay: (() => { const el = createOverlay(body); el.style.opacity = '0'; return el; })(),
+            flameMain: ship.querySelector('.ship-flame-main'),
+            flameLeft: ship.querySelector('.ship-flame-left'),
+            flameRight: ship.querySelector('.ship-flame-right'),
+            healthBar: document.getElementById(barIds.healthBar),
+            healthText: document.getElementById(barIds.healthText),
+            energyBar: document.getElementById(barIds.energyBar),
+            energyText: document.getElementById(barIds.energyText),
+            healthBarContainer: barIds.healthBarContainer ? document.getElementById(barIds.healthBarContainer) : null,
+            energyBarContainer: barIds.energyBarContainer ? document.getElementById(barIds.energyBarContainer) : null,
+            weaponHud: document.getElementById(hudId.hud),
+            weaponHudName1: document.getElementById(hudId.name1),
+            weaponHudName2: document.getElementById(hudId.name2)
+        },
+        lasers: [new Laser(document.getElementById(laserIds[0])), new Laser(document.getElementById(laserIds[1]))],
+        keyMap: null, // Asetetaan alla
+        selectedWeapons: ['bullet', 'missile'],
+        menuWeaponIndex: [0, 1],
+        menuCursorIndex: 0,
+        menuJoined: false
+    };
+}
+
+// P1 näppäimet
+const p1KeyMap = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', fire1: 'KeyN', fire2: 'KeyM' };
+// P2 näppäimet
+const p2KeyMap = { up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD', fire1: 'ControlLeft', fire2: 'ShiftLeft' };
 
 // Game objects arrays
 let enemies = [];
@@ -86,263 +122,455 @@ const nebulaCloudSpawnInterval = Math.random() * (nebulaCloudConfig.spawnInterva
 let blackHoleSpawnTimer = 0;
 let nextBlackHoleSpawnTime = Math.random() * (blackHoleConfig.spawnIntervalMax - blackHoleConfig.spawnIntervalMin) + blackHoleConfig.spawnIntervalMin;
 
-// Input tracking
+// ======== Input tracking ========
 const keys = {
-    ArrowUp: false,
-    ArrowDown: false,
-    ArrowLeft: false,
-    ArrowRight: false,
-    Space: false
+    ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false,
+    KeyN: false, KeyM: false,
+    KeyW: false, KeyS: false, KeyA: false, KeyD: false,
+    ControlLeft: false, ShiftLeft: false
 };
 
-// Event listeners
+// Näppäin → keys-objektin avain -kartoitus
+function keyEventToKeyName(e) {
+    if (e.key === ' ') return 'Space';
+    if (e.key === 'Enter') return 'Enter';
+    if (e.code === 'ControlLeft') return 'ControlLeft';
+    if (e.key === 'Shift' && e.code === 'ShiftLeft') return 'ShiftLeft';
+    if (e.key === 'Shift') return 'ShiftLeft'; // Käytetään vasenta shiftiä oletuksena
+    const lower = e.key.toLowerCase();
+    if (lower === 'n') return 'KeyN';
+    if (lower === 'm') return 'KeyM';
+    if (lower === 'w') return 'KeyW';
+    if (lower === 's') return 'KeyS';
+    if (lower === 'a') return 'KeyA';
+    if (lower === 'd') return 'KeyD';
+    if (e.key === 'ArrowUp') return 'ArrowUp';
+    if (e.key === 'ArrowDown') return 'ArrowDown';
+    if (e.key === 'ArrowLeft') return 'ArrowLeft';
+    if (e.key === 'ArrowRight') return 'ArrowRight';
+    return null;
+}
+
+// ======== Valikko: asevalinta ========
+const weaponTypes = ['bullet', 'missile', 'laser', 'railgun'];
+
+function menuJoinPlayer(pCtx, prefix) {
+    if (pCtx.menuJoined) return;
+    pCtx.menuJoined = true;
+    document.getElementById(`${prefix}JoinPrompt`).style.display = 'none';
+    document.getElementById(`${prefix}Weapons`).style.display = '';
+    document.getElementById(`${prefix}MenuHint`).style.display = '';
+    updateMenuSelectionForPlayer(pCtx, prefix);
+}
+
+function menuUnjoinPlayer(pCtx, prefix) {
+    pCtx.menuJoined = false;
+    document.getElementById(`${prefix}JoinPrompt`).style.display = '';
+    document.getElementById(`${prefix}Weapons`).style.display = 'none';
+    document.getElementById(`${prefix}MenuHint`).style.display = 'none';
+}
+
+const slotKeyLabels = {
+    p1: ['N', 'M'],
+    p2: ['Ctrl', 'Shift']
+};
+
+function updateMenuSelectionForPlayer(pCtx, slotPrefix) {
+    const cards = document.querySelectorAll(`#${slotPrefix}Weapons .weapon-card`);
+    const labels = slotKeyLabels[slotPrefix];
+
+    cards.forEach((c, i) => {
+        // Kursorin korostus
+        c.classList.toggle('selected', i === pCtx.menuCursorIndex);
+
+        // Valitun aseen reunus
+        const weapon = weaponTypes[i];
+        const isAssigned = pCtx.selectedWeapons[0] === weapon || pCtx.selectedWeapons[1] === weapon;
+        c.classList.toggle(`assigned-${slotPrefix}`, isAssigned);
+
+        // Päivitä badget — näytä mihin slotteihin tämä ase on valittu
+        const badgeContainer = c.querySelector('.weapon-card-badges');
+        let badges = '';
+        if (pCtx.selectedWeapons[0] === weapon) badges += `<span class="weapon-slot-badge">${labels[0]}</span>`;
+        if (pCtx.selectedWeapons[1] === weapon) badges += `<span class="weapon-slot-badge">${labels[1]}</span>`;
+        badgeContainer.innerHTML = badges;
+    });
+}
+
+// ======== Input Events ========
 document.addEventListener('keydown', (e) => {
-    if (e.key === ' ') {
+    const keyName = keyEventToKeyName(e);
+
+    // Valikko-tila
+    if (currentGameState === GameState.MENU) {
         e.preventDefault();
-        // Handle game over restart
-        if (player.gameOver) {
-            restartGame();
-            return;
+        // P1: N/M liittää ensin, sitten valitsee aseen
+        if (keyName === 'KeyN') {
+            if (!players[0].menuJoined) { menuJoinPlayer(players[0], 'p1'); }
+            else {
+                players[0].selectedWeapons[0] = weaponTypes[players[0].menuCursorIndex];
+                players[0].menuWeaponIndex[0] = players[0].menuCursorIndex;
+                updateMenuSelectionForPlayer(players[0], 'p1');
+            }
+        } else if (keyName === 'KeyM') {
+            if (!players[0].menuJoined) { menuJoinPlayer(players[0], 'p1'); }
+            else {
+                players[0].selectedWeapons[1] = weaponTypes[players[0].menuCursorIndex];
+                players[0].menuWeaponIndex[1] = players[0].menuCursorIndex;
+                updateMenuSelectionForPlayer(players[0], 'p1');
+            }
         }
-        keys.Space = true;
-    } else if (keys.hasOwnProperty(e.key)) {
-        keys[e.key] = true;
+        // P1 navigoi nuolilla (vain jos liittynyt)
+        else if (e.key === 'ArrowLeft' && players[0].menuJoined) {
+            players[0].menuCursorIndex = (players[0].menuCursorIndex - 1 + 4) % 4;
+            updateMenuSelectionForPlayer(players[0], 'p1');
+        } else if (e.key === 'ArrowRight' && players[0].menuJoined) {
+            players[0].menuCursorIndex = (players[0].menuCursorIndex + 1) % 4;
+            updateMenuSelectionForPlayer(players[0], 'p1');
+        }
+        // P2: Ctrl/Shift liittää ensin, sitten valitsee aseen
+        else if (keyName === 'ControlLeft') {
+            if (!players[1].menuJoined) { menuJoinPlayer(players[1], 'p2'); }
+            else {
+                players[1].selectedWeapons[0] = weaponTypes[players[1].menuCursorIndex];
+                players[1].menuWeaponIndex[0] = players[1].menuCursorIndex;
+                updateMenuSelectionForPlayer(players[1], 'p2');
+            }
+        } else if (keyName === 'ShiftLeft') {
+            if (!players[1].menuJoined) { menuJoinPlayer(players[1], 'p2'); }
+            else {
+                players[1].selectedWeapons[1] = weaponTypes[players[1].menuCursorIndex];
+                players[1].menuWeaponIndex[1] = players[1].menuCursorIndex;
+                updateMenuSelectionForPlayer(players[1], 'p2');
+            }
+        }
+        // P2 navigoi A/D:llä (vain jos liittynyt)
+        else if (keyName === 'KeyA' && players[1].menuJoined) {
+            players[1].menuCursorIndex = (players[1].menuCursorIndex - 1 + 4) % 4;
+            updateMenuSelectionForPlayer(players[1], 'p2');
+        } else if (keyName === 'KeyD' && players[1].menuJoined) {
+            players[1].menuCursorIndex = (players[1].menuCursorIndex + 1) % 4;
+            updateMenuSelectionForPlayer(players[1], 'p2');
+        }
+        // Toggle friendly fire
+        else if (e.key.toLowerCase() === 'f') {
+            toggleFriendlyFire();
+        }
+        // Aloita peli (vähintään yksi pelaaja pitää olla liittynyt)
+        else if (keyName === 'Space' || keyName === 'Enter') {
+            if (players.some(p => p.menuJoined)) startGame();
+        }
+        return;
+    }
+
+    // Game over -restart
+    if (currentGameState === GameState.GAME_OVER && keyName === 'Space') {
+        e.preventDefault();
+        restartGame();
+        return;
+    }
+
+    // Pelitila: päivitä keys
+    if (keyName && keys.hasOwnProperty(keyName)) {
+        keys[keyName] = true;
         e.preventDefault();
     }
 });
 
 document.addEventListener('keyup', (e) => {
-    if (e.key === ' ') {
-        keys.Space = false;
-        e.preventDefault();
-    } else if (keys.hasOwnProperty(e.key)) {
-        keys[e.key] = false;
+    const keyName = keyEventToKeyName(e);
+    if (keyName && keys.hasOwnProperty(keyName)) {
+        keys[keyName] = false;
         e.preventDefault();
     }
 });
 
-// Update position based on input
-function updatePosition(dt) {
-    // Don't update if player doesn't exist or game is not playing
-    if (!player || currentGameState !== GameState.PLAYING) {
+// ======== Friendly Fire toggle ========
+function toggleFriendlyFire() {
+    friendlyFire = !friendlyFire;
+    const valueEl = document.getElementById('friendlyFireValue');
+    valueEl.textContent = friendlyFire ? 'ON' : 'OFF';
+    valueEl.classList.toggle('active', friendlyFire);
+}
+
+// ======== Apufunktiot ========
+
+function getAlivePlayers() {
+    return players.filter(p => p.joined && p.alive);
+}
+
+function getAlivePlayerInstances() {
+    return getAlivePlayers().map(p => p.player);
+}
+
+function getNearestAlivePlayer(x, y) {
+    let nearest = null, minDist = Infinity;
+    for (const pCtx of getAlivePlayers()) {
+        const d = distance(x, y, pCtx.player.x + 20, pCtx.player.y + 20);
+        if (d < minDist) { minDist = d; nearest = pCtx; }
+    }
+    return nearest;
+}
+
+// Tarkista onko target joku pelaajista
+function findPlayerCtxByInstance(playerInstance) {
+    return players.find(p => p.player === playerInstance);
+}
+
+// ======== Pelaajan liittyminen peliin ========
+function joinPlayer(pCtx) {
+    if (pCtx.joined) return;
+    pCtx.joined = true;
+    pCtx.alive = true;
+    pCtx.player = new Player(pCtx.config);
+    pCtx.player.weaponSlots[0].type = pCtx.selectedWeapons[0];
+    pCtx.player.weaponSlots[1].type = pCtx.selectedWeapons[1];
+    pCtx.player.x = pCtx.config.startX;
+    pCtx.player.y = pCtx.config.startY;
+    pCtx.player.angle = 0;
+    pCtx.player.vx = 0;
+    pCtx.player.vy = 0;
+    pCtx.player.resetHealth();
+
+    // Näytä DOM-elementit
+    pCtx.dom.spaceship.style.display = '';
+    pCtx.dom.spaceship.style.left = pCtx.player.x + 'px';
+    pCtx.dom.spaceship.style.top = pCtx.player.y + 'px';
+    if (pCtx.dom.healthBarContainer) pCtx.dom.healthBarContainer.style.display = '';
+    if (pCtx.dom.energyBarContainer) pCtx.dom.energyBarContainer.style.display = '';
+    if (pCtx.dom.weaponHud) pCtx.dom.weaponHud.style.display = '';
+
+    // Päivitä HUD
+    pCtx.dom.weaponHudName1.textContent = pCtx.player.weaponSlots[0].type;
+    pCtx.dom.weaponHudName2.textContent = pCtx.player.weaponSlots[1].type;
+}
+
+// ======== Per-pelaaja update ========
+function updatePlayer(pCtx, dt) {
+    const p = pCtx.player;
+    const km = pCtx.keyMap;
+    const cfg = pCtx.config;
+
+    if (p.isShrinking) {
+        p.thrustState = 'none';
         return;
     }
 
-    // Jos pelaaja kutistuu, älä anna liikkua tai ampua
-    if (player.isShrinking) {
-        player.thrustState = 'none';
-        return;
-    }
-
-    // Päivitä immuniteetti-ajastin
-    if (player.isInvulnerable) {
-        player.invulnerabilityTimer -= dt;
-        if (player.invulnerabilityTimer <= 0) {
-            player.isInvulnerable = false;
-            player.invulnerabilityTimer = 0;
+    // Immuniteetti
+    if (p.isInvulnerable) {
+        p.invulnerabilityTimer -= dt;
+        if (p.invulnerabilityTimer <= 0) {
+            p.isInvulnerable = false;
+            p.invulnerabilityTimer = 0;
         }
     }
 
-    // Päivitä ampumisen cooldown-ajastin
-    if (player.shootCooldownTimer > 0) {
-        player.shootCooldownTimer -= dt;
-        if (player.shootCooldownTimer < 0) {
-            player.shootCooldownTimer = 0;
-        }
+    // Cooldown-ajastimet
+    p.updateCooldowns(dt);
+
+    // Visuaalit
+    p.updateDamageFlash(dt);
+    p.updateFireFlash(dt);
+
+    // Kääntö
+    if (keys[km.left]) p.angle -= cfg.rotationSpeed * dt;
+    if (keys[km.right]) p.angle += cfg.rotationSpeed * dt;
+
+    // Liike
+    const rad = (p.angle - 90) * Math.PI / 180;
+    const dirX = Math.cos(rad);
+    const dirY = Math.sin(rad);
+    const nebulaAccelMult = p.inNebula ? 0.5 : 1.0;
+
+    if (keys[km.up]) {
+        p.vx += dirX * cfg.accelerationForward * nebulaAccelMult * dt;
+        p.vy += dirY * cfg.accelerationForward * nebulaAccelMult * dt;
+    }
+    if (keys[km.down]) {
+        p.vx -= dirX * cfg.accelerationReverse * nebulaAccelMult * dt;
+        p.vy -= dirY * cfg.accelerationReverse * nebulaAccelMult * dt;
     }
 
-    // Päivitä vahinkoválähdys- ja laukaisuvälähdys-ajastimet
-    player.updateDamageFlash(dt);
-    player.updateFireFlash(dt);
+    // Kiihtyvyystila
+    if (keys[km.up] && !keys[km.down]) p.thrustState = 'forward';
+    else if (keys[km.down] && !keys[km.up]) p.thrustState = 'reverse';
+    else p.thrustState = 'none';
 
-    // Rotation (scaled by dt for frame-independent speed)
-    if (keys.ArrowLeft) {
-        player.angle -= playerConfig.rotationSpeed * dt;
-    }
-    if (keys.ArrowRight) {
-        player.angle += playerConfig.rotationSpeed * dt;
-    }
+    // Energia
+    const energyRegenMult = (keys[km.up] || keys[km.down]) ? 0.5 : 1.0;
+    p.energy = Math.min(p.maxEnergy, p.energy + cfg.energyRegenRate * energyRegenMult * dt);
 
-    // Movement in the direction the ship is facing with inertia
-    // Subtract 90 degrees because clip-path points up, but cos/sin treats 0° as right
-    const adjustedAngle = player.angle - 90;
-    const radians = (adjustedAngle * Math.PI) / 180;
-    const dirX = Math.cos(radians);
-    const dirY = Math.sin(radians);
-    
-    // Acceleration based on input (no automatic deceleration)
-    const nebulaAccelMult = player.inNebula ? 0.5 : 1.0;
-    if (keys.ArrowUp) {
-        player.vx += dirX * playerConfig.accelerationForward * nebulaAccelMult * dt;
-        player.vy += dirY * playerConfig.accelerationForward * nebulaAccelMult * dt;
-    }
-    if (keys.ArrowDown) {
-        player.vx -= dirX * playerConfig.accelerationReverse * nebulaAccelMult * dt;
-        player.vy -= dirY * playerConfig.accelerationReverse * nebulaAccelMult * dt;
-    }
+    p.capSpeed();
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
 
-    // Aseta kiihtyvyystila liekkejä varten
-    if (keys.ArrowUp && !keys.ArrowDown) {
-        player.thrustState = 'forward';
-    } else if (keys.ArrowDown && !keys.ArrowUp) {
-        player.thrustState = 'reverse';
+    // Ruudun reunat (wrap)
+    if (p.x < -cfg.width) p.x = gameConfig.screenWidth;
+    if (p.x > gameConfig.screenWidth) p.x = -cfg.width;
+    if (p.y < -cfg.height) p.y = gameConfig.screenHeight;
+    if (p.y > gameConfig.screenHeight) p.y = -cfg.height;
+
+    // Ammu
+    fireWeaponSlot(pCtx, 0, keys[km.fire1], dt);
+    fireWeaponSlot(pCtx, 1, keys[km.fire2], dt);
+
+    // Railgun-visuaalit
+    const chargingSlot = p.weaponSlots.find(s => s.isChargingRailgun);
+    if (chargingSlot) {
+        pCtx.dom.spaceship.classList.add('charging-railgun');
+        const t = performance.now() / 1000;
+        const phase = (t % p.weaponConfigs.railgun.chargePulseInterval) / p.weaponConfigs.railgun.chargePulseInterval;
+        pCtx.dom.pulseOverlay.style.background = `linear-gradient(to bottom, ${p.weaponConfigs.railgun.chargePulseTipColor}, ${p.weaponConfigs.railgun.chargePulseMidColor} 50%, ${p.weaponConfigs.railgun.chargePulseColor})`;
+        pCtx.dom.pulseOverlay.style.opacity = (0.5 + 0.5 * Math.cos(phase * 2 * Math.PI)).toFixed(2);
     } else {
-        player.thrustState = 'none';
+        pCtx.dom.spaceship.classList.remove('charging-railgun');
+        pCtx.dom.pulseOverlay.style.background = '';
+        pCtx.dom.pulseOverlay.style.opacity = '';
     }
+}
 
-    // Lataa energiaa (puolitettu kiihdyttäessä/jarrutettaessa)
-    const energyRegenMult = (keys.ArrowUp || keys.ArrowDown) ? 0.5 : 1.0;
-    player.energy = Math.min(player.maxEnergy, player.energy + playerConfig.energyRegenRate * energyRegenMult * dt);
+// ======== Per-pelaaja ampuminen ========
+function fireWeaponSlot(pCtx, slotIndex, keyPressed, dt) {
+    const p = pCtx.player;
+    const slot = p.weaponSlots[slotIndex];
+    const weaponType = slot.type;
+    const laser = pCtx.lasers[slotIndex];
+    const cfg = pCtx.config;
+    const km = pCtx.keyMap;
+    const fireKeyName = slotIndex === 0 ? km.fire1 : km.fire2;
 
-    // Rajoita maksiminopeus
-    player.capSpeed();
-    
-    // Update position based on velocity
-    player.x += player.vx * dt;
-    player.y += player.vy * dt;
+    if (weaponType === 'laser') {
+        const laserEnergyCost = p.weaponConfigs.laser.energyCostPerSecond * dt;
+        if (keyPressed && p.energy >= laserEnergyCost) {
+            p.triggerFireFlash(p.weaponConfigs.laser.fireFlash);
+            p.consumeEnergy(laserEnergyCost);
 
-    // Boundary wrapping
-    if (player.x < -playerConfig.width) player.x = gameConfig.screenWidth;
-    if (player.x > gameConfig.screenWidth) player.x = -playerConfig.width;
-    if (player.y < -playerConfig.height) player.y = gameConfig.screenHeight;
-    if (player.y > gameConfig.screenHeight) player.y = -playerConfig.height;
+            const halfShip = cfg.width / 2;
+            const rad = (p.angle - 90) * Math.PI / 180;
+            const startX = p.x + halfShip + Math.cos(rad) * 20;
+            const startY = p.y + halfShip + Math.sin(rad) * 20;
 
-    // Ampumislogiikka aseen mukaan
-    if (player.weapon === 'laser') {
-        // Laser: jatkuva säde niin kauan kuin Space pohjassa ja energiaa riittää
-        const laserEnergyCost = player.weaponConfigs.laser.energyCostPerSecond * dt;
-        if (keys.Space && player.energy >= laserEnergyCost) {
-            // Jatkuva välähdys niin kauan kun laser on päällä
-            player.triggerFireFlash(player.weaponConfigs.laser.fireFlash);
-            player.consumeEnergy(laserEnergyCost);
-
-            const halfShip = playerConfig.width / 2;
-            const rad = (player.angle - 90) * Math.PI / 180;
-            const startX = player.x + halfShip + Math.cos(rad) * 20;
-            const startY = player.y + halfShip + Math.sin(rad) * 20;
-
+            // FF: laserin kohteet sisältävät muut pelaajat kun friendly fire on päällä
+            const laserPlayerTargets = friendlyFire
+                ? getAlivePlayerInstances()
+                : [];
             const laserTargets = {
                 enemies: enemies,
                 planets: planets,
                 meteors: meteors,
                 blackHoles: blackHoles,
                 nebulaClouds: nebulaClouds,
-                player: null
+                players: laserPlayerTargets,
+                missiles: [...enemyMissiles, ...playerMissiles]
             };
 
-            const hit = playerLaser.trace(startX, startY, player.angle, 'player', laserTargets);
-            playerLaser.active = true;
+            laser.setConfig(p.weaponConfigs.laser);
+            const hit = laser.trace(startX, startY, p.angle, 'player', laserTargets);
+            laser.active = true;
 
             if (hit.target) {
-                const intensity = playerLaser.getIntensity(hit.distance) * (hit.mul || 1);
-                handleLaserHit(hit.target, player.weaponConfigs.laser.damagePerSecond * dt * intensity, 'player');
+                const intensity = laser.getIntensity(hit.distance) * (hit.mul || 1);
+                handleLaserHit(hit.target, p.weaponConfigs.laser.damagePerSecond * dt * intensity, 'player');
             }
 
-            // Laserin rekyyli (jatkuva)
-            player.vx -= Math.cos(rad) * player.weaponConfigs.laser.recoilPerSecond * dt;
-            player.vy -= Math.sin(rad) * player.weaponConfigs.laser.recoilPerSecond * dt;
+            p.vx -= Math.cos(rad) * p.weaponConfigs.laser.recoilPerSecond * dt;
+            p.vy -= Math.sin(rad) * p.weaponConfigs.laser.recoilPerSecond * dt;
         } else {
-            playerLaser.active = false;
+            laser.active = false;
         }
 
-    } else if (player.weapon === 'railgun') {
-        // Railgun: lataa energiaa Space pohjassa, laukaise kun vapautetaan
-        playerLaser.active = false;
+    } else if (weaponType === 'railgun') {
+        laser.active = false;
 
-        if (keys.Space && player.energy > 0) {
-            if (player.railgunCharge >= player.weaponConfigs.railgun.maxCharge) {
-                // Ylläpitotila: maksimivaraus saavutettu, kuluta vähemmän energiaa
-                const maintenanceCost = player.weaponConfigs.railgun.maintenanceEnergyPerSecond * dt;
-                player.consumeEnergy(Math.min(maintenanceCost, player.energy));
+        if (keyPressed && p.energy > 0) {
+            if (slot.railgunCharge >= p.weaponConfigs.railgun.maxCharge) {
+                const maintenanceCost = p.weaponConfigs.railgun.maintenanceEnergyPerSecond * dt;
+                p.consumeEnergy(Math.min(maintenanceCost, p.energy));
             } else {
-                // Lataa: kuluta energiaa, kasvata latausta
-                const energyCost = player.weaponConfigs.railgun.chargeEnergyPerSecond * dt;
-                const actualCost = Math.min(energyCost, player.energy);
-                player.consumeEnergy(actualCost);
-                player.railgunCharge += actualCost;
-                if (player.railgunCharge > player.weaponConfigs.railgun.maxCharge) {
-                    player.railgunCharge = player.weaponConfigs.railgun.maxCharge;
+                const energyCost = p.weaponConfigs.railgun.chargeEnergyPerSecond * dt;
+                const actualCost = Math.min(energyCost, p.energy);
+                p.consumeEnergy(actualCost);
+                slot.railgunCharge += actualCost;
+                if (slot.railgunCharge > p.weaponConfigs.railgun.maxCharge) {
+                    slot.railgunCharge = p.weaponConfigs.railgun.maxCharge;
                 }
             }
-            player.isChargingRailgun = true;
-            spaceship.classList.add('charging-railgun');
-            // Vilkkuminen: feidaa overlay siniaallon mukaan
-            const t = performance.now() / 1000;
-            const phase = (t % player.weaponConfigs.railgun.chargePulseInterval) / player.weaponConfigs.railgun.chargePulseInterval;
-            shipPulseOverlay.style.background = `linear-gradient(to bottom, ${player.weaponConfigs.railgun.chargePulseTipColor}, ${player.weaponConfigs.railgun.chargePulseMidColor} 50%, ${player.weaponConfigs.railgun.chargePulseColor})`;
-            shipPulseOverlay.style.opacity = (0.5 + 0.5 * Math.cos(phase * 2 * Math.PI)).toFixed(2);
+            slot.isChargingRailgun = true;
 
-        } else if (player.isChargingRailgun) {
-            // Laukaise! Space vapautettiin tai energia loppui
-            spaceship.classList.remove('charging-railgun');
-            shipPulseOverlay.style.background = '';
-            shipPulseOverlay.style.opacity = '';
+        } else if (slot.isChargingRailgun) {
+            if (slot.railgunCharge >= p.weaponConfigs.railgun.minCharge) {
+                const chargePercent = slot.railgunCharge / p.weaponConfigs.railgun.maxCharge;
+                const speed = p.weaponConfigs.railgun.minSpeed + chargePercent * (p.weaponConfigs.railgun.maxSpeed - p.weaponConfigs.railgun.minSpeed);
 
-            if (player.railgunCharge >= player.weaponConfigs.railgun.minCharge) {
-                const chargePercent = player.railgunCharge / player.weaponConfigs.railgun.maxCharge;
-                const speed = player.weaponConfigs.railgun.minSpeed + chargePercent * (player.weaponConfigs.railgun.maxSpeed - player.weaponConfigs.railgun.minSpeed);
+                const halfShip = cfg.width / 2;
+                const rad = (p.angle - 90) * Math.PI / 180;
+                const spawnX = p.x + halfShip + Math.cos(rad) * 20;
+                const spawnY = p.y + halfShip + Math.sin(rad) * 20;
 
-                const halfShip = playerConfig.width / 2;
-                const rad = (player.angle - 90) * Math.PI / 180;
-                const spawnX = player.x + halfShip + Math.cos(rad) * 20;
-                const spawnY = player.y + halfShip + Math.sin(rad) * 20;
+                const rgProj = new RailgunProjectile(
+                    gameContainer, spawnX, spawnY, p.angle,
+                    'player', speed, p.vx, p.vy, p.weaponConfigs.railgun
+                );
+                rgProj.firedByPlayer = p;
+                playerBullets.push(rgProj);
 
-                playerBullets.push(new RailgunProjectile(
-                    gameContainer, spawnX, spawnY, player.angle,
-                    'player', speed, player.vx, player.vy, player.weaponConfigs.railgun
-                ));
+                const recoilAmount = p.weaponConfigs.railgun.recoilPerCharge * slot.railgunCharge;
+                p.vx -= Math.cos(rad) * recoilAmount;
+                p.vy -= Math.sin(rad) * recoilAmount;
 
-                // Rekyyli — suurenee ladatun energian mukaan
-                const recoilAmount = player.weaponConfigs.railgun.recoilPerCharge * player.railgunCharge;
-                player.vx -= Math.cos(rad) * recoilAmount;
-                player.vy -= Math.sin(rad) * recoilAmount;
-
-                player.triggerFireFlash(player.weaponConfigs.railgun.fireFlash);
+                p.triggerFireFlash(p.weaponConfigs.railgun.fireFlash);
             }
-
-            player.isChargingRailgun = false;
-            player.railgunCharge = 0;
-        } else {
-            spaceship.classList.remove('charging-railgun');
-            shipPulseOverlay.style.background = '';
-            shipPulseOverlay.style.opacity = '';
+            slot.isChargingRailgun = false;
+            slot.railgunCharge = 0;
         }
 
     } else {
-        playerLaser.active = false;
+        laser.active = false;
+        const shootEnergyCost = p.weaponConfigs[weaponType].energyCost;
 
-        // Bullet/Missile: yksittäiset laukaukset cooldownilla
-        const shootEnergyCost = player.weapon === 'missile' ? player.weaponConfigs.missile.energyCost : player.weaponConfigs.bullet.energyCost;
-        if (keys.Space && player.canShoot() && player.hasEnergy(shootEnergyCost)) {
-            const halfShipSize = playerConfig.width / 2;
-            const adjustedAngle = player.angle - 90;
+        if (keyPressed && p.canShoot(slotIndex) && p.hasEnergy(shootEnergyCost)) {
+            const halfShipSize = cfg.width / 2;
+            const adjustedAngle = p.angle - 90;
             const radians = (adjustedAngle * Math.PI) / 180;
             const forwardOffset = 20;
-            const spawnX = player.x + halfShipSize + Math.cos(radians) * forwardOffset;
-            const spawnY = player.y + halfShipSize + Math.sin(radians) * forwardOffset;
+            const spawnX = p.x + halfShipSize + Math.cos(radians) * forwardOffset;
+            const spawnY = p.y + halfShipSize + Math.sin(radians) * forwardOffset;
 
-            if (player.weapon === 'missile') {
-                playerMissiles.push(new Missile(gameContainer, spawnX, spawnY, player.angle, 'player', player.vx, player.vy, player.weaponConfigs.missile));
-                // Ohjuksen rekyyli
-                player.vx -= Math.cos(radians) * player.weaponConfigs.missile.recoil;
-                player.vy -= Math.sin(radians) * player.weaponConfigs.missile.recoil;
-                player.triggerFireFlash(player.weaponConfigs.missile.fireFlash);
+            if (weaponType === 'missile') {
+                const mis = new Missile(gameContainer, spawnX, spawnY, p.angle, 'player', p.vx, p.vy, p.weaponConfigs.missile);
+                mis.firedByPlayer = p;
+                playerMissiles.push(mis);
+                p.vx -= Math.cos(radians) * p.weaponConfigs.missile.recoil;
+                p.vy -= Math.sin(radians) * p.weaponConfigs.missile.recoil;
+                p.triggerFireFlash(p.weaponConfigs.missile.fireFlash);
             } else {
-                playerBullets.push(new Bullet(gameContainer, spawnX, spawnY, player.angle, 'player', player.vx, player.vy, player.weaponConfigs.bullet));
-                // Ammuksen rekyyli
-                player.vx -= Math.cos(radians) * player.weaponConfigs.bullet.recoil;
-                player.vy -= Math.sin(radians) * player.weaponConfigs.bullet.recoil;
-                player.triggerFireFlash(player.weaponConfigs.bullet.fireFlash);
+                const bul = new Bullet(gameContainer, spawnX, spawnY, p.angle, 'player', p.vx, p.vy, p.weaponConfigs.bullet);
+                bul.firedByPlayer = p;
+                playerBullets.push(bul);
+                p.vx -= Math.cos(radians) * p.weaponConfigs.bullet.recoil;
+                p.vy -= Math.sin(radians) * p.weaponConfigs.bullet.recoil;
+                p.triggerFireFlash(p.weaponConfigs.bullet.fireFlash);
             }
-            player.consumeEnergy(shootEnergyCost);
-            player.setShootCooldown();
-            keys.Space = false;
+            p.consumeEnergy(shootEnergyCost);
+            p.setShootCooldown(slotIndex);
+            keys[fireKeyName] = false;
         }
     }
 }
 
+// ======== Update kaikki pelaajat ========
+function updatePosition(dt) {
+    if (currentGameState !== GameState.PLAYING) return;
+
+    for (const pCtx of players) {
+        if (pCtx.joined && pCtx.alive) {
+            updatePlayer(pCtx, dt);
+        }
+    }
+}
+
+// ======== Spawn-funktiot ========
 function spawnEnemy(spawner) {
-    // Count existing enemies of this type
     const typeCount = enemies.filter(e => e.constructor.name === spawner.type.name).length;
     if (typeCount < spawner.maxCount) {
         enemies.push(new spawner.type(gameContainer));
@@ -350,7 +578,7 @@ function spawnEnemy(spawner) {
 }
 
 function spawnMeteor() {
-    const tier = getCurrentGameplayTier(player.score);
+    const tier = getCurrentGameplayTier(gameScore);
     if (meteors.length < tier.maxMeteors) {
         meteors.push(new Meteor(gameContainer));
         meteorSpawnTimer = 0;
@@ -358,7 +586,7 @@ function spawnMeteor() {
 }
 
 function spawnPlanet() {
-    const tier = getCurrentGameplayTier(player.score);
+    const tier = getCurrentGameplayTier(gameScore);
     if (planets.length < tier.maxPlanets) {
         planets.push(new Planet(gameContainer));
         planetSpawnTimer = 0;
@@ -367,7 +595,7 @@ function spawnPlanet() {
 }
 
 function spawnNebulaCloud() {
-    const tier = getCurrentGameplayTier(player.score);
+    const tier = getCurrentGameplayTier(gameScore);
     if (nebulaClouds.length < tier.maxNebulaClouds) {
         nebulaClouds.push(new NebulaCloud(gameContainer));
         nebulaCloudSpawnTimer = 0;
@@ -375,7 +603,7 @@ function spawnNebulaCloud() {
 }
 
 function spawnBlackHole() {
-    const tier = getCurrentGameplayTier(player.score);
+    const tier = getCurrentGameplayTier(gameScore);
     if (blackHoles.length < tier.maxBlackHoles) {
         blackHoles.push(new BlackHole(gameContainer));
         blackHoleSpawnTimer = 0;
@@ -383,111 +611,101 @@ function spawnBlackHole() {
     }
 }
 
-// Update health bar display
-function updateHealthBar() {
-    const healthPercent = (player.health / player.maxHealth) * 100;
-    healthBar.style.width = healthPercent + '%';
-    healthText.textContent = `${Math.ceil(player.health)}/${player.maxHealth}`;
-
-    // Update health bar color based on health percentage
-    healthBar.classList.remove('low', 'critical');
-    if (healthPercent <= 33) {
-        healthBar.classList.add('critical');
-    } else if (healthPercent <= 66) {
-        healthBar.classList.add('low');
-    }
+// ======== UI Updates ========
+function updateHealthBarFor(p, barEl, textEl) {
+    const healthPercent = (p.health / p.maxHealth) * 100;
+    barEl.style.width = healthPercent + '%';
+    textEl.textContent = `${Math.ceil(p.health)}/${p.maxHealth}`;
+    barEl.classList.remove('low', 'critical');
+    if (healthPercent <= 33) barEl.classList.add('critical');
+    else if (healthPercent <= 66) barEl.classList.add('low');
 }
 
-// Update energy bar display
-function updateEnergyBar() {
-    const energyPercent = (player.energy / player.maxEnergy) * 100;
-    energyBar.style.width = energyPercent + '%';
-    energyText.textContent = `${Math.ceil(player.energy)}/${player.maxEnergy}`;
-
-    energyBar.classList.remove('low', 'critical');
-    if (energyPercent <= 15) {
-        energyBar.classList.add('critical');
-    } else if (energyPercent <= 33) {
-        energyBar.classList.add('low');
-    }
+function updateEnergyBarFor(p, barEl, textEl) {
+    const energyPercent = (p.energy / p.maxEnergy) * 100;
+    barEl.style.width = energyPercent + '%';
+    textEl.textContent = `${Math.ceil(p.energy)}/${p.maxEnergy}`;
+    barEl.classList.remove('low', 'critical');
+    if (energyPercent <= 15) barEl.classList.add('critical');
+    else if (energyPercent <= 33) barEl.classList.add('low');
 }
 
-// Render spaceship and UI
+// ======== Render per pelaaja ========
+function renderPlayer(pCtx) {
+    const p = pCtx.player;
+    const dom = pCtx.dom;
+
+    dom.spaceship.style.left = p.x + 'px';
+    dom.spaceship.style.top = p.y + 'px';
+
+    if (p.isShrinking) {
+        const scale = 1 - p.shrinkProgress;
+        dom.spaceship.style.transform = `rotate(${p.angle}deg) scale(${scale})`;
+    } else {
+        dom.spaceship.style.transform = `rotate(${p.angle}deg)`;
+    }
+
+    // Immuniteetti
+    dom.spaceship.classList.toggle('invulnerable', p.isInvulnerable);
+
+    // Vahinkovälähdys
+    dom.spaceship.classList.toggle('damage-flash', p.damageFlashTimer > 0);
+
+    // Liekit
+    if (p.thrustState === 'forward') {
+        dom.flameMain.classList.add('active');
+        dom.flameLeft.classList.remove('active');
+        dom.flameRight.classList.remove('active');
+    } else if (p.thrustState === 'reverse') {
+        dom.flameMain.classList.remove('active');
+        dom.flameLeft.classList.add('active');
+        dom.flameRight.classList.add('active');
+    } else {
+        dom.flameMain.classList.remove('active');
+        dom.flameLeft.classList.remove('active');
+        dom.flameRight.classList.remove('active');
+    }
+
+    // Laukaisuvälähdys
+    if (p.fireFlashTimer > 0) {
+        const progress = p.fireFlashTimer / p.fireFlashDuration;
+        dom.fireFlashOverlay.style.background = p.fireFlashColor;
+        dom.fireFlashOverlay.style.opacity = progress.toFixed(2);
+    } else {
+        dom.fireFlashOverlay.style.opacity = '0';
+    }
+
+    updateHealthBarFor(p, dom.healthBar, dom.healthText);
+    updateEnergyBarFor(p, dom.energyBar, dom.energyText);
+    pCtx.lasers[0].render();
+    pCtx.lasers[1].render();
+}
+
+// ======== Render ========
 function render() {
-    // Don't render if player doesn't exist
-    if (!player) {
-        return;
+    for (const pCtx of players) {
+        if (pCtx.joined && pCtx.alive) {
+            renderPlayer(pCtx);
+        }
     }
-
-    spaceship.style.left = player.x + 'px';
-    spaceship.style.top = player.y + 'px';
-
-    // Lisää kutistumisanimaatio
-    if (player.isShrinking) {
-        const scale = 1 - player.shrinkProgress;
-        spaceship.style.transform = `rotate(${player.angle}deg) scale(${scale})`;
-    } else {
-        spaceship.style.transform = `rotate(${player.angle}deg)`;
-    }
-
-    positionDisplay.textContent = `Score: ${player.score}`;
-
-    // Update invulnerability visual effect
-    if (player.isInvulnerable) {
-        spaceship.classList.add('invulnerable');
-    } else {
-        spaceship.classList.remove('invulnerable');
-    }
-
-    // Update damage flash visual effect
-    if (player.damageFlashTimer > 0) {
-        spaceship.classList.add('damage-flash');
-    } else {
-        spaceship.classList.remove('damage-flash');
-    }
-
-    // Päivitä kiihtyvyysliekit
-    if (player.thrustState === 'forward') {
-        playerFlameMain.classList.add('active');
-        playerFlameLeft.classList.remove('active');
-        playerFlameRight.classList.remove('active');
-    } else if (player.thrustState === 'reverse') {
-        playerFlameMain.classList.remove('active');
-        playerFlameLeft.classList.add('active');
-        playerFlameRight.classList.add('active');
-    } else {
-        playerFlameMain.classList.remove('active');
-        playerFlameLeft.classList.remove('active');
-        playerFlameRight.classList.remove('active');
-    }
-
-    // Rungon välähdys aseen laukaisussa
-    if (player.fireFlashTimer > 0) {
-        const progress = player.fireFlashTimer / player.fireFlashDuration;
-        shipFireFlashOverlay.style.background = player.fireFlashColor;
-        shipFireFlashOverlay.style.opacity = progress.toFixed(2);
-    } else {
-        shipFireFlashOverlay.style.opacity = '0';
-    }
-
-    updateHealthBar();
-    updateEnergyBar();
-    playerLaser.render();
+    positionDisplay.textContent = `Score: ${gameScore}`;
 }
 
-// Laserin osumankäsittely
+// ======== Laserin osumankäsittely ========
 function handleLaserHit(target, damage, owner) {
-    if (target === player) {
-        const destroyed = player.takeDamage(damage);
+    // Tarkista onko target joku pelaajista
+    const targetPCtx = findPlayerCtxByInstance(target);
+    if (targetPCtx && targetPCtx.alive) {
+        const destroyed = target.takeDamage(damage);
         if (destroyed) {
-            explosions.push(new Explosion(player.x + 20, player.y + 20, 'large', gameContainer));
-            endGame();
+            explosions.push(new Explosion(target.x + 20, target.y + 20, 'large', gameContainer));
+            playerDied(targetPCtx);
         }
     } else if (enemies.includes(target)) {
         const destroyed = target.takeDamage(damage);
         if (destroyed) {
             const scoreMap = { 'WeakEnemy': 10, 'EliteEnemy': 25, 'AggressiveEnemy': 30, 'MissileEnemy': 20 };
-            if (owner === 'player') player.score += scoreMap[target.constructor.name] || 10;
+            if (owner === 'player') gameScore += scoreMap[target.constructor.name] || 10;
 
             const sizeMap = { 'WeakEnemy': 'small', 'EliteEnemy': 'medium', 'AggressiveEnemy': 'medium', 'MissileEnemy': 'medium' };
             explosions.push(new Explosion(target.x + 20, target.y + 20, sizeMap[target.constructor.name] || 'small', gameContainer));
@@ -497,97 +715,123 @@ function handleLaserHit(target, damage, owner) {
             const idx = enemies.indexOf(target);
             if (idx !== -1) enemies.splice(idx, 1);
         }
+    } else {
+        // Ohjus — laser tuhoaa ohjuksen välittömästi
+        let idx = playerMissiles.indexOf(target);
+        if (idx !== -1) {
+            explosions.push(new Explosion(target.x, target.y, 'small', gameContainer));
+            target.destroy();
+            playerMissiles.splice(idx, 1);
+            return;
+        }
+        idx = enemyMissiles.indexOf(target);
+        if (idx !== -1) {
+            explosions.push(new Explosion(target.x, target.y, 'small', gameContainer));
+            target.destroy();
+            enemyMissiles.splice(idx, 1);
+        }
+    }
+}
+
+// ======== Pelaajan kuolema ========
+function playerDied(pCtx) {
+    pCtx.alive = false;
+    pCtx.dom.spaceship.style.display = 'none';
+    pCtx.lasers[0].clear();
+    pCtx.lasers[1].clear();
+    pCtx.dom.pulseOverlay.style.background = '';
+    pCtx.dom.pulseOverlay.style.opacity = '';
+    if (pCtx.dom.healthBarContainer) pCtx.dom.healthBarContainer.style.display = 'none';
+    if (pCtx.dom.energyBarContainer) pCtx.dom.energyBarContainer.style.display = 'none';
+    if (pCtx.dom.weaponHud) pCtx.dom.weaponHud.style.display = 'none';
+
+    // Tarkista onko kaikki liittyneet pelaajat kuolleet
+    const anyAlive = players.some(p => p.joined && p.alive);
+    if (!anyAlive) {
+        endGame();
     }
 }
 
 function endGame() {
     const gameOverDiv = document.createElement('div');
     gameOverDiv.className = 'game-over';
-    gameOverDiv.innerHTML = `GAME OVER<br>Final Score: ${player.score}<br><br><span style="font-size: 18px;">Press SPACE to play again</span>`;
+    gameOverDiv.innerHTML = `GAME OVER<br>Final Score: ${gameScore}<br><br><span style="font-size: 18px;">Press SPACE to continue</span>`;
     gameContainer.appendChild(gameOverDiv);
-    // Stop the game loop by setting a flag
-    player.gameOver = true;
     currentGameState = GameState.GAME_OVER;
 }
 
 function restartGame() {
-    // Remove game over screen first
     const gameOverScreen = document.querySelector('.game-over');
-    if (gameOverScreen) {
-        gameOverScreen.remove();
-    }
+    if (gameOverScreen) gameOverScreen.remove();
 
-    // Clear all bullets and enemies from DOM
-    playerBullets.forEach(bullet => bullet.destroy());
-    enemyBullets.forEach(bullet => bullet.destroy());
-    enemies.forEach(enemy => enemy.destroy());
-    meteors.forEach(meteor => meteor.destroy());
-    planets.forEach(planet => planet.destroy());
-    blackHoles.forEach(blackHole => blackHole.destroy());
-    healthOrbs.forEach(orb => orb.destroy());
-    rateOfFireBoosts.forEach(boost => boost.destroy());
-    nebulaClouds.forEach(cloud => cloud.destroy());
-    explosions.forEach(explosion => explosion.destroy());
-    muzzleFlashes.forEach(mf => mf.destroy());
+    // Tyhjenä kaikki
+    playerBullets.forEach(b => b.destroy());
+    enemyBullets.forEach(b => b.destroy());
+    enemies.forEach(e => e.destroy());
+    meteors.forEach(m => m.destroy());
+    planets.forEach(p => p.destroy());
+    blackHoles.forEach(b => b.destroy());
+    healthOrbs.forEach(o => o.destroy());
+    rateOfFireBoosts.forEach(b => b.destroy());
+    nebulaClouds.forEach(c => c.destroy());
+    explosions.forEach(e => e.destroy());
+    muzzleFlashes.forEach(m => m.destroy());
     playerMissiles.forEach(m => m.destroy());
     enemyMissiles.forEach(m => m.destroy());
-    damageNumbers.forEach(dn => dn.destroy());
-    playerLaser.clear();
-    spaceship.classList.remove('charging-railgun');
-    shipPulseOverlay.style.background = '';
-    shipPulseOverlay.style.opacity = '';
-    shipFireFlashOverlay.style.background = '';
-    shipFireFlashOverlay.style.opacity = '0';
+    damageNumbers.forEach(d => d.destroy());
 
-    // Start the game from the beginning
-    startGame();
+    for (const pCtx of players) {
+        pCtx.lasers[0].clear();
+        pCtx.lasers[1].clear();
+        pCtx.dom.spaceship.classList.remove('charging-railgun');
+        pCtx.dom.pulseOverlay.style.background = '';
+        pCtx.dom.pulseOverlay.style.opacity = '';
+        pCtx.dom.fireFlashOverlay.style.background = '';
+        pCtx.dom.fireFlashOverlay.style.opacity = '0';
+        pCtx.dom.spaceship.style.display = 'none';
+        if (pCtx.dom.healthBarContainer) pCtx.dom.healthBarContainer.style.display = 'none';
+        if (pCtx.dom.energyBarContainer) pCtx.dom.energyBarContainer.style.display = 'none';
+        if (pCtx.dom.weaponHud) pCtx.dom.weaponHud.style.display = 'none';
+    }
+
+    // Palaa menuun — säilytä aiemmat valinnat ja join-tila
+    const prefixes = ['p1', 'p2'];
+    for (let i = 0; i < players.length; i++) {
+        const pCtx = players[i];
+        const prefix = prefixes[i];
+        if (pCtx.menuJoined) {
+            // Näytä asevalikko suoraan
+            document.getElementById(`${prefix}JoinPrompt`).style.display = 'none';
+            document.getElementById(`${prefix}Weapons`).style.display = '';
+            document.getElementById(`${prefix}MenuHint`).style.display = '';
+            updateMenuSelectionForPlayer(pCtx, prefix);
+        }
+    }
+
+    const menuScreen = document.getElementById('menuScreen');
+    menuScreen.classList.remove('hidden');
+    currentGameState = GameState.MENU;
 }
 
-// Start game function - transitions from MENU to PLAYING state
+// ======== Start Game ========
 function startGame() {
     currentGameState = GameState.PLAYING;
 
-    // Hide menu
     const menuScreen = document.getElementById('menuScreen');
     menuScreen.classList.add('hidden');
 
-    // Initialize player
-    player = new Player();
+    gameScore = 0;
 
-    // Reset game state
-    player.x = 580;
-    player.y = 430;
-    player.score = 0;
-    player.gameOver = false;
-    player.angle = 0;
-    player.vx = 0;
-    player.vy = 0;
-    player.resetHealth();
+    // Nollaa keys
+    for (const k in keys) keys[k] = false;
 
-    // Reset all keys
-    keys.ArrowUp = false;
-    keys.ArrowDown = false;
-    keys.ArrowLeft = false;
-    keys.ArrowRight = false;
-    keys.Space = false;
+    // Nollaa taulukot
+    playerBullets = []; enemyBullets = []; enemies = []; meteors = [];
+    planets = []; nebulaClouds = []; blackHoles = []; healthOrbs = [];
+    rateOfFireBoosts = []; explosions = []; muzzleFlashes = [];
+    playerMissiles = []; enemyMissiles = []; damageNumbers = [];
 
-    // Clear all arrays
-    playerBullets = [];
-    enemyBullets = [];
-    enemies = [];
-    meteors = [];
-    planets = [];
-    nebulaClouds = [];
-    blackHoles = [];
-    healthOrbs = [];
-    rateOfFireBoosts = [];
-    explosions = [];
-    muzzleFlashes = [];
-    playerMissiles = [];
-    enemyMissiles = [];
-    damageNumbers = [];
-
-    // Reset spawn timers
+    // Nollaa spawn-ajastimet
     for (const spawner of enemySpawners) {
         spawner.timer = 0;
         spawner.nextSpawnTime = Math.random() * (spawner.spawnIntervalMax - spawner.spawnIntervalMin) + spawner.spawnIntervalMin;
@@ -599,22 +843,73 @@ function startGame() {
     blackHoleSpawnTimer = 0;
     nextBlackHoleSpawnTime = Math.random() * (blackHoleConfig.spawnIntervalMax - blackHoleConfig.spawnIntervalMin) + blackHoleConfig.spawnIntervalMin;
 
-    // Reset spaceship position and render
-    spaceship.style.left = player.x + 'px';
-    spaceship.style.top = player.y + 'px';
-    spaceship.style.transform = `rotate(${player.angle}deg)`;
-    positionDisplay.textContent = `Score: ${player.score}`;
-
-    // Spawn initial enemies
-    for (let i = 0; i < 1; i++) {
-        spawnEnemy(enemySpawners[0]);
+    // Nollaa pelaajien tila
+    for (const pCtx of players) {
+        pCtx.joined = false;
+        pCtx.alive = false;
+        pCtx.player = null;
+        pCtx.dom.spaceship.style.display = 'none';
+        if (pCtx.dom.healthBarContainer) pCtx.dom.healthBarContainer.style.display = 'none';
+        if (pCtx.dom.energyBarContainer) pCtx.dom.energyBarContainer.style.display = 'none';
+        if (pCtx.dom.weaponHud) pCtx.dom.weaponHud.style.display = 'none';
     }
+
+    // Liitä kaikki valikossa mukaan tulleet pelaajat
+    for (const pCtx of players) {
+        if (pCtx.menuJoined) joinPlayer(pCtx);
+    }
+
+    positionDisplay.textContent = `Score: 0`;
+
+    // Spawn ensimmäinen vihollinen
+    spawnEnemy(enemySpawners[0]);
 }
 
-// Menu button event listener
+// ======== DOMContentLoaded — alusta kaikki ========
 document.addEventListener('DOMContentLoaded', () => {
-    const startButton = document.getElementById('startButton');
-    startButton.addEventListener('click', startGame);
+    // Luo pelaajien kontekstit
+    players[0] = createPlayerContext(0, playerConfig, 'spaceship',
+        ['laserCanvas1', 'laserCanvas2'],
+        { healthBar: 'healthBar', healthText: 'healthText', energyBar: 'energyBar', energyText: 'energyText' },
+        { hud: 'weaponHud', name1: 'weaponHudName1', name2: 'weaponHudName2' }
+    );
+    players[0].keyMap = p1KeyMap;
+
+    players[1] = createPlayerContext(1, player2Config, 'spaceship2',
+        ['laserCanvas3', 'laserCanvas4'],
+        { healthBar: 'healthBar2', healthText: 'healthText2', energyBar: 'energyBar2', energyText: 'energyText2',
+          healthBarContainer: 'healthBarContainer2', energyBarContainer: 'energyBarContainer2' },
+        { hud: 'weaponHud2', name1: 'weaponHudName3', name2: 'weaponHudName4' }
+    );
+    players[1].keyMap = p2KeyMap;
+
+    // Valikko: hiiriklikkaus P1
+    document.querySelectorAll('#p1Weapons .weapon-card').forEach((card, i) => {
+        card.addEventListener('click', () => {
+            players[0].menuCursorIndex = i;
+            updateMenuSelectionForPlayer(players[0], 'p1');
+        });
+    });
+
+    // Valikko: hiiriklikkaus P2
+    document.querySelectorAll('#p2Weapons .weapon-card').forEach((card, i) => {
+        card.addEventListener('click', () => {
+            players[1].menuCursorIndex = i;
+            updateMenuSelectionForPlayer(players[1], 'p2');
+        });
+    });
+
+    // Alkukorostukset
+    updateMenuSelectionForPlayer(players[0], 'p1');
+    updateMenuSelectionForPlayer(players[1], 'p2');
+
+    // Friendly fire toggle klikkaus
+    document.getElementById('friendlyFireToggle').addEventListener('click', toggleFriendlyFire);
+
+    // Start-nappi
+    document.getElementById('startButton').addEventListener('click', () => {
+        if (players.some(p => p.menuJoined)) startGame();
+    });
 });
 
 // Initialize lastFrameTime and start game loop

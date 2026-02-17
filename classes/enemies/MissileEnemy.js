@@ -37,12 +37,16 @@ const missileEnemyConfig = {
     // Pudotukset
     rateOfFireBoostDropChance: 0.15,  // 15% todennäköisyys pudottaa ampumisnopeusboosti
 
-    // Aseylikirjoitukset (tyhjä = käytä globaaleja oletuksia)
+    // Aseylikirjoitukset
     weapons: {
-        // bullet: { damage: 50, energyCost: 15 },
-        // laser: { damagePerSecond: 300 },
-        // missile: { damage: 150 },
-        // railgun: { maxCharge: 30 }
+        missile: {
+            colors: {
+                bodyGradient: 'linear-gradient(to bottom, #ffffff, #ff0088, #cc0066)',
+                glowColor1: 'rgba(255, 0, 136, 0.9)',
+                glowColor2: 'rgba(204, 0, 102, 0.6)',
+                glowColor3: 'rgba(204, 0, 102, 0.3)'
+            }
+        }
     }
 };
 

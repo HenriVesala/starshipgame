@@ -28,39 +28,164 @@
             <div class="menu-content">
                 <h1 class="menu-title">SPACESHIP GAME</h1>
                 <div class="menu-subtitle">By Veikko & Dad</div>
+
+                <!-- Asevalinta — pelaajat rinnakkain, aseet allekkain -->
+                <div class="weapon-selection" id="weaponSelection">
+                    <!-- Pelaaja WASD (vasen) -->
+                    <div class="weapon-player-column" id="p2WeaponColumn">
+                        <h2 class="player-column-title p2-title">Pelaaja (WASD)</h2>
+                        <div class="join-prompt" id="p2JoinPrompt">Paina Ctrl tai Shift liittyäksesi</div>
+                        <div class="weapon-options" id="p2Weapons" style="display:none;">
+                            <div class="weapon-card selected" data-weapon="bullet">
+                                <div class="weapon-card-badges"></div>
+                                <div class="weapon-card-icon bullet-icon"></div>
+                                <div class="weapon-card-name">Bullet</div>
+                            </div>
+                            <div class="weapon-card" data-weapon="missile">
+                                <div class="weapon-card-badges"></div>
+                                <div class="weapon-card-icon missile-icon"></div>
+                                <div class="weapon-card-name">Missile</div>
+                            </div>
+                            <div class="weapon-card" data-weapon="laser">
+                                <div class="weapon-card-badges"></div>
+                                <div class="weapon-card-icon laser-icon"></div>
+                                <div class="weapon-card-name">Laser</div>
+                            </div>
+                            <div class="weapon-card" data-weapon="railgun">
+                                <div class="weapon-card-badges"></div>
+                                <div class="weapon-card-icon railgun-icon"></div>
+                                <div class="weapon-card-name">Railgun</div>
+                            </div>
+                        </div>
+                        <div class="menu-hint" id="p2MenuHint" style="display:none;">A D valitse, Ctrl = ase 1, Shift = ase 2</div>
+                    </div>
+
+                    <!-- Pelaaja Nuolet (oikea) -->
+                    <div class="weapon-player-column" id="p1WeaponColumn">
+                        <h2 class="player-column-title p1-title">Pelaaja (Nuolet)</h2>
+                        <div class="join-prompt" id="p1JoinPrompt">Paina N tai M liittyäksesi</div>
+                        <div class="weapon-options" id="p1Weapons" style="display:none;">
+                            <div class="weapon-card selected" data-weapon="bullet">
+                                <div class="weapon-card-badges"></div>
+                                <div class="weapon-card-icon bullet-icon"></div>
+                                <div class="weapon-card-name">Bullet</div>
+                            </div>
+                            <div class="weapon-card" data-weapon="missile">
+                                <div class="weapon-card-badges"></div>
+                                <div class="weapon-card-icon missile-icon"></div>
+                                <div class="weapon-card-name">Missile</div>
+                            </div>
+                            <div class="weapon-card" data-weapon="laser">
+                                <div class="weapon-card-badges"></div>
+                                <div class="weapon-card-icon laser-icon"></div>
+                                <div class="weapon-card-name">Laser</div>
+                            </div>
+                            <div class="weapon-card" data-weapon="railgun">
+                                <div class="weapon-card-badges"></div>
+                                <div class="weapon-card-icon railgun-icon"></div>
+                                <div class="weapon-card-name">Railgun</div>
+                            </div>
+                        </div>
+                        <div class="menu-hint" id="p1MenuHint" style="display:none;">← → valitse, N = ase 1, M = ase 2</div>
+                    </div>
+                </div>
+
+                <div class="menu-toggle" id="friendlyFireToggle">
+                    <span class="menu-toggle-label">Friendly Fire</span>
+                    <span class="menu-toggle-value" id="friendlyFireValue">OFF</span>
+                </div>
+
                 <button class="menu-button" id="startButton">START GAME</button>
                 <div class="menu-controls">
-                    <p>Arrow Keys to Move</p>
-                    <p>Space to Shoot</p>
+                    <p>P1: Nuolet valitsee | P2: WASD valitsee | F: friendly fire | Space: aloita</p>
+                    <p>P2 liittyy peliin painamalla WASD</p>
                 </div>
             </div>
         </div>
 
-        <div class="spaceship" id="spaceship">
+        <!-- Pelaaja 1 alus -->
+        <div class="spaceship spaceship-p1" id="spaceship">
             <div class="ship-body"></div>
             <div class="ship-flame-main"></div>
             <div class="ship-flame-left"></div>
             <div class="ship-flame-right"></div>
         </div>
+
+        <!-- Pelaaja 2 alus (piilotettu kunnes liittyy) -->
+        <div class="spaceship spaceship-p2" id="spaceship2" style="display:none;">
+            <div class="ship-body"></div>
+            <div class="ship-flame-main"></div>
+            <div class="ship-flame-left"></div>
+            <div class="ship-flame-right"></div>
+        </div>
+
         <div class="info">
-            <p>Arrow Keys to Move | Space to Shoot</p>
             <p id="position">Score: 0</p>
         </div>
-        <div class="health-bar-container">
-            <div class="health-bar-label">HP</div>
+
+        <!-- P1 Weapon HUD (vasen alanurkka) -->
+        <div class="weapon-hud weapon-hud-p1" id="weaponHud">
+            <div class="weapon-hud-label">P1</div>
+            <div class="weapon-hud-slot">
+                <span class="weapon-hud-key">N</span>
+                <span class="weapon-hud-name" id="weaponHudName1">Bullet</span>
+            </div>
+            <div class="weapon-hud-slot">
+                <span class="weapon-hud-key">M</span>
+                <span class="weapon-hud-name" id="weaponHudName2">Missile</span>
+            </div>
+        </div>
+
+        <!-- P2 Weapon HUD (oikea alanurkka, piilotettu) -->
+        <div class="weapon-hud weapon-hud-p2" id="weaponHud2" style="display:none;">
+            <div class="weapon-hud-label">P2</div>
+            <div class="weapon-hud-slot">
+                <span class="weapon-hud-key">Ctrl</span>
+                <span class="weapon-hud-name" id="weaponHudName3">Bullet</span>
+            </div>
+            <div class="weapon-hud-slot">
+                <span class="weapon-hud-key">Sh</span>
+                <span class="weapon-hud-name" id="weaponHudName4">Missile</span>
+            </div>
+        </div>
+
+        <!-- P1 HP/EN (vasen) -->
+        <div class="health-bar-container p1-bar">
+            <div class="health-bar-label">P1 HP</div>
             <div class="health-bar-bg">
                 <div class="health-bar-fill" id="healthBar"></div>
             </div>
-            <div class="health-bar-text" id="healthText">300/300</div>
+            <div class="health-bar-text" id="healthText">1000/1000</div>
         </div>
-        <div class="energy-bar-container">
-            <div class="energy-bar-label">EN</div>
+        <div class="energy-bar-container p1-bar">
+            <div class="energy-bar-label">P1 EN</div>
             <div class="energy-bar-bg">
                 <div class="energy-bar-fill" id="energyBar"></div>
             </div>
             <div class="energy-bar-text" id="energyText">100/100</div>
         </div>
-        <canvas class="laser-canvas" id="laserCanvas" width="1200" height="900"></canvas>
+
+        <!-- P2 HP/EN (oikea, piilotettu) -->
+        <div class="health-bar-container p2-bar" id="healthBarContainer2" style="display:none;">
+            <div class="health-bar-label">P2 HP</div>
+            <div class="health-bar-bg">
+                <div class="health-bar-fill" id="healthBar2"></div>
+            </div>
+            <div class="health-bar-text" id="healthText2">1000/1000</div>
+        </div>
+        <div class="energy-bar-container p2-bar" id="energyBarContainer2" style="display:none;">
+            <div class="energy-bar-label">P2 EN</div>
+            <div class="energy-bar-bg">
+                <div class="energy-bar-fill" id="energyBar2"></div>
+            </div>
+            <div class="energy-bar-text" id="energyText2">100/100</div>
+        </div>
+
+        <!-- Laser-canvakset: 2 per pelaaja -->
+        <canvas class="laser-canvas" id="laserCanvas1" width="1200" height="900"></canvas>
+        <canvas class="laser-canvas" id="laserCanvas2" width="1200" height="900"></canvas>
+        <canvas class="laser-canvas" id="laserCanvas3" width="1200" height="900"></canvas>
+        <canvas class="laser-canvas" id="laserCanvas4" width="1200" height="900"></canvas>
     </div>
 
     <script src="config.js"></script>

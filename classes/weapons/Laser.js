@@ -9,8 +9,14 @@ const laserConfig = {
     coreColor: '#ffffff',       // Ytimen väri
     glowColor: 'rgba(204, 50, 255, 0.6)', // Hehkun väri (punainen)
     hitRadius: 15,              // Osumansäde aluksille (pikseliä)
-    nebulaDeflectionPerStep: 5,  // Nebula-taittuman max (astetta/askel)
-    blackHoleBendStrength: 20,  // Mustan aukon taittuman voimakkuus
+
+    // Vuorovaikutukset ympäristökappaleiden kanssa
+    interactions: {
+        planet:    { reflect: true },
+        blackHole: { bendStrength: 20, absorb: true },
+        meteor:    { reflect: true },
+        nebula:    { deflectionPerStep: 5 }
+    },
     recoilPerSecond: 0,         // Jatkuva rekyylivoima per sekunti
     minVisibleIntensity: 0.03,  // Säde lakkaa kun intensiteetti putoaa tämän alle
     maxBounces: 5,              // Heijastusten enimmäismäärä
@@ -29,6 +35,7 @@ class Laser {
     constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
+        this.cfg = laserConfig;
         this.active = false;
         this.hitTarget = null;
         this.hitX = 0;
@@ -40,11 +47,17 @@ class Laser {
 
     // Laske intensiteettikerroin etäisyyden perusteella — eksponentiaalinen heikkeneminen
     getIntensity(distance) {
-        return Math.pow(1.0 - laserConfig.decayPer100px, distance / 100);
+        return Math.pow(1.0 - this.cfg.decayPer100px, distance / 100);
     }
 
     // Raymarching-jäljitys: laske säteen polku, osumat ja heijastukset
+    // Aseta laserin konfiguraatio (kutsutaan ennen trace/render -sykliä)
+    setConfig(config) {
+        this.cfg = config;
+    }
+
     trace(startX, startY, angle, owner, targets) {
+        const cfg = this.cfg;
         this.beamPoints = [];
         this.hitTarget = null;
 
@@ -58,7 +71,7 @@ class Laser {
 
         this.beamPoints.push({ x: currentX, y: currentY, mul: reflectivityMul });
 
-        while (this.getIntensity(totalDist) * reflectivityMul > laserConfig.minVisibleIntensity) {
+        while (this.getIntensity(totalDist) * reflectivityMul > cfg.minVisibleIntensity) {
             // 1. Nebula-deflektio
             if (targets.nebulaClouds) {
                 for (const cloud of targets.nebulaClouds) {
@@ -70,7 +83,7 @@ class Laser {
                         const ddx = currentX - cx;
                         const ddy = currentY - cy;
                         if (ddx * ddx + ddy * ddy < circle.radius * circle.radius) {
-                            angleRad += (Math.random() - 0.5) * 2 * laserConfig.nebulaDeflectionPerStep * Math.PI / 180;
+                            angleRad += (Math.random() - 0.5) * 2 * cfg.interactions.nebula.deflectionPerStep * Math.PI / 180;
                             deflected = true;
                             break;
                         }
@@ -90,34 +103,36 @@ class Laser {
                         let angleDiff = bhAngle - angleRad;
                         while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
                         while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
-                        const bendAmount = (laserConfig.blackHoleBendStrength * laserConfig.stepSize) / (bDist * bDist);
+                        const bendAmount = (cfg.interactions.blackHole.bendStrength * cfg.stepSize) / (bDist * bDist);
                         angleRad += Math.sign(angleDiff) * Math.min(bendAmount, Math.abs(angleDiff));
                     }
                 }
             }
 
             // Etenee askeleen
-            currentX += Math.cos(angleRad) * laserConfig.stepSize;
-            currentY += Math.sin(angleRad) * laserConfig.stepSize;
-            totalDist += laserConfig.stepSize;
+            currentX += Math.cos(angleRad) * cfg.stepSize;
+            currentY += Math.sin(angleRad) * cfg.stepSize;
+            totalDist += cfg.stepSize;
 
             this.beamPoints.push({ x: currentX, y: currentY, mul: reflectivityMul });
 
             // 3. Tarkista osumat aluksiin (pysäyttää säteen)
             const halfShip = gameConfig.playerWidth / 2;
 
-            if (targets.player) {
-                const px = targets.player.x + halfShip;
-                const py = targets.player.y + halfShip;
-                const pdx = currentX - px;
-                const pdy = currentY - py;
-                if (pdx * pdx + pdy * pdy < laserConfig.hitRadius * laserConfig.hitRadius) {
-                    this.hitTarget = targets.player;
-                    this.hitX = currentX;
-                    this.hitY = currentY;
-                    this.hitDistance = totalDist;
-                    this.hitMul = reflectivityMul;
-                    return { hit: true, target: targets.player, x: currentX, y: currentY, distance: totalDist, mul: reflectivityMul };
+            if (targets.players && totalDist > 50) {
+                for (const pl of targets.players) {
+                    const px = pl.x + halfShip;
+                    const py = pl.y + halfShip;
+                    const pdx = currentX - px;
+                    const pdy = currentY - py;
+                    if (pdx * pdx + pdy * pdy < cfg.hitRadius * cfg.hitRadius) {
+                        this.hitTarget = pl;
+                        this.hitX = currentX;
+                        this.hitY = currentY;
+                        this.hitDistance = totalDist;
+                        this.hitMul = reflectivityMul;
+                        return { hit: true, target: pl, x: currentX, y: currentY, distance: totalDist, mul: reflectivityMul };
+                    }
                 }
             }
 
@@ -128,7 +143,7 @@ class Laser {
                     const ey = enemy.y + halfShip;
                     const edx = currentX - ex;
                     const edy = currentY - ey;
-                    if (edx * edx + edy * edy < laserConfig.hitRadius * laserConfig.hitRadius) {
+                    if (edx * edx + edy * edy < cfg.hitRadius * cfg.hitRadius) {
                         this.hitTarget = enemy;
                         this.hitX = currentX;
                         this.hitY = currentY;
@@ -139,14 +154,30 @@ class Laser {
                 }
             }
 
+            // 3b. Tarkista osumat ohjuksiin (pysäyttää säteen)
+            if (targets.missiles) {
+                for (const missile of targets.missiles) {
+                    const mdx = currentX - missile.x;
+                    const mdy = currentY - missile.y;
+                    if (mdx * mdx + mdy * mdy < cfg.hitRadius * cfg.hitRadius) {
+                        this.hitTarget = missile;
+                        this.hitX = currentX;
+                        this.hitY = currentY;
+                        this.hitDistance = totalDist;
+                        this.hitMul = reflectivityMul;
+                        return { hit: true, target: missile, x: currentX, y: currentY, distance: totalDist, mul: reflectivityMul };
+                    }
+                }
+            }
+
             // 4. Tarkista osuma planeettoihin — heijastus
             let reflected = false;
-            if (targets.planets) {
+            if (cfg.interactions?.planet?.reflect && targets.planets) {
                 for (const planet of targets.planets) {
                     const pdx = currentX - planet.x;
                     const pdy = currentY - planet.y;
                     if (pdx * pdx + pdy * pdy < planet.radius * planet.radius) {
-                        if (bounceCount >= laserConfig.maxBounces) {
+                        if (bounceCount >= cfg.maxBounces) {
                             this.hitX = currentX; this.hitY = currentY;
                             this.hitDistance = totalDist; this.hitMul = reflectivityMul;
                             return { hit: true, target: null, x: currentX, y: currentY, distance: totalDist, mul: reflectivityMul };
@@ -160,8 +191,8 @@ class Laser {
                         angleRad = Math.atan2(dirY - 2 * dot * ny, dirX - 2 * dot * nx);
                         reflectivityMul *= planet.planetType.reflectivity;
                         bounceCount++;
-                        currentX = planet.x + nx * (planet.radius + laserConfig.bounceOffset);
-                        currentY = planet.y + ny * (planet.radius + laserConfig.bounceOffset);
+                        currentX = planet.x + nx * (planet.radius + cfg.bounceOffset);
+                        currentY = planet.y + ny * (planet.radius + cfg.bounceOffset);
                         this.beamPoints[this.beamPoints.length - 1] = { x: currentX, y: currentY, mul: reflectivityMul };
                         reflected = true;
                         break;
@@ -170,12 +201,12 @@ class Laser {
             }
 
             // 5. Tarkista osuma meteoriitteihin — heijastus
-            if (!reflected && targets.meteors) {
+            if (!reflected && cfg.interactions?.meteor?.reflect && targets.meteors) {
                 for (const meteor of targets.meteors) {
                     const mdx = currentX - meteor.x;
                     const mdy = currentY - meteor.y;
                     if (mdx * mdx + mdy * mdy < meteor.radius * meteor.radius) {
-                        if (bounceCount >= laserConfig.maxBounces) {
+                        if (bounceCount >= cfg.maxBounces) {
                             this.hitX = currentX; this.hitY = currentY;
                             this.hitDistance = totalDist; this.hitMul = reflectivityMul;
                             return { hit: true, target: null, x: currentX, y: currentY, distance: totalDist, mul: reflectivityMul };
@@ -189,8 +220,8 @@ class Laser {
                         angleRad = Math.atan2(dirY - 2 * dot * ny, dirX - 2 * dot * nx);
                         reflectivityMul *= meteor.reflectivity;
                         bounceCount++;
-                        currentX = meteor.x + nx * (meteor.radius + laserConfig.bounceOffset);
-                        currentY = meteor.y + ny * (meteor.radius + laserConfig.bounceOffset);
+                        currentX = meteor.x + nx * (meteor.radius + cfg.bounceOffset);
+                        currentY = meteor.y + ny * (meteor.radius + cfg.bounceOffset);
                         this.beamPoints[this.beamPoints.length - 1] = { x: currentX, y: currentY, mul: reflectivityMul };
                         reflected = true;
                         break;
@@ -199,7 +230,7 @@ class Laser {
             }
 
             // 6. Tarkista osuma mustiin aukkoihin (tapahtumahorisontti pysäyttää)
-            if (!reflected && targets.blackHoles) {
+            if (!reflected && cfg.interactions?.blackHole?.absorb && targets.blackHoles) {
                 for (const bh of targets.blackHoles) {
                     const bdx = currentX - bh.x;
                     const bdy = currentY - bh.y;
@@ -232,7 +263,7 @@ class Laser {
     // Rakenna säteen reunapisteet (vasen ja oikea reuna) kapeneva polygoni
     _buildOutline(halfWidthFn) {
         const points = this.beamPoints;
-        const step = laserConfig.stepSize;
+        const step = this.cfg.stepSize;
         const left = [];
         const right = [];
 
@@ -284,20 +315,20 @@ class Laser {
         const ctx = this.ctx;
 
         // Ulompi hehku (leveämpi, himmeämpi)
-        const outerGlow = this._buildOutline((d, mul) => laserConfig.glowWidth * this.getIntensity(d) * mul * 0.5);
-        ctx.fillStyle = laserConfig.glowColor;
+        const outerGlow = this._buildOutline((d, mul) => this.cfg.glowWidth * this.getIntensity(d) * mul * 0.5);
+        ctx.fillStyle = this.cfg.glowColor;
         ctx.globalAlpha = 0.3;
         this._fillOutline(ctx, outerGlow.left, outerGlow.right);
 
         // Sisempi hehku
-        const innerGlow = this._buildOutline((d, mul) => laserConfig.glowWidth * this.getIntensity(d) * mul * 0.3);
-        ctx.fillStyle = laserConfig.glowColor;
+        const innerGlow = this._buildOutline((d, mul) => this.cfg.glowWidth * this.getIntensity(d) * mul * 0.3);
+        ctx.fillStyle = this.cfg.glowColor;
         ctx.globalAlpha = 0.5;
         this._fillOutline(ctx, innerGlow.left, innerGlow.right);
 
         // Ydin (core)
-        const core = this._buildOutline((d, mul) => laserConfig.beamWidth * this.getIntensity(d) * mul * 0.5);
-        ctx.fillStyle = laserConfig.coreColor;
+        const core = this._buildOutline((d, mul) => this.cfg.beamWidth * this.getIntensity(d) * mul * 0.5);
+        ctx.fillStyle = this.cfg.coreColor;
         ctx.globalAlpha = 1.0;
         this._fillOutline(ctx, core.left, core.right);
 

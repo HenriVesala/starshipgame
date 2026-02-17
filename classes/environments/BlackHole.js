@@ -13,7 +13,6 @@ const blackHoleConfig = {
     // Painovoiman konfiguraatio (vahvempi kuin planeetta)
     gravityRadiusMultiplier: 15,   // Painovoimakentän säde = säde * tämä arvo (planeetta: 6)
     baseGravityStrength: 150,      // Painovoiman perusvoimakkuus (planeetta: 80)
-    bulletGravityMultiplier: 5,    // Ammukset kokevat tämän kerrannaisen painovoimaa
 
     // Painovoiman väheneminen
     gravityFalloffMin: 0.2,   // Vähintään painovoima reunalla (20% täydestä)
@@ -108,9 +107,10 @@ class BlackHole {
             // Gravity strength depends on object type
             let baseGravityStrength = blackHoleConfig.baseGravityStrength;
 
-            // Bullets experience increased gravity
-            if (obj.hasOwnProperty('type') && (obj.type === 'player' || obj.type === 'enemy')) {
-                baseGravityStrength = blackHoleConfig.baseGravityStrength * blackHoleConfig.bulletGravityMultiplier;
+            // Aseen painovoimakerroin (interactions.blackHole.gravityMultiplier)
+            const gravMul = obj.interactions?.blackHole?.gravityMultiplier;
+            if (gravMul != null) {
+                baseGravityStrength *= gravMul;
             }
 
             // Gravity falls off from full strength at center to min at edge

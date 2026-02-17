@@ -8,8 +8,15 @@ const railgunConfig = {
     projectileMaxSpeed: 2000,    // Absoluuttinen nopeuskatto (painovoima ym.)
     damageCoefficient: 0.0002,   // KE-vahinkokerroin (vahinko = kerroin × nopeus²)
     maxDamage: 800,              // Absoluuttinen vahingon yläraja
-    nebulaCoefficient: 0.5,      // Nebulan vaikutus (vähemmän kuin ammukset)
     maintenanceEnergyPerSecond: 15, // Energiankulutus ylläpitotilassa (maksimivaraus saavutettu)
+
+    // Vuorovaikutukset ympäristökappaleiden kanssa
+    interactions: {
+        planet:    { gravityMultiplier: 4.0, collision: 'destroy' },
+        blackHole: { gravityMultiplier: 5.0, collision: 'destroy' },
+        meteor:    { collision: 'penetrate' },
+        nebula:    { dragCoefficient: 0.5 }
+    },
     recoilPerCharge: 3,          // Rekyylivoima per energiayksikkö
     penetrationMaxDeflection: 30, // Läpäisyn maksimitaittuma (astetta)
     penetrationDeflectionFalloff: 200, // Taittuman vaimennus nopeuden mukaan (suurempi = vähemmän taittumaa nopeilla ammuksilla)
@@ -76,7 +83,7 @@ class RailgunProjectile extends Weapon {
             damage: initialDamage,
             maxSpeed: cfg.projectileMaxSpeed,
             initialSpeed: speed,
-            nebulaCoefficient: cfg.nebulaCoefficient,
+            interactions: cfg.interactions,
             owner: type,
             ownerVx, ownerVy,
             minSpeedThreshold: cfg.minSpeedThreshold,
@@ -86,9 +93,9 @@ class RailgunProjectile extends Weapon {
 
         this.cfg = cfg;
 
-        // 'player' | 'enemy' — painovoiman tunnistusta varten (Planet.js, BlackHole.js)
+        // 'player' | 'enemy' — ammuksen omistaja
         this.type = type;
-        this.penetrating = true; // Ammus läpäisee kohteet jos vahinkoa riittää
+        this.penetrating = true; // Ammus läpäisee kohteet (alus-kohde-törmäyksissä)
 
         this.currentSpeed = speed;
 

@@ -1,5 +1,10 @@
 // Törmäystunnistuslogiikka
 
+// Apufunktio: hae ammuksen törmäyskäyttäytyminen ympäristökappaleelle configista
+function getCollisionBehavior(projectile, envType) {
+    return projectile.interactions?.[envType]?.collision ?? 'destroy';
+}
+
 // Apufunktio: railgun-ammuksen läpäisy — hidasta ja taita lentorataa
 function handleRailgunPenetration(bullet, targetHealth, impactDamage) {
     // Laske jäljellä oleva energiaosuus (KE ∝ v²)
@@ -71,38 +76,38 @@ function splitMeteor(meteor, bulletVx, bulletVy) {
 
 // Tarkista kaikki törmäykset pelissä
 function checkCollisions() {
-    // Tarkista vihollisten ammukset osumassa pelaajaan
+    // Tarkista vihollisten ammukset osumassa pelaajiin
     for (let i = enemyBullets.length - 1; i >= 0; i--) {
         const bullet = enemyBullets[i];
-        if (distance(player.x + 20, player.y + 20, bullet.x, bullet.y) < 30) {
-            // Railgunille vahinko törmäysnopeuden perusteella
-            const impactDamage = bullet.getImpactDamage
-                ? bullet.getImpactDamage(player.vx, player.vy)
-                : bullet.damage;
-            const targetHealth = player.health;
-            const destroyed = player.takeDamage(impactDamage);
+        let bulletHitPlayer = false;
+        for (const pCtx of getAlivePlayers()) {
+            const p = pCtx.player;
+            if (distance(p.x + 20, p.y + 20, bullet.x, bullet.y) < 30) {
+                const impactDamage = bullet.getImpactDamage
+                    ? bullet.getImpactDamage(p.vx, p.vy)
+                    : bullet.damage;
+                const targetHealth = p.health;
+                const destroyed = p.takeDamage(impactDamage);
 
-            if (bullet.penetrating && impactDamage > targetHealth) {
-                // Läpäisy: ammus jatkaa matkaa hidastuneena
-                handleRailgunPenetration(bullet, targetHealth, impactDamage);
-
-                if (destroyed) {
-                    explosions.push(new Explosion(player.x + 20, player.y + 20, 'large', gameContainer));
-                    endGame();
-                    return;
+                if (bullet.penetrating && impactDamage > targetHealth) {
+                    handleRailgunPenetration(bullet, targetHealth, impactDamage);
+                    if (destroyed) {
+                        explosions.push(new Explosion(p.x + 20, p.y + 20, 'large', gameContainer));
+                        playerDied(pCtx);
+                    }
+                } else {
+                    bullet.destroy();
+                    enemyBullets.splice(i, 1);
+                    if (destroyed) {
+                        explosions.push(new Explosion(p.x + 20, p.y + 20, 'large', gameContainer));
+                        playerDied(pCtx);
+                    }
                 }
-            } else {
-                // Normaali osuma: tuhoa ammus
-                bullet.destroy();
-                enemyBullets.splice(i, 1);
-
-                if (destroyed) {
-                    explosions.push(new Explosion(player.x + 20, player.y + 20, 'large', gameContainer));
-                    endGame();
-                    return;
-                }
+                bulletHitPlayer = true;
+                break;
             }
         }
+        if (bulletHitPlayer && currentGameState !== GameState.PLAYING) return;
     }
 
     // Tarkista vihollisten ammukset osumassa vihollisiin (friendly fire)
@@ -168,198 +173,178 @@ function checkCollisions() {
         }
     }
 
-    // Tarkista pelaaja törmäämässä vihollisiin
+    // Tarkista pelaajat törmäämässä vihollisiin
     for (let i = enemies.length - 1; i >= 0; i--) {
         const enemy = enemies[i];
-        if (distance(player.x + 20, player.y + 20, enemy.x + 20, enemy.y + 20) < 40) {
-            // Molemmat ottavat vahinkoa
-            const playerDestroyed = player.takeDamage(enemyConfig.collisionDamage, true);
-            const enemyDestroyed = enemy.takeDamage(playerConfig.collisionDamage);
+        for (const pCtx of getAlivePlayers()) {
+            const p = pCtx.player;
+            if (distance(p.x + 20, p.y + 20, enemy.x + 20, enemy.y + 20) < 40) {
+                const playerDestroyed = p.takeDamage(enemyConfig.collisionDamage, true);
+                const enemyDestroyed = enemy.takeDamage(pCtx.config.collisionDamage);
 
-            // Laske kimmoke - törmäysnormaali pelaajasta viholliseen
-            const dx = (enemy.x + 20) - (player.x + 20);
-            const dy = (enemy.y + 20) - (player.y + 20);
-            const dist = Math.sqrt(dx * dx + dy * dy);
+                const dx = (enemy.x + 20) - (p.x + 20);
+                const dy = (enemy.y + 20) - (p.y + 20);
+                const dist = Math.sqrt(dx * dx + dy * dy);
 
-            if (dist > 0) {
-                const nx = dx / dist;
-                const ny = dy / dist;
+                if (dist > 0) {
+                    const nx = dx / dist;
+                    const ny = dy / dist;
+                    const relVx = p.vx - enemy.vx;
+                    const relVy = p.vy - enemy.vy;
+                    const dotProduct = relVx * nx + relVy * ny;
 
-                // Laske suhteellinen nopeus
-                const relVx = player.vx - enemy.vx;
-                const relVy = player.vy - enemy.vy;
-                const dotProduct = relVx * nx + relVy * ny;
+                    if (dotProduct > 0) {
+                        const bounceStrength = dotProduct;
+                        p.vx -= bounceStrength * nx;
+                        p.vy -= bounceStrength * ny;
+                        enemy.vx += bounceStrength * nx;
+                        enemy.vy += bounceStrength * ny;
 
-                // Kimpoa vain jos objektit liikkuvat toisiaan kohti
-                if (dotProduct > 0) {
-                    // Käytä kimmoketta (elastinen törmäys saman massan kanssa)
-                    const bounceStrength = dotProduct;
-                    player.vx -= bounceStrength * nx;
-                    player.vy -= bounceStrength * ny;
-                    enemy.vx += bounceStrength * nx;
-                    enemy.vy += bounceStrength * ny;
-
-                    // Työnnä objektit erilleen päällekkäisyyden estämiseksi
-                    const overlap = 40 - dist;
-                    const pushDistance = overlap / 2 + 2;
-                    player.x -= nx * pushDistance;
-                    player.y -= ny * pushDistance;
-                    enemy.x += nx * pushDistance;
-                    enemy.y += ny * pushDistance;
+                        const overlap = 40 - dist;
+                        const pushDistance = overlap / 2 + 2;
+                        p.x -= nx * pushDistance;
+                        p.y -= ny * pushDistance;
+                        enemy.x += nx * pushDistance;
+                        enemy.y += ny * pushDistance;
+                    }
                 }
-            }
 
-            if (enemyDestroyed) {
-                // Luo räjähdys vihollisen sijainnissa (koko riippuu tyypistä)
-                const explosionSizeMap = {
-                    'WeakEnemy': 'small',
-                    'EliteEnemy': 'medium',
-                    'AggressiveEnemy': 'medium',
-                    'MissileEnemy': 'medium'
-                };
-                const explosionSize = explosionSizeMap[enemy.constructor.name] || 'small';
-                explosions.push(new Explosion(enemy.x + 20, enemy.y + 20, explosionSize, gameContainer));
+                if (enemyDestroyed) {
+                    const explosionSizeMap = {
+                        'WeakEnemy': 'small', 'EliteEnemy': 'medium',
+                        'AggressiveEnemy': 'medium', 'MissileEnemy': 'medium'
+                    };
+                    explosions.push(new Explosion(enemy.x + 20, enemy.y + 20, explosionSizeMap[enemy.constructor.name] || 'small', gameContainer));
+                    spawnHealthOrb(enemy);
+                    spawnRateOfFireBoost(enemy);
+                    enemy.destroy();
+                    enemies.splice(i, 1);
+                }
 
-                // Spawna terveyspallo
-                spawnHealthOrb(enemy);
-
-                // Spawna ampumisnopeusboosti (todennäköisyyspohjainen)
-                spawnRateOfFireBoost(enemy);
-
-                enemy.destroy();
-                enemies.splice(i, 1);
-            }
-
-            if (playerDestroyed) {
-                // Luo iso räjähdys pelaajan sijainnissa
-                explosions.push(new Explosion(player.x + 20, player.y + 20, 'large', gameContainer));
-                endGame();
-                return;
+                if (playerDestroyed) {
+                    explosions.push(new Explosion(p.x + 20, p.y + 20, 'large', gameContainer));
+                    playerDied(pCtx);
+                    if (currentGameState !== GameState.PLAYING) return;
+                }
+                break; // Yksi vihollinen voi osua vain yhteen pelaajaan per frame
             }
         }
     }
 
-    // Tarkista pelaaja törmäämässä planeettoihin
+    // Tarkista pelaajat törmäämässä planeettoihin
     for (let i = planets.length - 1; i >= 0; i--) {
         const planet = planets[i];
-        if (distance(player.x + 20, player.y + 20, planet.x, planet.y) < planet.radius + 20) {
-            const destroyed = player.takeDamage(planet.damage, true);
+        for (const pCtx of getAlivePlayers()) {
+            const p = pCtx.player;
+            if (distance(p.x + 20, p.y + 20, planet.x, planet.y) < planet.radius + 20) {
+                const destroyed = p.takeDamage(planet.damage, true);
 
-            // Kimmoke - planeetta on liikkumaton ja massiivinen
-            const dx = (player.x + 20) - planet.x;
-            const dy = (player.y + 20) - planet.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
+                const dx = (p.x + 20) - planet.x;
+                const dy = (p.y + 20) - planet.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
 
-            if (dist > 0) {
-                const nx = dx / dist;
-                const ny = dy / dist;
+                if (dist > 0) {
+                    const nx = dx / dist;
+                    const ny = dy / dist;
+                    const dotProduct = p.vx * nx + p.vy * ny;
 
-                // Heijasta nopeus planeetan pinnasta: v - 2(v·n)n
-                const dotProduct = player.vx * nx + player.vy * ny;
+                    if (dotProduct < 0) {
+                        let reflectedVx = p.vx - 2 * dotProduct * nx;
+                        let reflectedVy = p.vy - 2 * dotProduct * ny;
 
-                // Kimpoa vain jos liikutaan planeettaa kohti
-                if (dotProduct < 0) {
-                    let reflectedVx = player.vx - 2 * dotProduct * nx;
-                    let reflectedVy = player.vy - 2 * dotProduct * ny;
+                        const speed = Math.sqrt(reflectedVx * reflectedVx + reflectedVy * reflectedVy);
+                        const minEscapeSpeed = planet.gravityStrength * 2.5;
+                        if (speed < minEscapeSpeed) {
+                            const speedMultiplier = minEscapeSpeed / speed;
+                            reflectedVx *= speedMultiplier;
+                            reflectedVy *= speedMultiplier;
+                        }
 
-                    // Varmista riittävä pakonopeus painovoimasta
-                    const speed = Math.sqrt(reflectedVx * reflectedVx + reflectedVy * reflectedVy);
-                    const minEscapeSpeed = planet.gravityStrength * 2.5;
+                        p.vx = reflectedVx;
+                        p.vy = reflectedVy;
 
-                    if (speed < minEscapeSpeed) {
-                        const speedMultiplier = minEscapeSpeed / speed;
-                        reflectedVx *= speedMultiplier;
-                        reflectedVy *= speedMultiplier;
+                        const collisionDist = planet.radius + 20;
+                        const overlap = collisionDist - dist;
+                        p.x += nx * (overlap + 2);
+                        p.y += ny * (overlap + 2);
                     }
-
-                    player.vx = reflectedVx;
-                    player.vy = reflectedVy;
-
-                    // Työnnä pelaaja pois planeetalta
-                    const collisionDist = planet.radius + 20;
-                    const overlap = collisionDist - dist;
-                    player.x += nx * (overlap + 2);
-                    player.y += ny * (overlap + 2);
                 }
-            }
 
-            if (destroyed) {
-                // Luo iso räjähdys pelaajan sijainnissa
-                explosions.push(new Explosion(player.x + 20, player.y + 20, 'large', gameContainer));
-                endGame();
-                return;
+                if (destroyed) {
+                    explosions.push(new Explosion(p.x + 20, p.y + 20, 'large', gameContainer));
+                    playerDied(pCtx);
+                    if (currentGameState !== GameState.PLAYING) return;
+                }
             }
         }
     }
 
-    // Tarkista pelaaja törmäämässä meteoriitteihin
+    // Tarkista pelaajat törmäämässä meteoriitteihin
     for (let i = meteors.length - 1; i >= 0; i--) {
         const meteor = meteors[i];
         const collisionDist = meteor.radius + 20;
-        if (distance(player.x + 20, player.y + 20, meteor.x, meteor.y) < collisionDist) {
-            const destroyed = player.takeDamage(meteor.damage, true);
+        for (const pCtx of getAlivePlayers()) {
+            const p = pCtx.player;
+            if (distance(p.x + 20, p.y + 20, meteor.x, meteor.y) < collisionDist) {
+                const destroyed = p.takeDamage(meteor.damage, true);
 
-            // Laske kimmoke - törmäysnormaali pelaajasta meteoriittiin
-            const dx = meteor.x - (player.x + 20);
-            const dy = meteor.y - (player.y + 20);
-            const dist = Math.sqrt(dx * dx + dy * dy);
+                const dx = meteor.x - (p.x + 20);
+                const dy = meteor.y - (p.y + 20);
+                const dist = Math.sqrt(dx * dx + dy * dy);
 
-            if (dist > 0) {
-                const nx = dx / dist;
-                const ny = dy / dist;
+                if (dist > 0) {
+                    const nx = dx / dist;
+                    const ny = dy / dist;
+                    const relVx = p.vx - meteor.vx;
+                    const relVy = p.vy - meteor.vy;
+                    const dotProduct = relVx * nx + relVy * ny;
 
-                // Laske suhteellinen nopeus
-                const relVx = player.vx - meteor.vx;
-                const relVy = player.vy - meteor.vy;
-                const dotProduct = relVx * nx + relVy * ny;
+                    if (dotProduct > 0) {
+                        const bounceStrength = dotProduct * 1.2;
+                        p.vx -= bounceStrength * nx;
+                        p.vy -= bounceStrength * ny;
+                        meteor.vx += bounceStrength * nx * 0.5;
+                        meteor.vy += bounceStrength * ny * 0.5;
 
-                // Kimpoa vain jos objektit liikkuvat toisiaan kohti
-                if (dotProduct > 0) {
-                    // Käytä kimmoketta (elastinen törmäys)
-                    const bounceStrength = dotProduct * 1.2; // Hieman vahvempi kimmoke meteoriiteille
-                    player.vx -= bounceStrength * nx;
-                    player.vy -= bounceStrength * ny;
-                    meteor.vx += bounceStrength * nx * 0.5; // Meteoriitti kimpoaa vähemmän (enemmän massaa)
-                    meteor.vy += bounceStrength * ny * 0.5;
-
-                    // Työnnä objektit erilleen päällekkäisyyden estämiseksi
-                    const overlap = collisionDist - dist;
-                    const pushDistance = overlap + 2;
-                    player.x -= nx * pushDistance * 0.8;
-                    player.y -= ny * pushDistance * 0.8;
-                    meteor.x += nx * pushDistance * 0.2;
-                    meteor.y += ny * pushDistance * 0.2;
+                        const overlap = collisionDist - dist;
+                        const pushDistance = overlap + 2;
+                        p.x -= nx * pushDistance * 0.8;
+                        p.y -= ny * pushDistance * 0.8;
+                        meteor.x += nx * pushDistance * 0.2;
+                        meteor.y += ny * pushDistance * 0.2;
+                    }
                 }
-            }
 
-            if (destroyed) {
-                // Luo iso räjähdys pelaajan sijainnissa
-                explosions.push(new Explosion(player.x + 20, player.y + 20, 'large', gameContainer));
-                endGame();
-                return;
+                if (destroyed) {
+                    explosions.push(new Explosion(p.x + 20, p.y + 20, 'large', gameContainer));
+                    playerDied(pCtx);
+                    if (currentGameState !== GameState.PLAYING) return;
+                }
+                break;
             }
         }
     }
 
-    // Tarkista pelaaja törmäämässä mustiin aukkoihin (kutistuu olemattomiin)
+    // Tarkista pelaajat törmäämässä mustiin aukkoihin (kutistuu olemattomiin)
     for (let i = blackHoles.length - 1; i >= 0; i--) {
         const blackHole = blackHoles[i];
-        if (distance(player.x + 20, player.y + 20, blackHole.x, blackHole.y) < blackHole.radius + 20) {
-            if (!player.isShrinking) {
-                player.isShrinking = true;
-                player.shrinkProgress = 0;
-                player.shrinkDuration = 0.5; // 0.5 sekuntia kutistumiseen
+        for (const pCtx of getAlivePlayers()) {
+            const p = pCtx.player;
+            if (distance(p.x + 20, p.y + 20, blackHole.x, blackHole.y) < blackHole.radius + 20) {
+                if (!p.isShrinking) {
+                    p.isShrinking = true;
+                    p.shrinkProgress = 0;
+                    p.shrinkDuration = 0.5;
 
-                // Musta aukko kasvaa 1% aluksen nielaistessa
-                blackHole.radius *= 1.01;
-                blackHole.gravityRadius = blackHole.radius * blackHoleConfig.gravityRadiusMultiplier;
-                blackHole.distortionRadius *= 1.01;
+                    blackHole.radius *= 1.01;
+                    blackHole.gravityRadius = blackHole.radius * blackHoleConfig.gravityRadiusMultiplier;
+                    blackHole.distortionRadius *= 1.01;
 
-                // Päivitä visuaaliset elementit
-                blackHole.element.style.width = (blackHole.radius * 2) + 'px';
-                blackHole.element.style.height = (blackHole.radius * 2) + 'px';
-                blackHole.distortionField.style.width = (blackHole.distortionRadius * 2) + 'px';
-                blackHole.distortionField.style.height = (blackHole.distortionRadius * 2) + 'px';
+                    blackHole.element.style.width = (blackHole.radius * 2) + 'px';
+                    blackHole.element.style.height = (blackHole.radius * 2) + 'px';
+                    blackHole.distortionField.style.width = (blackHole.distortionRadius * 2) + 'px';
+                    blackHole.distortionField.style.height = (blackHole.distortionRadius * 2) + 'px';
+                }
             }
         }
     }
@@ -712,28 +697,26 @@ function checkCollisions() {
             const meteor = meteors[j];
             if (meteor.immunityTimer > 0) continue; // Ohita immuunit meteorit (juuri haljenneita)
             if (distance(bullet.x, bullet.y, meteor.x, meteor.y) < meteor.radius + 3) {
-                if (bullet.penetrating) {
-                    // Railgun: vahingoita meteoria
+                const behavior = getCollisionBehavior(bullet, 'meteor');
+                if (behavior === 'penetrate') {
+                    // Railgun: vahingoita meteoria ja läpäise
                     const impactDamage = bullet.getImpactDamage(meteor.vx, meteor.vy);
                     const meteorHealth = meteor.health;
                     const destroyed = meteor.takeDamage(impactDamage);
 
                     if (destroyed) {
                         if (meteor.radius >= meteorConfig.minSplitRadius) {
-                            // Halkaise kahdeksi puolikkaaksi
                             splitMeteor(meteor, bullet.vx, bullet.vy);
                         } else {
-                            // Liian pieni halkaistuksi — räjähdys
                             explosions.push(new Explosion(meteor.x, meteor.y, 'small', gameContainer));
                         }
                         meteor.destroy();
                         meteors.splice(j, 1);
                     }
 
-                    // Railgun jatkaa matkaa (penetration)
                     handleRailgunPenetration(bullet, meteorHealth, impactDamage);
-                } else {
-                    // Normaali ammus: kimmoke
+                } else if (behavior === 'bounce') {
+                    // Kimmoke
                     const dx = bullet.x - meteor.x;
                     const dy = bullet.y - meteor.y;
                     const normalLength = Math.sqrt(dx * dx + dy * dy);
@@ -743,6 +726,14 @@ function checkCollisions() {
                     const dotProduct = bullet.vx * nx + bullet.vy * ny;
                     bullet.vx = (bullet.vx - 2 * dotProduct * nx);
                     bullet.vy = (bullet.vy - 2 * dotProduct * ny);
+                } else if (behavior === 'explode') {
+                    explosions.push(new Explosion(bullet.x, bullet.y, 'small', gameContainer));
+                    bullet.destroy();
+                    playerBullets.splice(i, 1);
+                } else {
+                    // 'destroy'
+                    bullet.destroy();
+                    playerBullets.splice(i, 1);
                 }
                 hitMeteor = true;
                 break;
@@ -754,6 +745,10 @@ function checkCollisions() {
             for (let j = planets.length - 1; j >= 0; j--) {
                 const planet = planets[j];
                 if (distance(bullet.x, bullet.y, planet.x, planet.y) < planet.radius + 3) {
+                    const behavior = getCollisionBehavior(bullet, 'planet');
+                    if (behavior === 'explode') {
+                        explosions.push(new Explosion(bullet.x, bullet.y, 'small', gameContainer));
+                    }
                     bullet.destroy();
                     playerBullets.splice(i, 1);
                     break;
@@ -774,7 +769,7 @@ function checkCollisions() {
         }
     }
 
-    // Tarkista vihollisten ammukset osumassa meteoriitteihin (kimmoa takaisin)
+    // Tarkista vihollisten ammukset osumassa meteoriitteihin
     for (let i = enemyBullets.length - 1; i >= 0; i--) {
         const bullet = enemyBullets[i];
         let hitMeteor = false;
@@ -782,10 +777,10 @@ function checkCollisions() {
         // Tarkista törmäys meteoriitteihin
         for (let j = meteors.length - 1; j >= 0; j--) {
             const meteor = meteors[j];
-            if (meteor.immunityTimer > 0) continue; // Ohita immuunit meteorit (juuri haljenneita)
+            if (meteor.immunityTimer > 0) continue;
             if (distance(bullet.x, bullet.y, meteor.x, meteor.y) < meteor.radius + 3) {
-                if (bullet.penetrating) {
-                    // Railgun: vahingoita meteoria
+                const behavior = getCollisionBehavior(bullet, 'meteor');
+                if (behavior === 'penetrate') {
                     const impactDamage = bullet.getImpactDamage(meteor.vx, meteor.vy);
                     const meteorHealth = meteor.health;
                     const destroyed = meteor.takeDamage(impactDamage);
@@ -800,10 +795,8 @@ function checkCollisions() {
                         meteors.splice(j, 1);
                     }
 
-                    // Railgun jatkaa matkaa (penetration)
                     handleRailgunPenetration(bullet, meteorHealth, impactDamage);
-                } else {
-                    // Normaali ammus: kimmoke
+                } else if (behavior === 'bounce') {
                     const dx = bullet.x - meteor.x;
                     const dy = bullet.y - meteor.y;
                     const normalLength = Math.sqrt(dx * dx + dy * dy);
@@ -813,6 +806,13 @@ function checkCollisions() {
                     const dotProduct = bullet.vx * nx + bullet.vy * ny;
                     bullet.vx = (bullet.vx - 2 * dotProduct * nx);
                     bullet.vy = (bullet.vy - 2 * dotProduct * ny);
+                } else if (behavior === 'explode') {
+                    explosions.push(new Explosion(bullet.x, bullet.y, 'small', gameContainer));
+                    bullet.destroy();
+                    enemyBullets.splice(i, 1);
+                } else {
+                    bullet.destroy();
+                    enemyBullets.splice(i, 1);
                 }
                 hitMeteor = true;
                 break;
@@ -824,6 +824,10 @@ function checkCollisions() {
             for (let j = planets.length - 1; j >= 0; j--) {
                 const planet = planets[j];
                 if (distance(bullet.x, bullet.y, planet.x, planet.y) < planet.radius + 3) {
+                    const behavior = getCollisionBehavior(bullet, 'planet');
+                    if (behavior === 'explode') {
+                        explosions.push(new Explosion(bullet.x, bullet.y, 'small', gameContainer));
+                    }
                     bullet.destroy();
                     enemyBullets.splice(i, 1);
                     break;
@@ -867,7 +871,7 @@ function checkCollisions() {
                             'EliteEnemy': 25,
                             'AggressiveEnemy': 30
                         };
-                        player.score += scoreMap[enemy.constructor.name] || 10;
+                        gameScore += scoreMap[enemy.constructor.name] || 10;
 
                         const explosionSizeMap = {
                             'WeakEnemy': 'small',
@@ -895,7 +899,7 @@ function checkCollisions() {
                             'EliteEnemy': 25,
                             'AggressiveEnemy': 30
                         };
-                        player.score += scoreMap[enemy.constructor.name] || 10;
+                        gameScore += scoreMap[enemy.constructor.name] || 10;
 
                         const explosionSizeMap = {
                             'WeakEnemy': 'small',
@@ -917,22 +921,64 @@ function checkCollisions() {
         }
     }
 
-    // Tarkista pelaajan ohjukset osumassa pelaajaan itseensä (vain aktivoituneet ohjukset)
-    for (let i = playerMissiles.length - 1; i >= 0; i--) {
-        const missile = playerMissiles[i];
-        if (missile.age < missileConfig.armingTime) continue; // Ei vielä aktivoitunut
-        if (distance(player.x + 20, player.y + 20, missile.x, missile.y) < 20 + missileConfig.collisionRadius) {
-            const destroyed = player.takeDamage(missile.damage);
+    // Tarkista pelaajan ohjukset osumassa pelaajiin (vain kun friendly fire päällä)
+    if (friendlyFire) {
+        for (let i = playerMissiles.length - 1; i >= 0; i--) {
+            const missile = playerMissiles[i];
+            if (missile.age < missileConfig.armingTime) continue;
+            for (const pCtx of getAlivePlayers()) {
+                const p = pCtx.player;
+                // Ohita ampuja vain lähietäisyydellä (estää välitön osuma spawnissa)
+                if (missile.firedByPlayer === p && distance(p.x + 20, p.y + 20, missile.x, missile.y) < 50) continue;
+                if (distance(p.x + 20, p.y + 20, missile.x, missile.y) < 20 + missileConfig.collisionRadius) {
+                    const destroyed = p.takeDamage(missile.damage);
 
-            // Ohjus räjähtää
-            explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
-            missile.destroy();
-            playerMissiles.splice(i, 1);
+                    explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+                    missile.destroy();
+                    playerMissiles.splice(i, 1);
 
-            if (destroyed) {
-                explosions.push(new Explosion(player.x + 20, player.y + 20, 'large', gameContainer));
-                endGame();
-                return;
+                    if (destroyed) {
+                        explosions.push(new Explosion(p.x + 20, p.y + 20, 'large', gameContainer));
+                        playerDied(pCtx);
+                        if (currentGameState !== GameState.PLAYING) return;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    // Tarkista pelaajan ammukset osumassa pelaajiin (vain kun friendly fire päällä)
+    if (friendlyFire) {
+        for (let i = playerBullets.length - 1; i >= 0; i--) {
+            const bullet = playerBullets[i];
+            let hitPlayer = false;
+            for (const pCtx of getAlivePlayers()) {
+                const p = pCtx.player;
+                // Ohita ampuja vain lähietäisyydellä (estää välitön osuma spawnissa)
+                if (bullet.firedByPlayer === p && distance(p.x + 20, p.y + 20, bullet.x, bullet.y) < 50) continue;
+                if (distance(p.x + 20, p.y + 20, bullet.x, bullet.y) < 30) {
+                    const impactDamage = bullet.getImpactDamage
+                        ? bullet.getImpactDamage(p.vx, p.vy)
+                        : bullet.damage;
+                    const targetHealth = p.health;
+                    const destroyed = p.takeDamage(impactDamage);
+
+                    if (bullet.penetrating && impactDamage > targetHealth) {
+                        handleRailgunPenetration(bullet, targetHealth, impactDamage);
+                    } else {
+                        bullet.destroy();
+                        playerBullets.splice(i, 1);
+                    }
+
+                    if (destroyed) {
+                        explosions.push(new Explosion(p.x + 20, p.y + 20, 'large', gameContainer));
+                        playerDied(pCtx);
+                        if (currentGameState !== GameState.PLAYING) return;
+                    }
+                    hitPlayer = true;
+                    break;
+                }
             }
         }
     }
@@ -957,7 +1003,7 @@ function checkCollisions() {
                         'EliteEnemy': 25,
                         'AggressiveEnemy': 30
                     };
-                    player.score += scoreMap[enemy.constructor.name] || 10;
+                    gameScore += scoreMap[enemy.constructor.name] || 10;
 
                     // Luo räjähdys vihollisen sijainnissa
                     const explosionSizeMap = {
@@ -988,14 +1034,16 @@ function checkCollisions() {
         for (let j = playerMissiles.length - 1; j >= 0; j--) {
             const missile = playerMissiles[j];
             if (distance(bullet.x, bullet.y, missile.x, missile.y) < 3 + missileConfig.collisionRadius) {
-                // Ohjus tuhoutuu (1 HP)
                 explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
                 missile.destroy();
                 playerMissiles.splice(j, 1);
 
-                // Ammus tuhoutuu myös
-                bullet.destroy();
-                enemyBullets.splice(i, 1);
+                if (bullet.penetrating) {
+                    handleRailgunPenetration(bullet, missileConfig.health, bullet.damage);
+                } else {
+                    bullet.destroy();
+                    enemyBullets.splice(i, 1);
+                }
                 break;
             }
         }
@@ -1007,8 +1055,11 @@ function checkCollisions() {
         for (let j = meteors.length - 1; j >= 0; j--) {
             const meteor = meteors[j];
             if (distance(missile.x, missile.y, meteor.x, meteor.y) < meteor.radius + missileConfig.collisionRadius) {
-                // Ohjus räjähtää (ei kimpoa kuten ammukset)
-                explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+                const behavior = getCollisionBehavior(missile, 'meteor');
+                // Ohjukset tukevat vain 'explode' ja 'destroy' -moodeja (ei bounce/penetrate)
+                if (behavior === 'explode') {
+                    explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+                }
                 missile.destroy();
                 playerMissiles.splice(i, 1);
                 break;
@@ -1022,7 +1073,10 @@ function checkCollisions() {
         for (let j = planets.length - 1; j >= 0; j--) {
             const planet = planets[j];
             if (distance(missile.x, missile.y, planet.x, planet.y) < planet.radius + missileConfig.collisionRadius) {
-                explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+                const behavior = getCollisionBehavior(missile, 'planet');
+                if (behavior === 'explode') {
+                    explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+                }
                 missile.destroy();
                 playerMissiles.splice(i, 1);
                 break;
@@ -1076,21 +1130,27 @@ function checkCollisions() {
         }
     }
 
-    // Tarkista vihollisten ohjukset osumassa pelaajaan
+    // Tarkista vihollisten ohjukset osumassa pelaajiin
     for (let i = enemyMissiles.length - 1; i >= 0; i--) {
         const missile = enemyMissiles[i];
         if (missile.age < missileConfig.armingTime) continue;
-        if (distance(player.x + 20, player.y + 20, missile.x, missile.y) < 20 + missileConfig.collisionRadius) {
-            const destroyed = player.takeDamage(missile.damage);
+        let missileHit = false;
+        for (const pCtx of getAlivePlayers()) {
+            const p = pCtx.player;
+            if (distance(p.x + 20, p.y + 20, missile.x, missile.y) < 20 + missileConfig.collisionRadius) {
+                const destroyed = p.takeDamage(missile.damage);
 
-            explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
-            missile.destroy();
-            enemyMissiles.splice(i, 1);
+                explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+                missile.destroy();
+                enemyMissiles.splice(i, 1);
 
-            if (destroyed) {
-                explosions.push(new Explosion(player.x + 20, player.y + 20, 'large', gameContainer));
-                endGame();
-                return;
+                if (destroyed) {
+                    explosions.push(new Explosion(p.x + 20, p.y + 20, 'large', gameContainer));
+                    playerDied(pCtx);
+                    if (currentGameState !== GameState.PLAYING) return;
+                }
+                missileHit = true;
+                break;
             }
         }
     }
@@ -1105,8 +1165,12 @@ function checkCollisions() {
                 missile.destroy();
                 enemyMissiles.splice(j, 1);
 
-                bullet.destroy();
-                playerBullets.splice(i, 1);
+                if (bullet.penetrating) {
+                    handleRailgunPenetration(bullet, missileConfig.health, bullet.damage);
+                } else {
+                    bullet.destroy();
+                    playerBullets.splice(i, 1);
+                }
                 break;
             }
         }
@@ -1130,13 +1194,95 @@ function checkCollisions() {
         }
     }
 
+    // Tarkista pelaajan ammukset osumassa pelaajan ohjuksiin
+    for (let i = playerBullets.length - 1; i >= 0; i--) {
+        const bullet = playerBullets[i];
+        for (let j = playerMissiles.length - 1; j >= 0; j--) {
+            const missile = playerMissiles[j];
+            if (bullet.firedByPlayer === missile.firedByPlayer) continue;
+            if (distance(bullet.x, bullet.y, missile.x, missile.y) < 3 + missileConfig.collisionRadius) {
+                explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+                missile.destroy();
+                playerMissiles.splice(j, 1);
+
+                if (bullet.penetrating) {
+                    handleRailgunPenetration(bullet, missileConfig.health, bullet.damage);
+                } else {
+                    bullet.destroy();
+                    playerBullets.splice(i, 1);
+                }
+                break;
+            }
+        }
+    }
+
+    // Tarkista vihollisten ammukset osumassa vihollisten ohjuksiin
+    for (let i = enemyBullets.length - 1; i >= 0; i--) {
+        const bullet = enemyBullets[i];
+        for (let j = enemyMissiles.length - 1; j >= 0; j--) {
+            const missile = enemyMissiles[j];
+            if (distance(bullet.x, bullet.y, missile.x, missile.y) < 3 + missileConfig.collisionRadius) {
+                explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+                missile.destroy();
+                enemyMissiles.splice(j, 1);
+
+                if (bullet.penetrating) {
+                    handleRailgunPenetration(bullet, missileConfig.health, bullet.damage);
+                } else {
+                    bullet.destroy();
+                    enemyBullets.splice(i, 1);
+                }
+                break;
+            }
+        }
+    }
+
+    // Tarkista pelaajan ohjukset osumassa pelaajan ohjuksiin
+    for (let i = playerMissiles.length - 2; i >= 0; i--) {
+        const missileA = playerMissiles[i];
+        for (let j = playerMissiles.length - 1; j > i; j--) {
+            const missileB = playerMissiles[j];
+            if (missileA.firedByPlayer === missileB.firedByPlayer) continue;
+            if (distance(missileA.x, missileA.y, missileB.x, missileB.y) < missileConfig.collisionRadius * 2) {
+                explosions.push(new Explosion(missileA.x, missileA.y, 'small', gameContainer));
+                explosions.push(new Explosion(missileB.x, missileB.y, 'small', gameContainer));
+                missileB.destroy();
+                playerMissiles.splice(j, 1);
+                missileA.destroy();
+                playerMissiles.splice(i, 1);
+                break;
+            }
+        }
+    }
+
+    // Tarkista vihollisten ohjukset osumassa vihollisten ohjuksiin
+    for (let i = enemyMissiles.length - 2; i >= 0; i--) {
+        const missileA = enemyMissiles[i];
+        for (let j = enemyMissiles.length - 1; j > i; j--) {
+            const missileB = enemyMissiles[j];
+            if (distance(missileA.x, missileA.y, missileB.x, missileB.y) < missileConfig.collisionRadius * 2) {
+                explosions.push(new Explosion(missileA.x, missileA.y, 'small', gameContainer));
+                explosions.push(new Explosion(missileB.x, missileB.y, 'small', gameContainer));
+                missileB.destroy();
+                enemyMissiles.splice(j, 1);
+                missileA.destroy();
+                enemyMissiles.splice(i, 1);
+                break;
+            }
+        }
+    }
+
     // Tarkista vihollisten ohjukset osumassa meteoriitteihin
     for (let i = enemyMissiles.length - 1; i >= 0; i--) {
         const missile = enemyMissiles[i];
         for (let j = meteors.length - 1; j >= 0; j--) {
             const meteor = meteors[j];
             if (distance(missile.x, missile.y, meteor.x, meteor.y) < meteor.radius + missileConfig.collisionRadius) {
-                explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+                const behavior = getCollisionBehavior(missile, 'meteor');
+                // Ohjukset tukevat vain 'explode' ja 'destroy' -moodeja (ei bounce/penetrate)
+                if (behavior === 'explode') {
+                    explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+                }
                 missile.destroy();
                 enemyMissiles.splice(i, 1);
                 break;
@@ -1150,7 +1296,10 @@ function checkCollisions() {
         for (let j = planets.length - 1; j >= 0; j--) {
             const planet = planets[j];
             if (distance(missile.x, missile.y, planet.x, planet.y) < planet.radius + missileConfig.collisionRadius) {
-                explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+                const behavior = getCollisionBehavior(missile, 'planet');
+                if (behavior === 'explode') {
+                    explosions.push(new Explosion(missile.x, missile.y, 'small', gameContainer));
+                }
                 missile.destroy();
                 enemyMissiles.splice(i, 1);
                 break;
@@ -1171,29 +1320,35 @@ function checkCollisions() {
         }
     }
 
-    // Tarkista pelaaja keräämässä terveyspaloja
+    // Tarkista pelaajat keräämässä terveyspaloja
     for (let i = healthOrbs.length - 1; i >= 0; i--) {
         const orb = healthOrbs[i];
-        if (orb.checkCollision(player)) {
-            // Palauta terveyttä (ei ylitä maksimia)
-            player.health = Math.min(player.health + orb.healthValue, player.maxHealth);
-
-            // Poista pallo
-            orb.destroy();
-            healthOrbs.splice(i, 1);
+        let collected = false;
+        for (const pCtx of getAlivePlayers()) {
+            const p = pCtx.player;
+            if (orb.checkCollision(p)) {
+                p.health = Math.min(p.health + orb.healthValue, p.maxHealth);
+                orb.destroy();
+                healthOrbs.splice(i, 1);
+                collected = true;
+                break;
+            }
         }
     }
 
-    // Tarkista pelaaja keräämässä ampumisnopeusboosteja
+    // Tarkista pelaajat keräämässä ampumisnopeusboosteja
     for (let i = rateOfFireBoosts.length - 1; i >= 0; i--) {
         const boost = rateOfFireBoosts[i];
-        if (boost.checkCollision(player)) {
-            // Lisää ampumisnopeusboosti
-            player.applyRateOfFireBoost();
-
-            // Poista boosti
-            boost.destroy();
-            rateOfFireBoosts.splice(i, 1);
+        let collected = false;
+        for (const pCtx of getAlivePlayers()) {
+            const p = pCtx.player;
+            if (boost.checkCollision(p)) {
+                p.applyRateOfFireBoost();
+                boost.destroy();
+                rateOfFireBoosts.splice(i, 1);
+                collected = true;
+                break;
+            }
         }
     }
 }

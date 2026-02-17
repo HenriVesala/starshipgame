@@ -14,7 +14,6 @@ const planetConfig = {
     // Painovoiman konfiguraatio
     gravityRadiusMultiplier: 6,   // Painovoimakentän säde = säde * tämä arvo
     baseGravityStrength: 80,      // Painovoiman perusvoimakkuus aluksille/vihollisille (px/s²)
-    bulletGravityMultiplier: 4,  // Ammukset kokevat tämän kerrannaisen painovoimaa
 
     // Painovoiman väheneminen
     gravityFalloffMin: 0.1,  // Vähintään painovoima reunalla (10% täydestä)
@@ -254,9 +253,10 @@ class Planet {
             // Gravity strength depends on object type (using config values)
             let baseGravityStrength = planetConfig.baseGravityStrength;
             
-            // Bullets (playerBullets and enemyBullets) experience increased gravity
-            if (obj.hasOwnProperty('type') && (obj.type === 'player' || obj.type === 'enemy')) {
-                baseGravityStrength = planetConfig.baseGravityStrength * planetConfig.bulletGravityMultiplier;
+            // Aseen painovoimakerroin (interactions.planet.gravityMultiplier)
+            const gravMul = obj.interactions?.planet?.gravityMultiplier;
+            if (gravMul != null) {
+                baseGravityStrength *= gravMul;
             }
             
             // Gravity falls off from full strength at center to min at edge

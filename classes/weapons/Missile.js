@@ -1,6 +1,6 @@
 // Ohjuksen konfiguraatio
 const missileConfig = {
-    shootCooldown: 0.7,          // Pelaajan ampumisen cooldown (sekuntia)
+    shootCooldown: 1,            // Pelaajan ampumisen cooldown (sekuntia)
     shootCooldownMin: 5.0,       // Vihollisen pienin ampumisaikaväli (sekunti)
     shootCooldownMax: 10.0,      // Vihollisen suurin ampumisaikaväli (sekunti)
     maxSpeed: 2000,              // Maksiminopeus (pikselit/sekunti)
@@ -17,9 +17,24 @@ const missileConfig = {
     height: 16,                  // Korkeus pikseleissä
     collisionRadius: 10,         // Törmäyssäde pikseleissä
     armingTime: 1,               // Aktivointiaika sekunteina (ei osu omistajaan ennen tätä)
-    nebulaCoefficient: 1.0,      // Nebulan vastuskerroin (0 = ei vaikutusta, 1 = normaali)
-    energyCost: 5,              // Energiakustannus per laukaus
+    energyCost: 45,              // Energiakustannus per laukaus
     recoil: 10,                  // Rekyylivoima (pikselit/sekunti)
+
+    // Vuorovaikutukset ympäristökappaleiden kanssa
+    interactions: {
+        planet:    { gravityMultiplier: 1.0, collision: 'explode' },
+        blackHole: { gravityMultiplier: 1.0, collision: 'destroy' },
+        meteor:    { collision: 'explode' },
+        nebula:    { dragCoefficient: 1.0, accelerationMultiplier: 0.5 }
+    },
+
+    // Ohjuksen värit
+    colors: {
+        bodyGradient: 'linear-gradient(to bottom, #ffffff, #ff8800, #ff4400)',
+        glowColor1: 'rgba(255, 136, 0, 0.9)',
+        glowColor2: 'rgba(255, 68, 0, 0.6)',
+        glowColor3: 'rgba(255, 68, 0, 0.3)'
+    },
 
     // Suuliekki
     muzzleFlash: {
@@ -46,7 +61,7 @@ class Missile extends Weapon {
             damage: cfg.damage,
             maxSpeed: cfg.maxSpeed,
             initialSpeed: cfg.initialSpeed,
-            nebulaCoefficient: cfg.nebulaCoefficient,
+            interactions: cfg.interactions,
             owner,
             ownerVx, ownerVy,
             muzzleFlash: cfg.muzzleFlash
@@ -66,11 +81,16 @@ class Missile extends Weapon {
 
         // Luo DOM-elementit
         this.element = document.createElement('div');
-        this.element.className = `missile ${owner}-missile`;
+        this.element.className = 'missile';
 
-        // Ohjuksen runko (clip-path muoto)
+        // Ohjuksen runko (clip-path muoto) — värit configista
         this.bodyElement = document.createElement('div');
         this.bodyElement.className = 'missile-body';
+        const colors = cfg.colors;
+        if (colors) {
+            this.bodyElement.style.background = colors.bodyGradient;
+            this.bodyElement.style.boxShadow = `0 0 10px ${colors.glowColor1}, 0 0 20px ${colors.glowColor2}, 0 0 30px ${colors.glowColor3}`;
+        }
         this.element.appendChild(this.bodyElement);
 
         // Liekki-elementti (näkyy vain hakeutuessa)
@@ -148,7 +168,7 @@ class Missile extends Weapon {
 
         // Kiihdy kohti maksiminopeutta (sekä armingTimen aikana että hakeutuessa)
         if (this.target || this.age < this.cfg.armingTime) {
-            const nebulaAccelMult = this.inNebula ? 0.5 : 1.0;
+            const nebulaAccelMult = this.inNebula ? (this.cfg.interactions?.nebula?.accelerationMultiplier ?? 0.5) : 1.0;
             this.currentSpeed += this.cfg.acceleration * nebulaAccelMult * dt;
             if (this.currentSpeed > this.maxSpeed) {
                 this.currentSpeed = this.maxSpeed;

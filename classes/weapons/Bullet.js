@@ -1,17 +1,25 @@
 // Ammuksien konfiguraatio (oletukset = vihollisen arvot)
 const bulletConfig = {
     // Tulinopeus
-    shootCooldown: 0.7,        // Pelaajan cooldown (sekunti)
+        shootCooldown: 0.2,        // Pelaajan cooldown (sekunti)
+
     shootCooldownMin: 1.0,     // Vihollisen min cooldown (sekunti)
     shootCooldownMax: 2.67,    // Vihollisen max cooldown (sekunti)
 
     // Ammuksen ominaisuudet
     initialSpeed: 240,         // Lähtönopeus laukaistaessa (pikselit/sekunti)
     maxSpeed: 2000,            // Maksiminopeus (pikselit/sekunti)
-    nebulaCoefficient: 1.0,    // Nebulan vastuskerroin (0 = ei vaikutusta, 1 = normaali)
     damage: 100,               // Vahinko joka ammus aiheuttaa
-    energyCost: 30,            // Energiakustannus per laukaus
+    energyCost: 25,            // Energiakustannus per laukaus
     recoil: 5,                 // Rekyylivoima (pikselit/sekunti)
+
+    // Vuorovaikutukset ympäristökappaleiden kanssa
+    interactions: {
+        planet:    { gravityMultiplier: 4.0, collision: 'destroy' },
+        blackHole: { gravityMultiplier: 5.0, collision: 'destroy' },
+        meteor:    { collision: 'bounce' },
+        nebula:    { dragCoefficient: 1.0 }
+    },
 
     // Väri (oletukset = vihollisen punainen)
     color: '#ff0000',
@@ -44,13 +52,13 @@ class Bullet extends Weapon {
             damage: config.damage,
             maxSpeed: config.maxSpeed,
             initialSpeed: config.initialSpeed,
-            nebulaCoefficient: config.nebulaCoefficient,
+            interactions: config.interactions,
             owner: type,
             ownerVx, ownerVy,
             muzzleFlash: config.muzzleFlash
         });
 
-        // Bulletilla type-kenttä painovoiman tunnistusta varten (Planet.js, BlackHole.js)
+        // 'player' | 'enemy' — ammuksen omistaja
         this.type = type;
 
         this.element = document.createElement('div');
