@@ -261,17 +261,22 @@ class SoundManager {
         const voices = cfg.voices || 5;
         const detune = cfg.detune || 20;
 
-        // Gain-noodit
+        // Output gain — erillinen volyyminodes jota LFO ei moduloi
+        const outputGain = this.ctx.createGain();
+        outputGain.gain.setValueAtTime(1.0, now);
+        outputGain.connect(this.masterGain);
+
+        // Gain-noodit (signaaliketju: oskillaattorit → gain1/gain2 → outputGain → master)
         const gain1 = this.ctx.createGain();
         gain1.gain.setValueAtTime(cfg.volume, now);
         const gain2 = this.ctx.createGain();
         gain2.gain.setValueAtTime(cfg.harmonicVolume, now);
-        gain1.connect(this.masterGain);
-        gain2.connect(this.masterGain);
+        gain1.connect(outputGain);
+        gain2.connect(outputGain);
 
-        // Supersaw pääoskillaattori (220 Hz)
+        // Supersaw pääoskillaattori
         const ss1 = this.createSuperSaw(cfg.frequency, voices, detune, gain1);
-        // Supersaw yliääni (440 Hz)
+        // Supersaw yliääni
         const ss2 = this.createSuperSaw(cfg.harmonicFrequency, voices, detune, gain2);
 
         // LFO (tremolo) → pääoskillaattorin gain
@@ -288,7 +293,7 @@ class SoundManager {
         for (const osc of ss2.oscillators) osc.start(now);
         lfo.start(now);
 
-        this.continuousSounds['laser_' + id] = { ss1, ss2, lfo, gain1, gain2, lfoGain };
+        this.continuousSounds['laser_' + id] = { ss1, ss2, lfo, gain1, gain2, lfoGain, outputGain };
     }
 
     stopLaser(id = 'default') {
@@ -299,11 +304,10 @@ class SoundManager {
         const cfg = soundConfig.laser;
         const now = this.ctx.currentTime;
 
-        // Fade out
-        nodes.gain1.gain.setValueAtTime(nodes.gain1.gain.value, now);
-        nodes.gain1.gain.exponentialRampToValueAtTime(0.001, now + cfg.fadeOut);
-        nodes.gain2.gain.setValueAtTime(nodes.gain2.gain.value, now);
-        nodes.gain2.gain.exponentialRampToValueAtTime(0.001, now + cfg.fadeOut);
+        // Fade out outputGain:n kautta (ei konflikti LFO:n kanssa)
+        nodes.outputGain.gain.cancelScheduledValues(now);
+        nodes.outputGain.gain.setValueAtTime(nodes.outputGain.gain.value, now);
+        nodes.outputGain.gain.exponentialRampToValueAtTime(0.001, now + cfg.fadeOut);
 
         const stopTime = now + cfg.fadeOut + 0.01;
         for (const osc of nodes.ss1.oscillators) osc.stop(stopTime);
@@ -311,6 +315,13 @@ class SoundManager {
         nodes.lfo.stop(stopTime);
 
         delete this.continuousSounds[key];
+    }
+
+    setLaserVolume(id, volume) {
+        const nodes = this.continuousSounds['laser_' + (id || 'default')];
+        if (!nodes) return;
+        const now = this.ctx.currentTime;
+        nodes.outputGain.gain.setTargetAtTime(volume, now, 0.05);
     }
 
     // ======== RAILGUN CHARGE (jatkuva) ========

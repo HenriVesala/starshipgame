@@ -441,44 +441,55 @@ function fireWeaponSlot(pCtx, slotIndex, keyPressed, dt) {
 
     if (weaponType === 'laser') {
         const laserEnergyCost = p.weaponConfigs.laser.energyCostPerSecond * dt;
-        if (keyPressed && p.energy >= laserEnergyCost) {
-            p.triggerFireFlash(p.weaponConfigs.laser.fireFlash);
-            p.consumeEnergy(laserEnergyCost);
+        const laserId = 'p' + pCtx.id + '_' + slotIndex;
 
-            const halfShip = cfg.width / 2;
-            const rad = (p.angle - 90) * Math.PI / 180;
-            const startX = p.x + halfShip + Math.cos(rad) * 20;
-            const startY = p.y + halfShip + Math.sin(rad) * 20;
+        if (keyPressed) {
+            soundManager.startLaser(laserId);
 
-            // FF: laserin kohteet sisältävät muut pelaajat kun friendly fire on päällä
-            const laserPlayerTargets = friendlyFire
-                ? getAlivePlayerInstances()
-                : [];
-            const laserTargets = {
-                enemies: enemies,
-                planets: planets,
-                meteors: meteors,
-                blackHoles: blackHoles,
-                nebulaClouds: nebulaClouds,
-                players: laserPlayerTargets,
-                missiles: [...enemyMissiles, ...playerMissiles]
-            };
+            if (p.energy >= laserEnergyCost) {
+                soundManager.setLaserVolume(laserId, 1.0);
+                p.triggerFireFlash(p.weaponConfigs.laser.fireFlash);
+                p.consumeEnergy(laserEnergyCost);
 
-            laser.setConfig(p.weaponConfigs.laser);
-            const hit = laser.trace(startX, startY, p.angle, 'player', laserTargets);
-            laser.active = true;
-            soundManager.startLaser('p' + pCtx.id + '_' + slotIndex);
+                const halfShip = cfg.width / 2;
+                const rad = (p.angle - 90) * Math.PI / 180;
+                const startX = p.x + halfShip + Math.cos(rad) * 20;
+                const startY = p.y + halfShip + Math.sin(rad) * 20;
 
-            if (hit.target) {
-                const intensity = laser.getIntensity(hit.distance) * (hit.mul || 1);
-                handleLaserHit(hit.target, p.weaponConfigs.laser.damagePerSecond * dt * intensity, 'player');
+                // FF: laserin kohteet sisältävät muut pelaajat kun friendly fire on päällä
+                const laserPlayerTargets = friendlyFire
+                    ? getAlivePlayerInstances()
+                    : [];
+                const laserTargets = {
+                    enemies: enemies,
+                    planets: planets,
+                    meteors: meteors,
+                    blackHoles: blackHoles,
+                    nebulaClouds: nebulaClouds,
+                    players: laserPlayerTargets,
+                    missiles: [...enemyMissiles, ...playerMissiles]
+                };
+
+                laser.setConfig(p.weaponConfigs.laser);
+                const hit = laser.trace(startX, startY, p.angle, 'player', laserTargets);
+                laser.active = true;
+
+                if (hit.target) {
+                    const intensity = laser.getIntensity(hit.distance) * (hit.mul || 1);
+                    handleLaserHit(hit.target, p.weaponConfigs.laser.damagePerSecond * dt * intensity, 'player');
+                }
+
+                p.vx -= Math.cos(rad) * p.weaponConfigs.laser.recoilPerSecond * dt;
+                p.vy -= Math.sin(rad) * p.weaponConfigs.laser.recoilPerSecond * dt;
+            } else {
+                // Ei tarpeeksi energiaa: säde pois, ääni hiljenee
+                soundManager.setLaserVolume(laserId, 0.1);
+                laser.active = false;
             }
-
-            p.vx -= Math.cos(rad) * p.weaponConfigs.laser.recoilPerSecond * dt;
-            p.vy -= Math.sin(rad) * p.weaponConfigs.laser.recoilPerSecond * dt;
         } else {
+            // Näppäin irti: kaikki pois
             laser.active = false;
-            soundManager.stopLaser('p' + pCtx.id + '_' + slotIndex);
+            soundManager.stopLaser(laserId);
         }
 
     } else if (weaponType === 'railgun') {
