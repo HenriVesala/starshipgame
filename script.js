@@ -870,7 +870,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Luo pelaajien kontekstit
     players[0] = createPlayerContext(0, playerConfig, 'spaceship',
         ['laserCanvas1', 'laserCanvas2'],
-        { healthBar: 'healthBar', healthText: 'healthText', energyBar: 'energyBar', energyText: 'energyText' },
+        { healthBar: 'healthBar', healthText: 'healthText', energyBar: 'energyBar', energyText: 'energyText', healthBarContainer: 'healthBarContainer', energyBarContainer: 'energyBarContainer' },
         { hud: 'weaponHud', name1: 'weaponHudName1', name2: 'weaponHudName2' }
     );
     players[0].keyMap = p1KeyMap;
