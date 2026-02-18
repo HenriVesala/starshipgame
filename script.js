@@ -467,6 +467,7 @@ function fireWeaponSlot(pCtx, slotIndex, keyPressed, dt) {
             laser.setConfig(p.weaponConfigs.laser);
             const hit = laser.trace(startX, startY, p.angle, 'player', laserTargets);
             laser.active = true;
+            soundManager.startLaser('p' + pCtx.id + '_' + slotIndex);
 
             if (hit.target) {
                 const intensity = laser.getIntensity(hit.distance) * (hit.mul || 1);
@@ -477,6 +478,7 @@ function fireWeaponSlot(pCtx, slotIndex, keyPressed, dt) {
             p.vy -= Math.sin(rad) * p.weaponConfigs.laser.recoilPerSecond * dt;
         } else {
             laser.active = false;
+            soundManager.stopLaser('p' + pCtx.id + '_' + slotIndex);
         }
 
     } else if (weaponType === 'railgun') {
@@ -496,6 +498,9 @@ function fireWeaponSlot(pCtx, slotIndex, keyPressed, dt) {
                 }
             }
             slot.isChargingRailgun = true;
+            const rgChargeId = 'p' + pCtx.id + '_' + slotIndex;
+            soundManager.startRailgunCharge(rgChargeId);
+            soundManager.updateRailgunCharge(slot.railgunCharge / p.weaponConfigs.railgun.maxCharge, rgChargeId);
 
         } else if (slot.isChargingRailgun) {
             if (slot.railgunCharge >= p.weaponConfigs.railgun.minCharge) {
@@ -519,7 +524,9 @@ function fireWeaponSlot(pCtx, slotIndex, keyPressed, dt) {
                 p.vy -= Math.sin(rad) * recoilAmount;
 
                 p.triggerFireFlash(p.weaponConfigs.railgun.fireFlash);
+                soundManager.playRailgunFire(chargePercent);
             }
+            soundManager.stopRailgunCharge('p' + pCtx.id + '_' + slotIndex);
             slot.isChargingRailgun = false;
             slot.railgunCharge = 0;
         }
@@ -543,6 +550,7 @@ function fireWeaponSlot(pCtx, slotIndex, keyPressed, dt) {
                 p.vx -= Math.cos(radians) * p.weaponConfigs.missile.recoil;
                 p.vy -= Math.sin(radians) * p.weaponConfigs.missile.recoil;
                 p.triggerFireFlash(p.weaponConfigs.missile.fireFlash);
+                soundManager.playMissileFire();
             } else {
                 const bul = new Bullet(gameContainer, spawnX, spawnY, p.angle, 'player', p.vx, p.vy, p.weaponConfigs.bullet);
                 bul.firedByPlayer = p;
@@ -550,6 +558,7 @@ function fireWeaponSlot(pCtx, slotIndex, keyPressed, dt) {
                 p.vx -= Math.cos(radians) * p.weaponConfigs.bullet.recoil;
                 p.vy -= Math.sin(radians) * p.weaponConfigs.bullet.recoil;
                 p.triggerFireFlash(p.weaponConfigs.bullet.fireFlash);
+                soundManager.playBulletFire();
             }
             p.consumeEnergy(shootEnergyCost);
             p.setShootCooldown(slotIndex);
@@ -739,6 +748,10 @@ function playerDied(pCtx) {
     pCtx.dom.spaceship.style.display = 'none';
     pCtx.lasers[0].clear();
     pCtx.lasers[1].clear();
+    soundManager.stopLaser('p' + pCtx.id + '_0');
+    soundManager.stopLaser('p' + pCtx.id + '_1');
+    soundManager.stopRailgunCharge('p' + pCtx.id + '_0');
+    soundManager.stopRailgunCharge('p' + pCtx.id + '_1');
     pCtx.dom.pulseOverlay.style.background = '';
     pCtx.dom.pulseOverlay.style.opacity = '';
     if (pCtx.dom.healthBarContainer) pCtx.dom.healthBarContainer.style.display = 'none';

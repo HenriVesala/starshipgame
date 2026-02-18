@@ -57,6 +57,9 @@ class Explosion {
 
             this.particles.push(particle);
         }
+
+        // Räjähdysääni
+        soundManager.playExplosion(size);
     }
 
     update(dt) {

@@ -46,6 +46,7 @@ class BaseEnemy extends SpaceShip {
 
         this.gameContainer = gameContainer;
         this.config = config;
+        this.id = BaseEnemy._nextId++;
 
         // Resolve asekonfiguraatiot: globaalit oletukset + aluskohtaiset ylikirjoitukset
         const wo = this.config.weapons || {};
@@ -152,7 +153,7 @@ class BaseEnemy extends SpaceShip {
     update(enemyBullets, enemyMissiles, playerX = null, playerY = null, dt = 0.016) {
         // Jos kutistuu, sammuta laser, nollaa railgun ja renderöi
         if (this.isShrinking) {
-            if (this.laser) this.laser.active = false;
+            if (this.laser) { this.laser.active = false; soundManager.stopLaser('enemy_' + this.id); }
             this.isChargingRailgun = false;
             this.railgunCharge = 0;
             this.render();
@@ -264,6 +265,7 @@ class BaseEnemy extends SpaceShip {
                     this.laser.setConfig(this.weaponConfigs.laser);
                     const hit = this.laser.trace(startX, startY, this.angle, 'enemy', laserTargets);
                     this.laser.active = true;
+                    soundManager.startLaser('enemy_' + this.id);
 
                     if (hit.target) {
                         const intensity = this.laser.getIntensity(hit.distance) * (hit.mul || 1);
@@ -274,7 +276,7 @@ class BaseEnemy extends SpaceShip {
                     this.vx -= Math.cos(rad) * this.weaponConfigs.laser.recoilPerSecond * dt;
                     this.vy -= Math.sin(rad) * this.weaponConfigs.laser.recoilPerSecond * dt;
                 } else {
-                    if (this.laser) this.laser.active = false;
+                    if (this.laser) { this.laser.active = false; soundManager.stopLaser('enemy_' + this.id); }
                 }
             } else {
                 // Bullet/Missile: cooldown-pohjainen ampuminen
@@ -292,7 +294,7 @@ class BaseEnemy extends SpaceShip {
             }
         } else {
             // Ei pelaajan sijaintia — sammuta laser ja nollaa railgun-lataus
-            if (this.laser) this.laser.active = false;
+            if (this.laser) { this.laser.active = false; soundManager.stopLaser('enemy_' + this.id); }
             if (this.isChargingRailgun) this.fireRailgun(enemyBullets);
             this.shootCooldown -= dt;
         }
@@ -480,6 +482,7 @@ class BaseEnemy extends SpaceShip {
             this.vx -= Math.cos(radians) * this.weaponConfigs.missile.recoil;
             this.vy -= Math.sin(radians) * this.weaponConfigs.missile.recoil;
             this.triggerFireFlash(this.weaponConfigs.missile.fireFlash);
+            soundManager.playMissileFire();
         } else {
             const bullet = new Bullet(this.gameContainer, spawnX, spawnY, this.angle, 'enemy', this.vx, this.vy, this.weaponConfigs.bullet);
             bullet.firedBy = this;
@@ -488,6 +491,7 @@ class BaseEnemy extends SpaceShip {
             this.vx -= Math.cos(radians) * this.weaponConfigs.bullet.recoil;
             this.vy -= Math.sin(radians) * this.weaponConfigs.bullet.recoil;
             this.triggerFireFlash(this.weaponConfigs.bullet.fireFlash);
+            soundManager.playBulletFire();
         }
     }
 
@@ -515,6 +519,7 @@ class BaseEnemy extends SpaceShip {
             this.vy -= Math.sin(rad) * recoilAmount;
 
             this.triggerFireFlash(this.weaponConfigs.railgun.fireFlash);
+            soundManager.playRailgunFire(chargePercent);
         }
 
         this.isChargingRailgun = false;
@@ -523,6 +528,7 @@ class BaseEnemy extends SpaceShip {
 
     destroy() {
         if (this.laser) this.laser.clear();
+        soundManager.stopLaser('enemy_' + this.id);
         super.destroy();
     }
 
@@ -573,3 +579,4 @@ class BaseEnemy extends SpaceShip {
         }
     }
 }
+BaseEnemy._nextId = 0;

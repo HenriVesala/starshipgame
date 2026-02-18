@@ -1,8 +1,7 @@
 // Ammuksien konfiguraatio (oletukset = vihollisen arvot)
 const bulletConfig = {
     // Tulinopeus
-        shootCooldown: 0.2,        // Pelaajan cooldown (sekunti)
-
+    shootCooldown: 0.2,        // Pelaajan cooldown (sekunti)
     shootCooldownMin: 1.0,     // Vihollisen min cooldown (sekunti)
     shootCooldownMax: 2.67,    // Vihollisen max cooldown (sekunti)
 
